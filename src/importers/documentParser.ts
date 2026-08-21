@@ -1,20 +1,19 @@
 import Papa from 'papaparse';
 import * as XLSX from 'xlsx';
 import * as pdfjsLib from 'pdfjs-dist';
-import { 
-  Trade, 
-  AccountTransaction, 
-  AmbiguousImportRow, 
-  PendingImportSummary, 
-  TradeValidationWarning, 
-  DuplicateMatch, 
-  TradeSide, 
+import {
+  Trade,
+  AccountTransaction,
+  AmbiguousImportRow,
+  PendingImportSummary,
+  TradeValidationWarning,
+  DuplicateMatch,
+  TradeSide,
   TradeOutcome,
-  ImportItemClassification 
+  ImportItemClassification,
 } from '../types';
 import { deduceSessionFromTime, getStandardSession } from '../utils/tradingSession';
 
-// Set worker source for PDF.js client-side parser
 if (typeof window !== 'undefined' && pdfjsLib) {
   try {
     pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version || '4.10.38'}/pdf.worker.min.mjs`;
@@ -23,152 +22,135 @@ if (typeof window !== 'undefined' && pdfjsLib) {
   }
 }
 
-/**
- * Normalizes symbols (e.g. "eurusd" -> "EURUSD", "XAU/USD" -> "XAUUSD")
- */
+const DEPOSIT_KEYWORDS = ['deposit', 'dépôt', 'depot', 'credit', 'crédit', 'fund in', 'top-up', 'topup', 'wire in', 'recharge', 'versement', 'pay in', 'apport', 'inflow'];
+const WITHDRAWAL_KEYWORDS = ['withdraw', 'withdrawal', 'retrait', 'debit', 'débit', 'fund out', 'payout', 'cashout', 'wire out', 'virement sortant', 'outflow'];
+const KNOWN_SYMBOLS = [
+  'EURUSD','GBPUSD','USDJPY','USDCHF','AUDUSD','NZDUSD','USDCAD','EURGBP','EURJPY','GBPJPY','AUDJPY','CADJPY','CHFJPY','EURAUD',
+  'XAUUSD','XAGUSD','GOLD','SILVER','USOIL','UKOIL','WTI','BRENT','BTCUSD','ETHUSD','SOLUSD','US500','SPX500','NAS100','US100','US30','DJI','GER40','DAX','FRA40','CAC40'
+];
+
+const cleanKey = (value: any) => String(value ?? '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]/g, '');
+
 export function normalizeSymbol(raw: string): string {
   if (!raw) return 'UNKNOWN';
-  let s = raw.trim().toUpperCase().replace(/[\/\-_]/g, '');
+  let s = String(raw).trim().toUpperCase().replace(/[\s\/_\-.]/g, '');
   if (s.startsWith('FX:')) s = s.substring(3);
-  return s;
+  const known = KNOWN_SYMBOLS.find((x) => x === s);
+  return known || (s.length >= 6 && s.length <= 12 ? s : 'UNKNOWN');
 }
 
-/**
- * Normalizes side/direction ("Long" -> "BUY", "Short" -> "SELL", "buy" -> "BUY")
- */
 export function normalizeSide(raw: string): TradeSide {
-  if (!raw) return 'BUY';
-  const l = raw.trim().toUpperCase();
-  if (l === 'SHORT' || l === 'SELL' || l === 'S' || l === 'VENTE' || l === 'V') return 'SELL';
-  return 'BUY';
+  const l = String(raw ?? '').trim().toUpperCase();
+  return ['SHORT', 'SELL', 'S', 'VENTE', 'V', 'SELLING'].includes(l) ? 'SELL' : 'BUY';
 }
 
-/**
- * Parses date string into YYYY-MM-DD
- */
 export function parseDateString(raw: any): string | null {
-  if (!raw) return null;
-  const str = String(raw).trim();
-
-  // Try YYYY-MM-DD
+  if (raw instanceof Date && !isNaN(raw.getTime())) {
+    return `${raw.getFullYear()}-${String(raw.getMonth() + 1).padStart(2, '0')}-${String(raw.getDate()).padStart(2, '0')}`;
+  }
+  if (raw === undefined || raw === null || String(raw).trim() === '') return null;
+  const str = String(raw).trim().replace(/^['"]|['"]$/g, '');
   if (/^\d{4}-\d{2}-\d{2}$/.test(str)) return str;
-
-  // Try YYYY.MM.DD or YYYY/MM/DD
-  const ymd = str.match(/^(\d{4})[\.\/-](\d{1,2})[\.\/-](\d{1,2})/);
-  if (ymd) {
-    const year = ymd[1];
-    const month = ymd[2].padStart(2, '0');
-    const day = ymd[3].padStart(2, '0');
-    return `${year}-${month}-${day}`;
-  }
-
-  // Try DD.MM.YYYY or DD/MM/YYYY
-  const dmY = str.match(/^(\d{1,2})[\.\/-](\d{1,2})[\.\/-](\d{4})/);
-  if (dmY) {
-    const day = dmY[1].padStart(2, '0');
-    const month = dmY[2].padStart(2, '0');
-    const year = dmY[3];
-    return `${year}-${month}-${day}`;
-  }
-
-  // Try parsing English / French Month names (e.g. "Aug 10, 2026", "10 Août 2026")
-  const dateObj = new Date(str);
-  if (!isNaN(dateObj.getTime())) {
-    const yyyy = dateObj.getFullYear();
-    const mm = String(dateObj.getMonth() + 1).padStart(2, '0');
-    const dd = String(dateObj.getDate()).padStart(2, '0');
-    return `${yyyy}-${mm}-${dd}`;
-  }
-
-  return null;
+  let m = str.match(/^(\d{4})[./-](\d{1,2})[./-](\d{1,2})/);
+  if (m) return `${m[1]}-${m[2].padStart(2, '0')}-${m[3].padStart(2, '0')}`;
+  m = str.match(/^(\d{1,2})[./-](\d{1,2})[./-](\d{4})/);
+  if (m) return `${m[3]}-${m[2].padStart(2, '0')}-${m[1].padStart(2, '0')}`;
+  const d = new Date(str);
+  return isNaN(d.getTime()) ? null : `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 }
 
-/**
- * Parses numeric PnL or amount cleanly (handles 1 200,50 / $1,200.50 / -450€ / (100))
- */
+/** Robust monetary parser. It never treats an unrelated cell such as balance/volume as PnL when called on a PnL column. */
 export function parseNumericPnL(raw: any): number | null {
-  if (raw === undefined || raw === null || raw === '') return null;
-  if (typeof raw === 'number') return isNaN(raw) ? null : raw;
-
-  let str = String(raw).trim();
-  
-  // Check for accounting negative format: (120.50) -> -120.50
-  let isNegative = false;
-  if (str.startsWith('(') && str.endsWith(')')) {
-    isNegative = true;
-    str = str.slice(1, -1);
-  } else if (str.startsWith('-') || str.includes(' -') || str.includes('loss') || str.includes('perte')) {
-    isNegative = true;
+  if (raw === undefined || raw === null || String(raw).trim() === '') return null;
+  if (typeof raw === 'number') return Number.isFinite(raw) ? raw : null;
+  let s = String(raw).trim().replace(/[\u00a0\u202f]/g, ' ');
+  if (!s || /^(?:-|—|n\/a|na|null|none)$/i.test(s)) return null;
+  let negative = /^\(.*\)$/.test(s) || /^\s*-/.test(s) || /\b(?:loss|losses|perte|pertes)\b/i.test(s);
+  s = s.replace(/^\(|\)$/g, '').replace(/[€$£¥₹]/g, '').replace(/\b(?:usd|eur|gbp|cad|aud|jpy)\b/ig, '').replace(/\s/g, '').replace(/\+/g, '');
+  const lastComma = s.lastIndexOf(',');
+  const lastDot = s.lastIndexOf('.');
+  if (lastComma >= 0 && lastDot >= 0) {
+    if (lastComma > lastDot) s = s.replace(/\./g, '').replace(',', '.');
+    else s = s.replace(/,/g, '');
+  } else if (lastComma >= 0) {
+    const digitsAfter = s.length - lastComma - 1;
+    s = digitsAfter === 1 || digitsAfter === 2 ? s.replace(',', '.') : s.replace(/,/g, '');
   }
-
-  // Remove currency signs, letters, and extra spaces
-  str = str.replace(/[$€£¥+\s]/g, '').trim();
-
-  // Handle European comma decimal: "1250,50" -> "1250.50" or "1.250,50" -> "1250.50"
-  if (str.includes(',') && str.includes('.')) {
-    // Determine which is thousand separator
-    if (str.indexOf('.') < str.indexOf(',')) {
-      // 1.250,50 -> 1250.50
-      str = str.replace(/\./g, '').replace(',', '.');
-    } else {
-      // 1,250.50 -> 1250.50
-      str = str.replace(/,/g, '');
-    }
-  } else if (str.includes(',')) {
-    // Only comma present: 1250,50 -> 1250.50
-    str = str.replace(',', '.');
-  }
-
-  const num = parseFloat(str);
-  if (isNaN(num)) return null;
-
-  return isNegative ? -Math.abs(num) : num;
+  const n = Number(s);
+  if (!Number.isFinite(n)) return null;
+  return negative ? -Math.abs(n) : n;
 }
 
-/**
- * Client-side PDF text extractor using pdfjs-dist
- */
-export async function extractTextFromPDF(file: File): Promise<string> {
-  try {
-    const arrayBuffer = await file.arrayBuffer();
-    const loadingTask = pdfjsLib.getDocument({ data: arrayBuffer });
-    const pdf = await loadingTask.promise;
-    let fullText = '';
-    
-    for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
-      const page = await pdf.getPage(pageNum);
-      const textContent = await page.getTextContent();
-      const pageItems = textContent.items.map((item: any) => item.str);
-      fullText += pageItems.join(' ') + '\n';
-    }
-
-    return fullText;
-  } catch (err) {
-    console.warn('Client-side PDF extraction failed:', err);
-    return '';
+function firstValue(row: Record<string, any>, aliases: string[]): any {
+  const keys = Object.keys(row);
+  for (const alias of aliases) {
+    const target = cleanKey(alias);
+    const exact = keys.find((k) => cleanKey(k) === target);
+    if (exact && row[exact] !== undefined && row[exact] !== null && String(row[exact]).trim() !== '') return row[exact];
   }
+  for (const alias of aliases) {
+    const target = cleanKey(alias);
+    const partial = keys.find((k) => {
+      const ck = cleanKey(k);
+      return ck.includes(target) || target.includes(ck);
+    });
+    if (partial && row[partial] !== undefined && row[partial] !== null && String(row[partial]).trim() !== '') return row[partial];
+  }
+  return undefined;
 }
 
-/**
- * Keyword dictionaries for deposit and withdrawal recognition (FR + EN + MT4/MT5/NinjaTrader/cTrader formats)
- */
-const DEPOSIT_KEYWORDS = [
-  'deposit', 'dépôt', 'depot', 'credit', 'crédit', 'inward', 'fund in', 'alimentation', 
-  'top-up', 'topup', 'wire in', 'recharge', 'versement', 'pay in', 'versement initial', 
-  'balance deposit', 'dep', 'solde initial', 'apport', 'inflow'
-];
+function columnKey(row: Record<string, any>, aliases: string[]): string | undefined {
+  const keys = Object.keys(row);
+  for (const alias of aliases) {
+    const target = cleanKey(alias);
+    const exact = keys.find((k) => cleanKey(k) === target);
+    if (exact) return exact;
+  }
+  for (const alias of aliases) {
+    const target = cleanKey(alias);
+    const partial = keys.find((k) => cleanKey(k).includes(target));
+    if (partial) return partial;
+  }
+  return undefined;
+}
 
-const WITHDRAWAL_KEYWORDS = [
-  'withdraw', 'withdrawal', 'retrait', 'debit', 'débit', 'outward', 'fund out', 'payout', 
-  'cashout', 'wire out', 'virement sortant', 'ret', 'balance withdrawal', 'outflow', 'ponction'
-];
+function isSide(value: any): boolean {
+  return /^(buy|sell|long|short|achat|vente|b|s)$/i.test(String(value ?? '').trim());
+}
 
-const KNOWN_FOREX_CRYPTO_SYMBOLS = [
-  'EURUSD', 'GBPUSD', 'USDJPY', 'USDCHF', 'AUDUSD', 'NZDUSD', 'USDCAD',
-  'EURGBP', 'EURJPY', 'GBPJPY', 'AUDJPY', 'CADJPY', 'CHFJPY', 'EURAUD',
-  'XAUUSD', 'XAGUSD', 'GOLD', 'SILVER', 'USOIL', 'UKOIL', 'WTI', 'BRENT',
-  'BTCUSD', 'ETHUSD', 'SOLUSD', 'US500', 'SPX500', 'NAS100', 'US100', 'US30', 'DJI', 'GER40', 'DAX', 'FRA40', 'CAC40'
-];
+function isLikelySymbol(value: any): boolean {
+  if (!value) return false;
+  const s = String(value).trim().toUpperCase().replace(/[\s\/_\-.]/g, '');
+  if (KNOWN_SYMBOLS.includes(s)) return true;
+  return /^[A-Z]{6,12}$/.test(s) && !['DEPOSIT','WITHDRAW','BALANCE','ACCOUNT','UNKNOWN'].includes(s);
+}
+
+function extractSymbol(row: Record<string, any>, allText: string): string {
+  const direct = firstValue(row, ['symbol','pair','paire','instrument','ticker','market','asset','product']);
+  if (isLikelySymbol(direct)) return normalizeSymbol(String(direct));
+  const upper = allText.toUpperCase().replace(/[\/_\-.]/g, '');
+  const found = KNOWN_SYMBOLS.find((s) => upper.includes(s));
+  return found ? normalizeSymbol(found) : 'UNKNOWN';
+}
+
+function extractTime(raw: any): string | undefined {
+  const s = String(raw ?? '');
+  const m = s.match(/(?:^|[T\s])([01]?\d|2[0-3]):([0-5]\d)(?::([0-5]\d))?/);
+  return m ? `${m[1].padStart(2, '0')}:${m[2]}` : undefined;
+}
+
+function parsePrice(raw: any): number | undefined {
+  const n = parseNumericPnL(raw);
+  return n === null ? undefined : n;
+}
+
+function classifyKeywords(text: string) {
+  const lower = text.toLowerCase();
+  return {
+    deposit: DEPOSIT_KEYWORDS.some((k) => lower.includes(k)),
+    withdrawal: WITHDRAWAL_KEYWORDS.some((k) => lower.includes(k)),
+  };
+}
 
 export interface ClassificationResult {
   type: ImportItemClassification;
@@ -176,446 +158,241 @@ export interface ClassificationResult {
   reason: string;
 }
 
-export function classifyRawItem(
-  textToScan: string,
-  hasSymbol: boolean,
-  hasSide: boolean,
-  hasPrices: boolean,
-  amount: number | null
-): ClassificationResult {
-  const lower = textToScan.toLowerCase();
+export function classifyRawItem(textToScan: string, hasSymbol: boolean, hasSide: boolean, hasPrices: boolean, amount: number | null): ClassificationResult {
+  const { deposit, withdrawal } = classifyKeywords(textToScan);
+  if (deposit && !hasSide && !hasSymbol) return { type: 'DEPOSIT', confidence: 'HIGH', reason: 'Dépôt/crédit identifié' };
+  if (withdrawal && !hasSide && !hasSymbol) return { type: 'WITHDRAWAL', confidence: 'HIGH', reason: 'Retrait/débit identifié' };
+  if (hasSymbol && (hasSide || hasPrices)) return { type: 'TRADE', confidence: 'HIGH', reason: 'Instrument et données d’exécution détectés' };
+  if (amount !== null) return { type: 'AMBIGUOUS', confidence: 'MEDIUM', reason: 'Montant détecté mais nature de la ligne incertaine' };
+  return { type: 'IGNORE', confidence: 'HIGH', reason: 'Aucune donnée financière exploitable' };
+}
 
-  // Explicit deposit keyword match
-  const isDepositKeyword = DEPOSIT_KEYWORDS.some((kw) => {
-    const regex = new RegExp(`(^|\\W)${kw}(\\W|$)`, 'i');
-    return regex.test(lower);
-  });
-
-  // Explicit withdrawal keyword match
-  const isWithdrawalKeyword = WITHDRAWAL_KEYWORDS.some((kw) => {
-    const regex = new RegExp(`(^|\\W)${kw}(\\W|$)`, 'i');
-    return regex.test(lower);
-  });
-
-  // If explicit deposit keyword and NO trade direction
-  if (isDepositKeyword && !hasSide) {
-    return {
-      type: 'DEPOSIT',
-      confidence: 'HIGH',
-      reason: 'Opération de compte : mot-clé de Dépôt / Crédit identifié',
-    };
-  }
-
-  // If explicit withdrawal keyword and NO trade direction
-  if (isWithdrawalKeyword && !hasSide) {
-    return {
-      type: 'WITHDRAWAL',
-      confidence: 'HIGH',
-      reason: 'Opération de compte : mot-clé de Retrait / Débit identifié',
-    };
-  }
-
-  // If trade direction or known instrument symbol + trading attributes
-  if (hasSymbol && hasSide) {
-    return {
-      type: 'TRADE',
-      confidence: 'HIGH',
-      reason: 'Trade identifié : Symbole et sens d\'exécution (BUY/SELL) détectés',
-    };
-  }
-
-  if (hasSymbol && hasPrices) {
-    return {
-      type: 'TRADE',
-      confidence: 'HIGH',
-      reason: 'Trade identifié : Symbole et prix d\'exécution (Entry/Exit/SL) détectés',
-    };
-  }
-
-  // Mixed or ambiguous cases
-  if ((isDepositKeyword || isWithdrawalKeyword) && (hasSymbol || hasSide)) {
-    return {
-      type: 'AMBIGUOUS',
-      confidence: 'LOW',
-      reason: 'Indéterminé : contient à la fois des mots-clés de compte et de trading',
-    };
-  }
-
-  if (!hasSymbol && !hasSide && amount !== null && Math.abs(amount) > 0) {
-    if (isDepositKeyword) {
-      return {
-        type: 'DEPOSIT',
-        confidence: 'HIGH',
-        reason: 'Ligne financière : montant avec libellé de Dépôt',
-      };
+export async function extractTextFromPDF(file: File): Promise<string> {
+  try {
+    const pdf = await pdfjsLib.getDocument({ data: await file.arrayBuffer() }).promise;
+    let out = '';
+    for (let i = 1; i <= pdf.numPages; i++) {
+      const page = await pdf.getPage(i);
+      const content = await page.getTextContent();
+      out += content.items.map((x: any) => x.str).join(' ') + '\n';
     }
-    if (isWithdrawalKeyword) {
-      return {
-        type: 'WITHDRAWAL',
-        confidence: 'HIGH',
-        reason: 'Ligne financière : montant avec libellé de Retrait',
-      };
-    }
-    return {
-      type: 'AMBIGUOUS',
-      confidence: 'MEDIUM',
-      reason: 'Ligne financière sans symbole de trading ni mot-clé explicite',
-    };
+    return out;
+  } catch (e) {
+    console.warn('PDF extraction failed:', e);
+    return '';
   }
+}
 
-  if (hasSymbol) {
-    return {
-      type: 'TRADE',
-      confidence: 'MEDIUM',
-      reason: 'Symbole de trading identifié sans sens explicite',
-    };
-  }
+function makeTrade(row: Record<string, any>, sourceType: Trade['source'], index: number): Trade | null {
+  const allText = Object.values(row).filter((v) => v !== undefined && v !== null && String(v).trim() !== '').map(String).join(' ');
+  const symbol = extractSymbol(row, allText);
+  const sideRaw = firstValue(row, ['side','direction','trade type','type trade','sens','action','position','order type']);
+  const dateRaw = firstValue(row, ['date','datetime','date time','open time','open date','entry time','entry date','close time','close date','timestamp','time']);
+  const entryRaw = firstValue(row, ['entry price','entryprice','open price','openprice','price open','prix entree','entry']);
+  const exitRaw = firstValue(row, ['exit price','exitprice','close price','closeprice','price close','prix sortie','exit']);
+  const slRaw = firstValue(row, ['stop loss','stoploss','sl']);
+  const tpRaw = firstValue(row, ['take profit','takeprofit','tp']);
+  const lotRaw = firstValue(row, ['lot size','lotsize','lots','lot','volume','quantity','qty']);
+  const commissionRaw = firstValue(row, ['commission','commissions','fees','fee','frais']);
+  const swapRaw = firstValue(row, ['swap','swaps','rollover']);
+  const rRaw = firstValue(row, ['r multiple','rmultiple','realized r','rr realized','rr']);
+
+  // IMPORTANT: PnL aliases are deliberately ordered by semantic precision. Balance/Total/Amount are NOT PnL fallbacks.
+  const pnlRaw = firstValue(row, [
+    'net pnl','net p&l','net p/l','net profit','netprofit','closed pnl','closed p&l','closed p/l','profit loss','profit/loss','profit','pnl','p&l','p/l','realized pnl','realized profit','result','résultat','gain','perte','profit usd','pnl usd','net pnl usd','profit eur','pnl eur','gross profit','gross loss'
+  ]);
+  const date = parseDateString(dateRaw) || parseDateString(firstValue(row, ['close date','close time','exit time'])) || new Date().toISOString().slice(0, 10);
+  const time = extractTime(firstValue(row, ['open time','entry time','date time','datetime','time','timestamp'])) || extractTime(dateRaw);
+  const parsedPnL = parseNumericPnL(pnlRaw);
+  const hasTradeEvidence = symbol !== 'UNKNOWN' || isSide(sideRaw) || entryRaw !== undefined || exitRaw !== undefined || slRaw !== undefined || tpRaw !== undefined;
+  const { deposit, withdrawal } = classifyKeywords(allText);
+  if (!hasTradeEvidence || (deposit || withdrawal) && !isSide(sideRaw) && symbol === 'UNKNOWN') return null;
+
+  const netPnL = parsedPnL ?? 0;
+  const side = isSide(sideRaw) ? normalizeSide(String(sideRaw)) : /\b(sell|short|vente)\b/i.test(allText) ? 'SELL' : 'BUY';
+  const killzoneRaw = firstValue(row, ['killzone','session','trading session','zone']);
+  const finalSession = killzoneRaw ? getStandardSession({ killzone: String(killzoneRaw), time }) : (time ? deduceSessionFromTime(time) : undefined);
+  const outcome: TradeOutcome = netPnL > 0 ? 'Win' : netPnL < 0 ? 'Loss' : 'BE';
 
   return {
-    type: 'IGNORE',
-    confidence: 'HIGH',
-    reason: 'Ligne informative, sous-total ou en-tête sans impact financier',
+    id: `imp-${Date.now()}-${index}-${Math.random().toString(36).slice(2, 7)}`,
+    date,
+    time,
+    symbol,
+    side,
+    entry: parsePrice(entryRaw),
+    exit: parsePrice(exitRaw),
+    stopLoss: parsePrice(slRaw),
+    takeProfit: parsePrice(tpRaw),
+    lotSize: parsePrice(lotRaw),
+    commission: parsePrice(commissionRaw),
+    swap: parsePrice(swapRaw),
+    netPnL,
+    grossPnL: parseNumericPnL(firstValue(row, ['gross pnl','gross p&l','gross profit'])) ?? undefined,
+    rMultiple: parseNumericPnL(rRaw) ?? undefined,
+    outcome,
+    killzone: finalSession,
+    setup: String(firstValue(row, ['setup','strategy','strategie','tag','tags']) ?? '').trim() || undefined,
+    source: sourceType,
+    createdAt: new Date().toISOString(),
   };
 }
 
-/**
- * Text line parser with automatic classification into Trades, Deposits, Withdrawals, Ambiguities
- */
-export function parseTextJournalReportAdvanced(
-  text: string,
-  sourceType: Trade['source'] = 'Imported PDF'
-): {
-  trades: Trade[];
-  deposits: AccountTransaction[];
-  withdrawals: AccountTransaction[];
-  ambiguousRows: AmbiguousImportRow[];
-} {
+export function processRawObjectsArray(rows: Record<string, any>[], sourceType: Trade['source']) {
   const trades: Trade[] = [];
   const deposits: AccountTransaction[] = [];
   const withdrawals: AccountTransaction[] = [];
   const ambiguousRows: AmbiguousImportRow[] = [];
 
-  const lines = text.split(/\r?\n/);
-  const monthNames = '(Jan(?:uary)?|Feb(?:ruary)?|Mar(?:ch)?|Apr(?:il)?|May|Jun(?:e)?|Jul(?:y)?|Aug(?:ust)?|Sep(?:tember)?|Oct(?:ober)?|Nov(?:ember)?|Dec(?:ember)?)';
-  
-  let itemIdx = 1;
+  rows.forEach((row, i) => {
+    const allText = Object.values(row).filter((v) => v !== undefined && v !== null && String(v).trim() !== '').map(String).join(' ');
+    if (!allText.trim()) return;
+    const { deposit, withdrawal } = classifyKeywords(allText);
+    const symbol = extractSymbol(row, allText);
+    const sideRaw = firstValue(row, ['side','direction','trade type','type trade','sens','action','position','order type']);
+    const pnlRaw = firstValue(row, ['net pnl','net p&l','net p/l','net profit','netprofit','closed pnl','closed p&l','closed p/l','profit loss','profit/loss','profit','pnl','p&l','p/l','realized pnl','realized profit','result','résultat','gain','perte','profit usd','pnl usd','net pnl usd','profit eur','pnl eur','gross profit','gross loss']);
+    const pnl = parseNumericPnL(pnlRaw);
+    const dateRaw = firstValue(row, ['date','datetime','date time','open time','open date','entry time','entry date','close time','close date','timestamp','time']);
+    const safeDate = parseDateString(dateRaw) || new Date().toISOString().slice(0, 10);
+    const time = extractTime(dateRaw);
+    const amountRaw = firstValue(row, ['amount','montant','cash flow','transaction amount']);
+    const amount = parseNumericPnL(amountRaw);
 
-  lines.forEach((line) => {
-    const trimmed = line.trim();
-    if (!trimmed || trimmed.length < 3) return;
-
-    const lower = trimmed.toLowerCase();
-
-    // Check if contains deposit/credit keywords
-    const isDep = DEPOSIT_KEYWORDS.some((kw) => new RegExp(`(^|\\W)${kw}(\\W|$)`, 'i').test(lower));
-    const isWth = WITHDRAWAL_KEYWORDS.some((kw) => new RegExp(`(^|\\W)${kw}(\\W|$)`, 'i').test(lower));
-
-    const dateMatch = trimmed.match(/(\d{4}[-\.\/]\d{1,2}[-\.\/]\d{1,2}|\d{1,2}[-\.\/]\d{1,2}[-\.\/]\d{4})/);
-    const amountMatch = trimmed.match(/[+\-]?[$€£¥]?\s*\(?[\d\s\.,]{2,}\)?/);
-    const parsedAmount = amountMatch ? parseNumericPnL(amountMatch[0]) : null;
-    const parsedDate = dateMatch ? parseDateString(dateMatch[1]) : new Date().toISOString().substring(0, 10);
-
-    if (isDep && !lower.includes('buy') && !lower.includes('sell') && !lower.includes('long') && !lower.includes('short')) {
-      const amt = parsedAmount !== null ? Math.abs(parsedAmount) : 1000;
-      deposits.push({
-        id: `dep-txt-${Date.now()}-${itemIdx++}`,
-        date: parsedDate || new Date().toISOString().substring(0, 10),
-        type: 'DEPOSIT',
-        amount: amt,
-        description: trimmed,
-        source: sourceType as any,
-        createdAt: new Date().toISOString(),
-      });
+    if (deposit && !isSide(sideRaw) && symbol === 'UNKNOWN') {
+      deposits.push({ id: `dep-${Date.now()}-${i}`, date: safeDate, time, type: 'DEPOSIT', amount: Math.abs(amount ?? pnl ?? 0), description: allText, source: sourceType as any, createdAt: new Date().toISOString() });
+      return;
+    }
+    if (withdrawal && !isSide(sideRaw) && symbol === 'UNKNOWN') {
+      withdrawals.push({ id: `wth-${Date.now()}-${i}`, date: safeDate, time, type: 'WITHDRAWAL', amount: Math.abs(amount ?? pnl ?? 0), description: allText, source: sourceType as any, createdAt: new Date().toISOString() });
       return;
     }
 
-    if (isWth && !lower.includes('buy') && !lower.includes('sell') && !lower.includes('long') && !lower.includes('short')) {
-      const amt = parsedAmount !== null ? Math.abs(parsedAmount) : 500;
-      withdrawals.push({
-        id: `wth-txt-${Date.now()}-${itemIdx++}`,
-        date: parsedDate || new Date().toISOString().substring(0, 10),
-        type: 'WITHDRAWAL',
-        amount: amt,
-        description: trimmed,
-        source: sourceType as any,
-        createdAt: new Date().toISOString(),
-      });
+    const trade = makeTrade(row, sourceType, i);
+    if (trade) {
+      trades.push(trade);
       return;
     }
 
-    // Check standard trade pattern
-    const symbolMatch = trimmed.match(/\b([A-Z]{3,6}(?:\/[A-Z]{3})?|XAUUSD|XAGUSD|US30|NAS100|SPX500|GER40|BTCUSD|ETHUSD)\b/i);
-    const sideMatch = trimmed.match(/\b(BUY|SELL|LONG|SHORT|ACHAT|VENTE)\b/i);
-
-    if (symbolMatch && (sideMatch || parsedAmount !== null)) {
-      const symbol = normalizeSymbol(symbolMatch[1]);
-      const side = sideMatch ? normalizeSide(sideMatch[1]) : (parsedAmount !== null && parsedAmount >= 0 ? 'BUY' : 'SELL');
-      const netPnL = parsedAmount ?? 0;
-
-      trades.push({
-        id: `trade-txt-${Date.now()}-${itemIdx++}`,
-        date: parsedDate || new Date().toISOString().substring(0, 10),
-        symbol,
-        side,
-        netPnL,
-        outcome: netPnL > 0 ? 'Win' : netPnL < 0 ? 'Loss' : 'BE',
-        source: sourceType as any,
-        createdAt: new Date().toISOString(),
-      });
-      return;
-    }
-
-    // If row contains an amount and date but couldn't be classified cleanly -> Ambiguous
-    if (parsedAmount !== null && Math.abs(parsedAmount) > 0 && !trimmed.toLowerCase().includes('total') && !trimmed.toLowerCase().includes('balance:')) {
+    if (pnl !== null && pnl !== 0) {
       ambiguousRows.push({
-        id: `amb-txt-${Date.now()}-${itemIdx++}`,
-        rawText: trimmed,
-        suggestedType: parsedAmount > 0 ? 'DEPOSIT' : 'WITHDRAWAL',
-        confidenceReason: 'Ligne contenant un montant financier sans paire ni direction formelle',
-        date: parsedDate || new Date().toISOString().substring(0, 10),
-        amountOrPnL: parsedAmount,
+        id: `amb-${Date.now()}-${i}`,
+        rawText: allText,
+        suggestedType: 'AMBIGUOUS',
+        confidenceReason: 'PnL détecté mais la ligne ne contient pas suffisamment d’éléments pour confirmer un trade.',
+        date: safeDate,
+        symbol: symbol !== 'UNKNOWN' ? symbol : undefined,
+        amountOrPnL: pnl,
+        tradeCandidate: { symbol: symbol !== 'UNKNOWN' ? symbol : undefined, side: isSide(sideRaw) ? normalizeSide(String(sideRaw)) : 'BUY', netPnL: pnl },
       });
     }
   });
-
   return { trades, deposits, withdrawals, ambiguousRows };
 }
 
-/**
- * Universal document parser (CSV, XLSX, JSON, TXT/PDF) with smart separation of Trades, Deposits, Withdrawals
- */
-export async function parseDocumentFile(
-  file: File,
-  existingTrades: Trade[] = []
-): Promise<PendingImportSummary> {
+function parseCSVRows(text: string): Record<string, any>[] {
+  const normalized = text.replace(/^\uFEFF/, '');
+  const result = Papa.parse<Record<string, any>>(normalized, {
+    header: true,
+    skipEmptyLines: 'greedy',
+    delimiter: '',
+    transformHeader: (h) => h.replace(/^\uFEFF/, '').trim(),
+    transform: (v) => typeof v === 'string' ? v.trim() : v,
+  });
+  if (result.errors.length) console.warn('CSV parser warnings:', result.errors.slice(0, 5));
+  const rows = (result.data || []).filter((r) => Object.keys(r).some((k) => String(r[k] ?? '').trim() !== ''));
+  if (rows.length && Object.keys(rows[0]).length > 1) return rows;
+
+  // Some broker exports have no header row. Parse without headers and infer common column positions.
+  const raw = Papa.parse<string[]>(normalized, { header: false, skipEmptyLines: 'greedy', delimiter: '' });
+  const matrix = raw.data || [];
+  if (!matrix.length) return [];
+  const header = matrix[0].map((v, i) => String(v || `Column ${i + 1}`).trim());
+  const looksLikeHeader = header.some((h) => /symbol|pair|profit|pnl|date|time|side|direction|entry|exit/i.test(h));
+  if (looksLikeHeader) return matrix.slice(1).map((values) => Object.fromEntries(header.map((h, i) => [h, values[i] ?? ''])));
+  return matrix.map((values) => Object.fromEntries(values.map((v, i) => [`Column ${i + 1}`, v])));
+}
+
+export async function parseDocumentFile(file: File, existingTrades: Trade[] = []): Promise<PendingImportSummary> {
   const batchId = `batch-${Date.now()}`;
   const fileName = file.name;
   const fileExt = fileName.substring(fileName.lastIndexOf('.')).toLowerCase();
-
-  let extractedTrades: Trade[] = [];
-  let extractedDeposits: AccountTransaction[] = [];
-  let extractedWithdrawals: AccountTransaction[] = [];
-  let extractedAmbiguous: AmbiguousImportRow[] = [];
-  let rawTextContent = '';
+  let trades: Trade[] = [];
+  let deposits: AccountTransaction[] = [];
+  let withdrawals: AccountTransaction[] = [];
+  let ambiguousRows: AmbiguousImportRow[] = [];
+  let rawText = '';
 
   if (fileExt === '.csv' || fileExt === '.txt') {
-    const text = await file.text();
-    rawTextContent = text;
-
-    // Try JSON first if text looks like JSON
-    if (text.trim().startsWith('{') || text.trim().startsWith('[')) {
+    rawText = await file.text();
+    const trimmed = rawText.trim();
+    if (trimmed.startsWith('{') || trimmed.startsWith('[')) {
       try {
-        const json = JSON.parse(text);
-        const tradeList = Array.isArray(json) ? json : json.trades || [];
-        const depositList = json.deposits || json.transactions?.filter((t: any) => t.type === 'DEPOSIT') || [];
-        const withdrawalList = json.withdrawals || json.transactions?.filter((t: any) => t.type === 'WITHDRAWAL') || [];
-
-        const structuredResult = processRawObjectsArray(tradeList, 'Imported JSON');
-        extractedTrades = structuredResult.trades;
-        extractedDeposits = structuredResult.deposits;
-        extractedWithdrawals = structuredResult.withdrawals;
-        extractedAmbiguous = structuredResult.ambiguousRows;
-
-        // Process explicit transactions arrays if present
-        if (Array.isArray(depositList) && depositList.length > 0) {
-          depositList.forEach((d: any, idx: number) => {
-            extractedDeposits.push({
-              id: `dep-json-${Date.now()}-${idx}`,
-              date: parseDateString(d.date) || new Date().toISOString().substring(0, 10),
-              type: 'DEPOSIT',
-              amount: Math.abs(parseFloat(d.amount || d.pnl || '0')),
-              description: d.description || 'Dépôt JSON',
-              source: 'Imported JSON',
-              createdAt: new Date().toISOString(),
-            });
-          });
-        }
-        if (Array.isArray(withdrawalList) && withdrawalList.length > 0) {
-          withdrawalList.forEach((w: any, idx: number) => {
-            extractedWithdrawals.push({
-              id: `wth-json-${Date.now()}-${idx}`,
-              date: parseDateString(w.date) || new Date().toISOString().substring(0, 10),
-              type: 'WITHDRAWAL',
-              amount: Math.abs(parseFloat(w.amount || w.pnl || '0')),
-              description: w.description || 'Retrait JSON',
-              source: 'Imported JSON',
-              createdAt: new Date().toISOString(),
-            });
-          });
-        }
-      } catch (e) {
-        // Fallback to CSV / text parsing
-      }
+        const json = JSON.parse(trimmed);
+        const rows = Array.isArray(json) ? json : json.trades || json.transactions || [];
+        const result = processRawObjectsArray(rows, 'Imported JSON');
+        trades = result.trades; deposits = result.deposits; withdrawals = result.withdrawals; ambiguousRows = result.ambiguousRows;
+      } catch { /* continue with CSV */ }
     }
-
-    if (extractedTrades.length === 0 && extractedDeposits.length === 0 && extractedWithdrawals.length === 0) {
-      // Try PapaParse CSV
-      const parseResult = Papa.parse<Record<string, any>>(text, {
-        header: true,
-        skipEmptyLines: true,
-        transformHeader: (h) => h.trim(),
-      });
-
-      if (parseResult.data && parseResult.data.length > 0 && Object.keys(parseResult.data[0]).length > 1) {
-        const processed = processRawObjectsArray(parseResult.data, 'Imported CSV');
-        extractedTrades = processed.trades;
-        extractedDeposits = processed.deposits;
-        extractedWithdrawals = processed.withdrawals;
-        extractedAmbiguous = processed.ambiguousRows;
-      } else {
-        // Fallback to text line parser
-        const textResult = parseTextJournalReportAdvanced(text, 'Imported CSV');
-        extractedTrades = textResult.trades;
-        extractedDeposits = textResult.deposits;
-        extractedWithdrawals = textResult.withdrawals;
-        extractedAmbiguous = textResult.ambiguousRows;
+    if (!trades.length && !deposits.length && !withdrawals.length) {
+      const result = processRawObjectsArray(parseCSVRows(rawText), 'Imported CSV');
+      trades = result.trades; deposits = result.deposits; withdrawals = result.withdrawals; ambiguousRows = result.ambiguousRows;
+      if (!trades.length && !deposits.length && !withdrawals.length) {
+        const textResult = parseTextJournalReportAdvanced(rawText, 'Imported CSV');
+        trades = textResult.trades; deposits = textResult.deposits; withdrawals = textResult.withdrawals; ambiguousRows = textResult.ambiguousRows;
       }
     }
   } else if (fileExt === '.xlsx' || fileExt === '.xls') {
-    const arrayBuffer = await file.arrayBuffer();
-    const workbook = XLSX.read(arrayBuffer, { type: 'array' });
-    const firstSheetName = workbook.SheetNames[0];
-    const sheet = workbook.Sheets[firstSheetName];
-    const jsonData = XLSX.utils.sheet_to_json<Record<string, any>>(sheet);
-    const processed = processRawObjectsArray(jsonData, 'Imported XLSX');
-    extractedTrades = processed.trades;
-    extractedDeposits = processed.deposits;
-    extractedWithdrawals = processed.withdrawals;
-    extractedAmbiguous = processed.ambiguousRows;
+    const workbook = XLSX.read(await file.arrayBuffer(), { type: 'array', cellDates: true });
+    const sheet = workbook.Sheets[workbook.SheetNames[0]];
+    const rows = XLSX.utils.sheet_to_json<Record<string, any>>(sheet, { defval: '' });
+    const result = processRawObjectsArray(rows, 'Imported XLSX');
+    trades = result.trades; deposits = result.deposits; withdrawals = result.withdrawals; ambiguousRows = result.ambiguousRows;
   } else if (fileExt === '.json') {
-    const text = await file.text();
-    rawTextContent = text;
+    rawText = await file.text();
     try {
-      const json = JSON.parse(text);
-      const tradeList = Array.isArray(json) ? json : json.trades || [];
-      const depositList = json.deposits || json.transactions?.filter((t: any) => t.type === 'DEPOSIT') || [];
-      const withdrawalList = json.withdrawals || json.transactions?.filter((t: any) => t.type === 'WITHDRAWAL') || [];
-
-      const processed = processRawObjectsArray(tradeList, 'Imported JSON');
-      extractedTrades = processed.trades;
-      extractedDeposits = [...processed.deposits];
-      extractedWithdrawals = [...processed.withdrawals];
-      extractedAmbiguous = processed.ambiguousRows;
-
-      if (Array.isArray(depositList)) {
-        depositList.forEach((d: any, idx: number) => {
-          extractedDeposits.push({
-            id: `dep-json-${Date.now()}-${idx}`,
-            date: parseDateString(d.date) || new Date().toISOString().substring(0, 10),
-            type: 'DEPOSIT',
-            amount: Math.abs(parseFloat(d.amount || '0')),
-            description: d.description || 'Dépôt',
-            source: 'Imported JSON',
-            createdAt: new Date().toISOString(),
-          });
-        });
-      }
-
-      if (Array.isArray(withdrawalList)) {
-        withdrawalList.forEach((w: any, idx: number) => {
-          extractedWithdrawals.push({
-            id: `wth-json-${Date.now()}-${idx}`,
-            date: parseDateString(w.date) || new Date().toISOString().substring(0, 10),
-            type: 'WITHDRAWAL',
-            amount: Math.abs(parseFloat(w.amount || '0')),
-            description: w.description || 'Retrait',
-            source: 'Imported JSON',
-            createdAt: new Date().toISOString(),
-          });
-        });
-      }
-    } catch (e) {
-      console.error('Invalid JSON file:', e);
-    }
+      const json = JSON.parse(rawText);
+      const rows = Array.isArray(json) ? json : json.trades || json.transactions || [];
+      const result = processRawObjectsArray(rows, 'Imported JSON');
+      trades = result.trades; deposits = result.deposits; withdrawals = result.withdrawals; ambiguousRows = result.ambiguousRows;
+    } catch (e) { console.error('Invalid JSON file:', e); }
   } else if (fileExt === '.pdf') {
-    // Try text extraction from PDF
-    try {
-      const text = await extractTextFromPDF(file);
-      rawTextContent = text;
-      if (text) {
-        const textResult = parseTextJournalReportAdvanced(text, 'Imported PDF');
-        extractedTrades = textResult.trades;
-        extractedDeposits = textResult.deposits;
-        extractedWithdrawals = textResult.withdrawals;
-        extractedAmbiguous = textResult.ambiguousRows;
-      }
-    } catch (e) {
-      console.warn('PDF extraction failed client-side:', e);
-    }
-
-    if (extractedTrades.length === 0 && extractedDeposits.length === 0 && extractedWithdrawals.length === 0) {
-      try {
-        const text = await file.text();
-        const textResult = parseTextJournalReportAdvanced(text, 'Imported PDF');
-        extractedTrades = textResult.trades;
-        extractedDeposits = textResult.deposits;
-        extractedWithdrawals = textResult.withdrawals;
-        extractedAmbiguous = textResult.ambiguousRows;
-      } catch (e) {
-        console.warn('PDF raw text fallback failed:', e);
-      }
+    rawText = await extractTextFromPDF(file);
+    if (rawText) {
+      const result = parseTextJournalReportAdvanced(rawText, 'Imported PDF');
+      trades = result.trades; deposits = result.deposits; withdrawals = result.withdrawals; ambiguousRows = result.ambiguousRows;
     }
   }
 
-  // Verification & Warnings calculation
   const warnings: TradeValidationWarning[] = [];
-  let validDatesCount = 0;
-  let validSymbolsCount = 0;
-  let validPnLCount = 0;
-  let missingEntryCount = 0;
-  let missingStopLossCount = 0;
-  let missingCommissionCount = 0;
-
-  extractedTrades.forEach((trade, idx) => {
-    if (trade.date) validDatesCount++;
-    else warnings.push({ tradeIndex: idx, field: 'date', message: 'Date manquante' });
-
-    if (trade.symbol && trade.symbol !== 'UNKNOWN') validSymbolsCount++;
-    else warnings.push({ tradeIndex: idx, field: 'symbol', message: 'Symbol/Paire manquant' });
-
-    if (trade.netPnL !== undefined && !isNaN(trade.netPnL)) validPnLCount++;
-    else warnings.push({ tradeIndex: idx, field: 'netPnL', message: 'PnL non détecté' });
-
+  let validDatesCount = 0, validSymbolsCount = 0, validPnLCount = 0, missingEntryCount = 0, missingStopLossCount = 0, missingCommissionCount = 0;
+  trades.forEach((trade, index) => {
+    if (trade.date) validDatesCount++; else warnings.push({ tradeIndex: index, field: 'date', message: 'Date manquante' });
+    if (trade.symbol && trade.symbol !== 'UNKNOWN') validSymbolsCount++; else warnings.push({ tradeIndex: index, field: 'symbol', message: 'Symbole manquant' });
+    if (Number.isFinite(trade.netPnL)) validPnLCount++; else warnings.push({ tradeIndex: index, field: 'netPnL', message: 'PnL non détecté' });
     if (trade.entry === undefined) missingEntryCount++;
     if (trade.stopLoss === undefined) missingStopLossCount++;
     if (trade.commission === undefined) missingCommissionCount++;
   });
 
-  // Duplicate Detection against existing trades
   const duplicates: DuplicateMatch[] = [];
-  extractedTrades.forEach((incoming) => {
-    const match = existingTrades.find((ext) => {
-      const sameDate = ext.date === incoming.date;
-      const sameSymbol = ext.symbol === incoming.symbol;
-      const sameSide = ext.side === incoming.side;
-      const samePnL = Math.abs(ext.netPnL - incoming.netPnL) < 0.01;
-      return sameDate && sameSymbol && sameSide && samePnL;
-    });
-
-    if (match) {
-      duplicates.push({
-        existingTrade: match,
-        incomingTrade: incoming,
-        reason: `Même Date (${incoming.date}), Symbole (${incoming.symbol}), Direction (${incoming.side}) et PnL (${incoming.netPnL})`,
-      });
-    }
-  });
-
-  const totalDetected = extractedTrades.length + extractedDeposits.length + extractedWithdrawals.length + extractedAmbiguous.length;
+  for (const incoming of trades) {
+    const match = existingTrades.find((existing) => existing.date === incoming.date && existing.symbol === incoming.symbol && existing.side === incoming.side && Math.abs(existing.netPnL - incoming.netPnL) < 0.01);
+    if (match) duplicates.push({ existingTrade: match, incomingTrade: incoming, reason: `Même date, symbole, direction et PnL` });
+  }
 
   return {
     batchId,
     fileName,
     fileType: fileExt.toUpperCase().replace('.', ''),
-    rawText: rawTextContent,
-    totalDetected,
-    trades: extractedTrades,
-    deposits: extractedDeposits,
-    withdrawals: extractedWithdrawals,
-    ambiguousRows: extractedAmbiguous,
-    tradesCount: extractedTrades.length,
-    depositsCount: extractedDeposits.length,
-    withdrawalsCount: extractedWithdrawals.length,
+    rawText,
+    totalDetected: trades.length + deposits.length + withdrawals.length + ambiguousRows.length,
+    trades,
+    deposits,
+    withdrawals,
+    ambiguousRows,
+    tradesCount: trades.length,
+    depositsCount: deposits.length,
+    withdrawalsCount: withdrawals.length,
     duplicatesCount: duplicates.length,
     validDatesCount,
     validSymbolsCount,
@@ -628,191 +405,23 @@ export async function parseDocumentFile(
   };
 }
 
-/**
- * Maps raw key-value row objects from CSV/XLSX into normalized Trades, Deposits, Withdrawals and Ambiguities
- */
-export function processRawObjectsArray(
-  rows: Record<string, any>[],
-  sourceType: Trade['source']
-): {
-  trades: Trade[];
-  deposits: AccountTransaction[];
-  withdrawals: AccountTransaction[];
-  ambiguousRows: AmbiguousImportRow[];
-} {
-  const trades: Trade[] = [];
-  const deposits: AccountTransaction[] = [];
-  const withdrawals: AccountTransaction[] = [];
-  const ambiguousRows: AmbiguousImportRow[] = [];
-
-  rows.forEach((row, i) => {
-    // Find matching key names (case insensitive & stripped of punctuation/spaces)
-    const findValue = (...keys: string[]) => {
-      for (const key of keys) {
-        const cleanTarget = key.toLowerCase().replace(/[^a-z0-9]/g, '');
-        for (const rowKey of Object.keys(row)) {
-          const cleanRowKey = rowKey.toLowerCase().replace(/[^a-z0-9]/g, '');
-          if (cleanRowKey === cleanTarget || cleanRowKey.includes(cleanTarget)) {
-            const val = row[rowKey];
-            if (val !== undefined && val !== null && String(val).trim() !== '') {
-              return val;
-            }
-          }
-        }
-      }
-      return undefined;
-    };
-
-    const typeVal = findValue('type', 'transactiontype', 'action', 'operation', 'categorie', 'typedoperation', 'typeoperation', 'comment', 'description');
-    const symbolVal = findValue('symbol', 'pair', 'paire', 'instrument', 'asset', 'item', 'ticker');
-    const sideVal = findValue('side', 'direction', 'typetrade', 'typeside', 'sens', 'actions');
-    const commentVal = findValue('comment', 'description', 'notes', 'libelle', 'details', 'commentaire', 'message');
-    const pnlVal = findValue('netpnl', 'pnl', 'profit', 'gain', 'perte', 'resultat', 'netprofit', 'amount', 'montant', 'valeur', 'total', 'grossprofit', 'grossloss', 'pnlusd', 'pnleur');
-    const dateVal = findValue('date', 'datetime', 'opened', 'opentime', 'openingtime', 'entrytime', 'time', 'timestamp', 'closed', 'closetime', 'closingtime');
-    const timeVal = findValue('time', 'opentime', 'openingtime', 'entrytime', 'heure');
-    const entryVal = findValue('entry', 'entryprice', 'prixdentree', 'openprice', 'price');
-    const exitVal = findValue('exit', 'exitprice', 'prixdesortie', 'closeprice');
-    const slVal = findValue('stoploss', 'sl');
-    const tpVal = findValue('takeprofit', 'tp');
-    const lotVal = findValue('lot', 'lots', 'lotsize', 'quantity', 'taille', 'volume', 'qty');
-    const commVal = findValue('commission', 'comm', 'frais', 'fee', 'fees');
-    const swapVal = findValue('swap', 'swaps', 'rollover');
-    const rVal = findValue('rmultiple', 'r', 'rr', 'rrrealise', 'riskreward');
-    const killzoneVal = findValue('killzone', 'session', 'zone');
-    const setupVal = findValue('setup', 'strategy', 'strategie', 'tag');
-
-    const parsedDate = dateVal ? parseDateString(dateVal) : null;
-    const parsedPnL = pnlVal !== undefined ? parseNumericPnL(pnlVal) : null;
-    const allRowText = Object.values(row).filter(Boolean).map(v => String(v)).join(' ');
-
-    const rowTextLower = `${typeVal || ''} ${symbolVal || ''} ${commentVal || ''} ${allRowText}`.toLowerCase();
-
-    // Check deposit/withdrawal in text or type value
-    const isExplicitDeposit = DEPOSIT_KEYWORDS.some((kw) => new RegExp(`(^|\\W)${kw}(\\W|$)`, 'i').test(rowTextLower));
-    const isExplicitWithdrawal = WITHDRAWAL_KEYWORDS.some((kw) => new RegExp(`(^|\\W)${kw}(\\W|$)`, 'i').test(rowTextLower));
-
-    const symbolStr = symbolVal ? String(symbolVal).trim().toUpperCase() : '';
-    const hasSymbol = Boolean(
-      symbolStr.length > 0 && 
-      !isExplicitDeposit && 
-      !isExplicitWithdrawal &&
-      !DEPOSIT_KEYWORDS.includes(symbolStr.toLowerCase()) && 
-      !WITHDRAWAL_KEYWORDS.includes(symbolStr.toLowerCase())
-    );
-
-    const sideStr = sideVal ? String(sideVal).toUpperCase() : '';
-    const hasSide = Boolean(
-      sideStr.includes('BUY') || 
-      sideStr.includes('SELL') || 
-      sideStr.includes('LONG') || 
-      sideStr.includes('SHORT') ||
-      sideStr.includes('ACHAT') ||
-      sideStr.includes('VENTE')
-    );
-
-    const hasPrices = Boolean(entryVal || exitVal || slVal || tpVal);
-
-    // Extract trade time if available (e.g. "14:32" or from full timestamp)
-    let tradeTime: string | undefined = undefined;
-    const rawTimeCandidate = String(timeVal || dateVal || '');
-    const timeMatch = rawTimeCandidate.match(/(?:T|\s|^)(\d{1,2}:\d{2}(?::\d{2})?\s*(?:AM|PM)?)/i);
-    if (timeMatch) {
-      tradeTime = timeMatch[1].trim();
-    }
-
-    const safeDate = parsedDate || new Date().toISOString().substring(0, 10);
-    const safeAmount = parsedPnL !== null ? Math.abs(parsedPnL) : 0;
-
-    // DIRECT CLASSIFICATION 1: Explicit Deposit
-    if (isExplicitDeposit && !hasSide) {
-      deposits.push({
-        id: `dep-row-${Date.now()}-${i}`,
-        date: safeDate,
-        time: tradeTime,
-        type: 'DEPOSIT',
-        amount: safeAmount,
-        description: String(commentVal || typeVal || `Dépôt ${safeAmount}$`),
-        source: sourceType as any,
-        createdAt: new Date().toISOString(),
-      });
-      return;
-    }
-
-    // DIRECT CLASSIFICATION 2: Explicit Withdrawal
-    if (isExplicitWithdrawal && !hasSide) {
-      withdrawals.push({
-        id: `wth-row-${Date.now()}-${i}`,
-        date: safeDate,
-        time: tradeTime,
-        type: 'WITHDRAWAL',
-        amount: safeAmount,
-        description: String(commentVal || typeVal || `Retrait ${safeAmount}$`),
-        source: sourceType as any,
-        createdAt: new Date().toISOString(),
-      });
-      return;
-    }
-
-    // DIRECT CLASSIFICATION 3: Standard Trading row
-    if (hasSymbol || hasSide || hasPrices || (parsedPnL !== null && (typeVal === undefined || !isExplicitDeposit && !isExplicitWithdrawal))) {
-      // Auto-deduce session/killzone if not explicitly provided
-      let finalSession: string | undefined = undefined;
-      if (killzoneVal) {
-        finalSession = getStandardSession({ killzone: String(killzoneVal), time: tradeTime });
-      } else if (tradeTime || dateVal) {
-        const deduced = deduceSessionFromTime(tradeTime || String(dateVal));
-        if (deduced) {
-          finalSession = deduced;
-        }
-      }
-
-      const netPnL = parsedPnL ?? 0;
-      let outcome: TradeOutcome = 'Win';
-      if (netPnL < 0) outcome = 'Loss';
-      else if (netPnL === 0) outcome = 'BE';
-
-      trades.push({
-        id: `imp-row-${Date.now()}-${i}`,
-        date: safeDate,
-        time: tradeTime,
-        symbol: normalizeSymbol(String(symbolVal || (KNOWN_FOREX_CRYPTO_SYMBOLS.find(s => rowTextLower.includes(s.toLowerCase())) || 'UNKNOWN'))),
-        side: normalizeSide(String(sideVal || (rowTextLower.includes('sell') || rowTextLower.includes('short') || rowTextLower.includes('vente') ? 'SELL' : 'BUY'))),
-        entry: entryVal ? parseFloat(String(entryVal).replace(',', '.')) : undefined,
-        exit: exitVal ? parseFloat(String(exitVal).replace(',', '.')) : undefined,
-        stopLoss: slVal ? parseFloat(String(slVal).replace(',', '.')) : undefined,
-        takeProfit: tpVal ? parseFloat(String(tpVal).replace(',', '.')) : undefined,
-        lotSize: lotVal ? parseFloat(String(lotVal).replace(',', '.')) : undefined,
-        commission: commVal ? parseFloat(String(commVal).replace(',', '.')) : undefined,
-        swap: swapVal ? parseFloat(String(swapVal).replace(',', '.')) : undefined,
-        netPnL,
-        rMultiple: rVal ? parseFloat(String(rVal).replace(',', '.')) : undefined,
-        outcome,
-        killzone: finalSession,
-        setup: setupVal ? String(setupVal) : undefined,
-        source: sourceType,
-        createdAt: new Date().toISOString(),
-      });
-      return;
-    }
-
-    // CLASSIFICATION 4: Ambiguous row
-    if (parsedPnL !== null && Math.abs(parsedPnL) > 0) {
-      ambiguousRows.push({
-        id: `amb-row-${Date.now()}-${i}`,
-        rawText: allRowText,
-        suggestedType: parsedPnL >= 0 ? 'DEPOSIT' : 'WITHDRAWAL',
-        confidenceReason: 'Ligne contenant un montant sans symbole ni type explicite',
-        date: safeDate,
-        symbol: symbolVal ? String(symbolVal) : undefined,
-        amountOrPnL: parsedPnL,
-        tradeCandidate: {
-          symbol: normalizeSymbol(String(symbolVal || 'EURUSD')),
-          side: normalizeSide(String(sideVal || 'BUY')),
-          netPnL: parsedPnL,
-        },
-      });
+export function parseTextJournalReportAdvanced(text: string, sourceType: Trade['source'] = 'Imported PDF') {
+  const rows = text.split(/\r?\n/).map((line) => ({ raw: line })).filter((r) => r.raw.trim());
+  const trades: Trade[] = [], deposits: AccountTransaction[] = [], withdrawals: AccountTransaction[] = [], ambiguousRows: AmbiguousImportRow[] = [];
+  rows.forEach((r, i) => {
+    const line = r.raw.trim();
+    const date = parseDateString(line) || new Date().toISOString().slice(0, 10);
+    const symbolMatch = line.match(/\b(?:XAUUSD|XAGUSD|EURUSD|GBPUSD|USDJPY|GBPJPY|EURJPY|NAS100|US100|US30|US500|GER40|BTCUSD|ETHUSD)\b/i);
+    const sideMatch = line.match(/\b(BUY|SELL|LONG|SHORT|ACHAT|VENTE)\b/i);
+    const numbers = line.match(/[+-]?(?:\d{1,3}(?:[.,]\d{3})+|\d+)(?:[.,]\d+)?/g) || [];
+    const pnl = numbers.length ? parseNumericPnL(numbers[numbers.length - 1]) : null;
+    const lower = line.toLowerCase();
+    if (DEPOSIT_KEYWORDS.some((k) => lower.includes(k)) && !sideMatch) { deposits.push({ id: `dep-txt-${Date.now()}-${i}`, date, type: 'DEPOSIT', amount: Math.abs(pnl ?? 0), description: line, source: sourceType as any, createdAt: new Date().toISOString() }); return; }
+    if (WITHDRAWAL_KEYWORDS.some((k) => lower.includes(k)) && !sideMatch) { withdrawals.push({ id: `wth-txt-${Date.now()}-${i}`, date, type: 'WITHDRAWAL', amount: Math.abs(pnl ?? 0), description: line, source: sourceType as any, createdAt: new Date().toISOString() }); return; }
+    if (symbolMatch && (sideMatch || pnl !== null)) {
+      const netPnL = pnl ?? 0;
+      trades.push({ id: `trade-txt-${Date.now()}-${i}`, date, symbol: normalizeSymbol(symbolMatch[0]), side: sideMatch ? normalizeSide(sideMatch[1]) : 'BUY', netPnL, outcome: netPnL > 0 ? 'Win' : netPnL < 0 ? 'Loss' : 'BE', source: sourceType as any, createdAt: new Date().toISOString() });
     }
   });
-
   return { trades, deposits, withdrawals, ambiguousRows };
 }
