@@ -1,7 +1,6 @@
 import { Trade, PerformanceStats, EdgeGroupMetric, EdgeComboMetric, EdgeAnalysisResult, StatisticalConfidence } from '../types';
 import { isTradeInPlan, getStandardSession } from '../utils/tradingSession';
 
-/** Return a recorded R or derive it only when sufficient risk data exists. Never guess. */
 export function getTradeRMultiple(t: Trade): number | null {
   if (t.rMultiple !== undefined && t.rMultiple !== null && Number.isFinite(t.rMultiple)) return Number(t.rMultiple);
   if (t.entry === undefined || t.stopLoss === undefined || !Number.isFinite(t.entry) || !Number.isFinite(t.stopLoss)) return null;
@@ -70,10 +69,8 @@ export function calculatePerformanceStats(trades: Trade[], startingBalance: numb
     if (pnl > 0.0001) { winningTrades++; grossProfit += pnl; largestWin = largestWin === null ? pnl : Math.max(largestWin, pnl); }
     else if (pnl < -0.0001) { losingTrades++; grossLoss += Math.abs(pnl); largestLoss = largestLoss === null ? pnl : Math.min(largestLoss, pnl); }
     else beTrades++;
-
     const r = getTradeRMultiple(t);
     if (r !== null && Number.isFinite(r)) validRs.push(r);
-
     if (t.entry !== undefined && t.stopLoss !== undefined && t.lotSize && t.lotSize > 0) {
       const risk = Math.abs(t.entry - t.stopLoss) * t.lotSize;
       if (risk > 0 && Number.isFinite(risk)) validRisks.push(risk);
@@ -116,16 +113,13 @@ export function calculatePerformanceStats(trades: Trade[], startingBalance: numb
   const daily = new Map<string, number>(), weekly = new Map<string, number>(), monthly = new Map<string, number>();
   for (const t of sortedTrades) {
     daily.set(t.date, (daily.get(t.date) || 0) + t.netPnL);
-    const d = new Date(`${t.date}T00:00:00`);
-    const year = d.getFullYear();
-    const first = new Date(year, 0, 1);
+    const d = new Date(`${t.date}T00:00:00`), year = d.getFullYear(), first = new Date(year, 0, 1);
     const week = Math.ceil(((d.getTime() - first.getTime()) / 86400000 + first.getDay() + 1) / 7);
     const wk = `${year}-W${String(week).padStart(2, '0')}`;
     weekly.set(wk, (weekly.get(wk) || 0) + t.netPnL);
     const month = t.date.substring(0, 7);
     monthly.set(month, (monthly.get(month) || 0) + t.netPnL);
   }
-
   const extreme = (map: Map<string, number>, mode: 'max' | 'min') => {
     let out: { key: string; pnl: number } | null = null;
     map.forEach((pnl, key) => { if (!out || (mode === 'max' ? pnl > out.pnl : pnl < out.pnl)) out = { key, pnl }; });
@@ -143,30 +137,50 @@ export function calculatePerformanceStats(trades: Trade[], startingBalance: numb
   };
 }
 
-export function calculateEdgeAnalysis(trades: Trade[], planInstruments?: string[]): EdgeAnalysisResult {
-  const groupByField = (getKeys: (t: Trade) => string[]): EdgeGroupMetric[] => {
-    const map = new Map<string, Trade[]>();
-    trades.forEach(t => getKeys(t).filter(Boolean).forEach(k => { if (!map.has(k)) map.set(k, []); map.get(k)!.push(t); }));
-    return [...map.entries()].map(([key, group]) => {
-      const s = calculatePerformanceStats(group, 10000);
-      return { key, trades: group.length, wins: s.winningTrades, losses: s.losingTrades, winRate: s.winrate ?? 0, pnl: s.totalPnL, profitFactor: s.profitFactor, expectancy: s.expectancy, expectancyR: s.expectancyR } as EdgeGroupMetric;
-    }).sort((a, b) => b.pnl - a.pnl);
+function makeMetric(key: string, group: Trade[]): EdgeGroupMetric {
+  const s = calculatePerformanceStats(group, 10000);
+  return {
+    key, label: key, totalTrades: s.totalTrades, winrate: s.winrate, profitFactor: s.profitFactor, totalPnL: s.totalPnL,
+    avgR: s.avgR, expectancy: s.expectancy, expectancyR: s.expectancyR, avgWin: s.avgWin, avgLoss: s.avgLoss,
+    avgWinR: null, avgLossR: null, maxDrawdownAmount: s.maxDrawdownAmount, maxDrawdownPercent: s.maxDrawdownPercent,
+    riskRewardRatio: s.riskRewardRatio, confidenceLevel: getStatisticalConfidence(s.totalTrades), edgeScore: calculateEdgeScore(s), trades: group,
   };
-  const bySymbol = groupByField(t => [t.symbol]);
-  const bySession = groupByField(t => [t.session || getStandardSession(t.time)]);
-  const byDirection = groupByField(t => [t.side]);
-  const bySetup = groupByField(t => t.setup ? [t.setup] : (t.tags || []));
-  const byDay = groupByField(t => [new Date(t.date).toLocaleDateString('en-US', { weekday: 'long' })]);
-  const byPlan = groupByField(t => [isTradeInPlan(t, planInstruments) ? 'In Plan' : 'Outside Plan']);
-  const combos = new Map<string, Trade[]>();
+}
+
+function groupMetrics(trades: Trade[], keyGetter: (t: Trade) => string[]): EdgeGroupMetric[] {
+  const map = new Map<string, Trade[]>();
+  trades.forEach(t => keyGetter(t).filter(Boolean).forEach(k => { if (!map.has(k)) map.set(k, []); map.get(k)!.push(t); }));
+  return [...map.entries()].map(([key, group]) => makeMetric(key, group)).sort((a, b) => b.totalPnL - a.totalPnL);
+}
+
+function comboMetric(key: string, group: Trade[]): EdgeComboMetric {
+  const s = makeMetric(key, group);
+  const first = group[0];
+  return { ...s, symbol: first?.symbol || 'Unknown', killzone: first?.killzone || first?.session || 'Unknown', setup: first?.setup || 'No Setup', side: first?.side || 'BUY', edgeScore: s.edgeScore ?? 0 };
+}
+
+export function calculateEdgeAnalysis(trades: Trade[], planInstruments?: string[]): EdgeAnalysisResult {
+  const bySymbol = groupMetrics(trades, t => [t.symbol]);
+  const bySession = groupMetrics(trades, t => [t.session || getStandardSession(t.time)]);
+  const byKillzone = groupMetrics(trades, t => [t.killzone || t.session || getStandardSession(t.time)]);
+  const byDirection = groupMetrics(trades, t => [t.side]);
+  const bySetup = groupMetrics(trades, t => t.setup ? [t.setup] : (t.tags || []));
+  const byPlanMetrics = groupMetrics(trades, t => [isTradeInPlan(t, planInstruments) ? 'In Plan' : 'Outside Plan']);
+  const inPlan = byPlanMetrics.find(x => x.key === 'In Plan') || makeMetric('In Plan', []);
+  const offPlan = byPlanMetrics.find(x => x.key === 'Outside Plan') || makeMetric('Outside Plan', []);
+  const byDxyMetrics = groupMetrics(trades, t => [t.confluenceDxy ? 'With DXY' : 'Without DXY']);
+  const withDxy = byDxyMetrics.find(x => x.key === 'With DXY') || makeMetric('With DXY', []);
+  const withoutDxy = byDxyMetrics.find(x => x.key === 'Without DXY') || makeMetric('Without DXY', []);
+
+  const comboMap = new Map<string, Trade[]>();
   trades.forEach(t => {
-    const key = `${t.symbol || 'Unknown'} · ${t.session || getStandardSession(t.time)} · ${t.setup || 'No Setup'}`;
-    if (!combos.has(key)) combos.set(key, []);
-    combos.get(key)!.push(t);
+    const key = `${t.symbol || 'Unknown'} · ${t.killzone || t.session || getStandardSession(t.time)} · ${t.setup || 'No Setup'} · ${t.side}`;
+    if (!comboMap.has(key)) comboMap.set(key, []);
+    comboMap.get(key)!.push(t);
   });
-  const comboMetrics: EdgeComboMetric[] = [...combos.entries()].map(([key, group]) => {
-    const s = calculatePerformanceStats(group, 10000);
-    return { key, trades: group.length, wins: s.winningTrades, losses: s.losingTrades, winRate: s.winrate ?? 0, pnl: s.totalPnL, profitFactor: s.profitFactor, expectancy: s.expectancy, expectancyR: s.expectancyR } as EdgeComboMetric;
-  }).sort((a, b) => b.pnl - a.pnl);
-  return { bySymbol, bySession, byDirection, bySetup, byDay, byPlan, combos: comboMetrics } as EdgeAnalysisResult;
+  const combos = [...comboMap.entries()].map(([key, group]) => comboMetric(key, group));
+  const topCombos = [...combos].sort((a, b) => (b.totalPnL - a.totalPnL) || ((b.edgeScore ?? 0) - (a.edgeScore ?? 0))).slice(0, 10);
+  const weakCombos = [...combos].filter(x => x.totalTrades >= 5).sort((a, b) => (a.totalPnL - b.totalPnL) || ((a.edgeScore ?? 0) - (b.edgeScore ?? 0))).slice(0, 10);
+
+  return { bySymbol, bySession, byKillzone, byDirection, bySetup, topCombos, weakCombos, byPlan: { plan: inPlan, offPlan }, byDxy: { withDxy, withoutDxy } };
 }
