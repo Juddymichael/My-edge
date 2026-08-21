@@ -6,27 +6,41 @@
     --font-body: 'Manrope', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
     --font-mono: 'JetBrains Mono', monospace;
 
-    /* Dark Theme Tokens */
+    /* Premium neutral-first design tokens */
     --bg-main: #0B0F14;
     --card-main: #121820;
     --card-secondary: #171E27;
-    --accent-orange: #f75605;
-    --accent-orange-light: #ff6f26;
+    --accent-orange: #F97316;
+    --accent-orange-light: #FB923C;
     --text-main: #E8EDF2;
     --text-muted: #8B96A3;
     --border-discreet: #252E38;
-    --perf-win: #3FB88A;
-    --perf-loss: #D96C6C;
+    --perf-win: #72B99A;
+    --perf-loss: #B8A1A1;
+
+    --motion-fast: 140ms;
+    --motion-base: 220ms;
+    --motion-slow: 360ms;
+    --ease-premium: cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  html {
+    scroll-behavior: smooth;
   }
 
   body {
-    background-color: #0B0F14;
-    color: #E8EDF2;
+    background-color: var(--bg-main);
+    color: var(--text-main);
     font-family: var(--font-sans);
-    transition: background-color 0.25s ease-out, color 0.25s ease-out;
+    transition: background-color var(--motion-base) ease-out, color var(--motion-base) ease-out;
     overflow-x: hidden;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+  }
+
+  button,
+  [role="button"] {
+    -webkit-tap-highlight-color: transparent;
   }
 
   /* Monospace tabular numbers for financial precision */
@@ -41,22 +55,66 @@
   }
 }
 
-/* Linear/Stripe style card hover lift */
+/* Premium, restrained card interaction */
 .card-hover-lift {
-  transition: transform 180ms cubic-bezier(0.16, 1, 0.3, 1), 
-              box-shadow 180ms cubic-bezier(0.16, 1, 0.3, 1), 
-              border-color 180ms ease-out;
+  transition:
+    transform var(--motion-base) var(--ease-premium),
+    box-shadow var(--motion-base) var(--ease-premium),
+    border-color var(--motion-base) ease-out,
+    background-color var(--motion-base) ease-out;
+  will-change: transform;
 }
+
 .card-hover-lift:hover {
   transform: translateY(-2px);
 }
 
 /* Tactile button micro-scale */
 .btn-press {
-  transition: transform 120ms ease-out, background-color 150ms ease-out;
+  transition: transform var(--motion-fast) ease-out, background-color var(--motion-fast) ease-out, box-shadow var(--motion-fast) ease-out;
 }
+
 .btn-press:active {
-  transform: scale(0.98);
+  transform: scale(0.985);
+}
+
+/* Small, reusable entrance animation for cards and sections */
+@keyframes premium-enter {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-premium-enter {
+  animation: premium-enter var(--motion-slow) var(--ease-premium) both;
+}
+
+/* Subtle accent pulse for live/AI indicators — never flashy */
+@keyframes premium-pulse {
+  0%, 100% { opacity: 0.55; transform: scale(0.96); }
+  50% { opacity: 1; transform: scale(1); }
+}
+
+.animate-premium-pulse {
+  animation: premium-pulse 2.4s ease-in-out infinite;
+}
+
+/* Respect accessibility preferences */
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }
 
 /* Minimalist scrollbars */
@@ -75,5 +133,5 @@
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(247, 86, 5, 0.6);
+  background: rgba(249, 115, 22, 0.55);
 }
