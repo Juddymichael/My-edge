@@ -6,10 +6,12 @@ const assert = (condition: boolean, message: string) => {
   if (!condition) throw new Error(`FAIL: ${message}`);
 };
 
+const source = 'Sample Dataset' as const;
+const createdAt = new Date().toISOString();
 const trades: Trade[] = [
-  { id: 't1', date: '2026-08-01', symbol: 'XAUUSD', side: 'BUY', netPnL: 100, outcome: 'Win', entry: 100, stopLoss: 99, lotSize: 1, createdAt: new Date().toISOString(), },
-  { id: 't2', date: '2026-08-02', symbol: 'XAUUSD', side: 'SELL', netPnL: -50, outcome: 'Loss', entry: 100, stopLoss: 101, lotSize: 1, createdAt: new Date().toISOString(), },
-  { id: 't3', date: '2026-08-03', symbol: 'XAUUSD', side: 'BUY', netPnL: 0, outcome: 'BE', entry: 100, stopLoss: 99, lotSize: 1, createdAt: new Date().toISOString(), },
+  { id: 't1', date: '2026-08-01', symbol: 'XAUUSD', side: 'BUY', netPnL: 100, outcome: 'Win', entry: 100, stopLoss: 99, lotSize: 1, source, createdAt },
+  { id: 't2', date: '2026-08-02', symbol: 'XAUUSD', side: 'SELL', netPnL: -50, outcome: 'Loss', entry: 100, stopLoss: 101, lotSize: 1, source, createdAt },
+  { id: 't3', date: '2026-08-03', symbol: 'XAUUSD', side: 'BUY', netPnL: 0, outcome: 'BE', entry: 100, stopLoss: 99, lotSize: 1, source, createdAt },
 ];
 
 const stats = calculatePerformanceStats(trades, 10000);
