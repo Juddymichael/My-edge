@@ -1,0 +1,6 @@
+{
+  "name": "Trading Edge",
+  "description": "Centralize your track record, import trading reports, analyze performance, and master your edge with the deterministic AI Trading Coach.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
