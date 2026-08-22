@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { motion } from 'motion/react';
 import { Sidebar } from './components/Sidebar';
+import { MobileNavigation } from './components/MobileNavigation';
 import { DashboardView } from './components/DashboardView';
 import { CalendarView } from './components/CalendarView';
 import { TradesView } from './components/TradesView';
@@ -35,8 +36,6 @@ export default function App() {
   const [selectedTrade, setSelectedTrade] = useState<Trade|null>(null);
   const [selectedTradeForAiReview, setSelectedTradeForAiReview] = useState<Trade|null>(null);
   const [isAddModalOpen,setIsAddModalOpen]=useState(false); const [isAiModalOpen,setIsAiModalOpen]=useState(false);
-
-  // Batch localStorage writes so large journals do not stringify on every rapid state update.
   useEffect(()=>{const timer=window.setTimeout(()=>saveTradesToStorage(trades),250);return()=>window.clearTimeout(timer)},[trades]);
   useEffect(()=>{const timer=window.setTimeout(()=>saveTransactionsToStorage(transactions),150);return()=>window.clearTimeout(timer)},[transactions]);
   useEffect(()=>{saveSettingsToStorage(settings);if(settings.theme==='dark')document.documentElement.classList.add('dark');else document.documentElement.classList.remove('dark')},[settings]);
@@ -55,6 +54,7 @@ export default function App() {
   return <div className={`min-h-screen flex flex-col md:flex-row font-sans transition-colors duration-200 relative overflow-hidden ${isLight?'bg-[#f8f6fe] text-slate-900 selection:bg-violet-600 selection:text-white':'bg-[#0B0F14] text-[#E8EDF2] selection:bg-[#f75605] selection:text-white'} ${settings.reduceMotion?'motion-reduce':''}`}>
     <div className={`hidden md:block fixed top-0 left-1/4 w-96 h-96 rounded-full pointer-events-none -z-0 ${isLight?'bg-purple-400/15 blur-3xl':'bg-[#f75605]/5 blur-3xl'}`}/><div className={`hidden md:block fixed bottom-0 right-1/4 w-96 h-96 rounded-full pointer-events-none -z-0 ${isLight?'bg-indigo-400/10 blur-3xl':'bg-slate-800/10 blur-3xl'}`}/>
     <Sidebar activeTab={activeTab} setActiveTab={setActiveTab} onOpenAddModal={()=>setIsAddModalOpen(true)} onOpenAiModal={()=>setIsAiModalOpen(true)} settings={settings} onToggleTheme={toggleTheme} onQuickExport={()=>exportBackupJSON(trades,settings,transactions)} tradeCount={trades.length} transactionCount={transactions.length}/>
+    <MobileNavigation activeTab={activeTab} setActiveTab={setActiveTab} settings={settings} tradeCount={trades.length} transactionCount={transactions.length}/>
     <main className="flex-1 min-w-0 overflow-y-auto pb-24 md:pb-12 relative z-10"><motion.div key={activeTab} initial={settings.reduceMotion?false:{opacity:0,y:6}} animate={settings.reduceMotion?undefined:{opacity:1,y:0}} transition={{duration:settings.reduceMotion?0:.2,ease:'easeOut'}}>
       {activeTab==='dashboard'&&<DashboardView trades={trades} transactions={transactions} stats={stats} settings={settings} onNavigate={setActiveTab} onOpenAddModal={()=>setIsAddModalOpen(true)} onOpenAiModal={()=>setIsAiModalOpen(true)} onUpdateSettings={setSettings}/>} 
       {activeTab==='coach'&&<AiCoachView trades={trades} stats={stats} settings={settings} onUpdateSettings={setSettings} onSelectTrade={setSelectedTrade}/>} 
