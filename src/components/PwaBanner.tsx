@@ -9,7 +9,7 @@ interface PwaBannerProps {
 
 export const PwaBanner: React.FC<PwaBannerProps> = ({ isLight = false }) => {
   const {
-    isInstallable,
+    isInstallPromptAvailable,
     isOffline,
     needRefresh,
     showIosPrompt,
@@ -20,14 +20,13 @@ export const PwaBanner: React.FC<PwaBannerProps> = ({ isLight = false }) => {
 
   return (
     <>
-      {/* 1. Update Available Banner */}
       <AnimatePresence>
         {needRefresh && (
           <motion.div
             initial={{ scale: 0.9, opacity: 0, y: -20 }}
             animate={{ scale: 1, opacity: 1, y: 0 }}
             exit={{ scale: 0.9, opacity: 0, y: -20 }}
-            transition={{ type: "spring", stiffness: 350, damping: 28 }}
+            transition={{ type: 'spring', stiffness: 350, damping: 28 }}
             className="fixed top-3 left-1/2 -translate-x-1/2 z-50 w-11/12 max-w-md p-3 rounded-2xl text-white shadow-2xl flex items-center justify-between gap-3 border border-white/20 bg-gradient-to-r from-violet-600 via-purple-700 to-indigo-800"
           >
             <div className="flex items-center gap-2.5">
@@ -40,7 +39,7 @@ export const PwaBanner: React.FC<PwaBannerProps> = ({ isLight = false }) => {
             <motion.button
               whileHover={{ scale: 1.02, y: -1 }}
               whileTap={{ scale: 0.96 }}
-              transition={{ type: "spring", stiffness: 400, damping: 25 }}
+              transition={{ type: 'spring', stiffness: 400, damping: 25 }}
               onClick={updateServiceWorker}
               className="py-1.5 px-3 font-bold text-xs rounded-xl shadow-md transition-all cursor-pointer whitespace-nowrap bg-white text-purple-900 hover:bg-purple-50"
             >
@@ -50,7 +49,6 @@ export const PwaBanner: React.FC<PwaBannerProps> = ({ isLight = false }) => {
         )}
       </AnimatePresence>
 
-      {/* 2. Offline Indicator Banner */}
       <AnimatePresence>
         {isOffline && (
           <motion.div
@@ -65,20 +63,21 @@ export const PwaBanner: React.FC<PwaBannerProps> = ({ isLight = false }) => {
         )}
       </AnimatePresence>
 
-      {/* 3. Floating Install Prompt Button for Mobile/Desktop (Using Dynamic Amber CTA) */}
+      {/* Only show the floating CTA when the browser exposes a native install prompt.
+          The Settings page always exposes the install action as a reliable fallback. */}
       <AnimatePresence>
-        {isInstallable && (
+        {isInstallPromptAvailable && (
           <motion.div
             initial={{ scale: 0.8, opacity: 0, y: 20 }}
             animate={{ scale: 1, opacity: 1, y: 0 }}
             exit={{ scale: 0.8, opacity: 0, y: 20 }}
-            transition={{ type: "spring", stiffness: 400, damping: 25 }}
+            transition={{ type: 'spring', stiffness: 400, damping: 25 }}
             className="fixed bottom-20 md:bottom-6 right-4 z-40"
           >
             <motion.button
               whileHover={{ scale: 1.02, y: -1 }}
               whileTap={{ scale: 0.96 }}
-              transition={{ type: "spring", stiffness: 400, damping: 25 }}
+              transition={{ type: 'spring', stiffness: 400, damping: 25 }}
               onClick={installApp}
               className="py-2.5 px-4 rounded-2xl font-black text-xs shadow-md shadow-orange-500/30 border border-amber-200/40 flex items-center gap-2 cursor-pointer bg-gradient-to-r from-amber-400 via-orange-500 to-amber-500 text-white"
               title="Installer TradeStudio PWA"
@@ -90,7 +89,6 @@ export const PwaBanner: React.FC<PwaBannerProps> = ({ isLight = false }) => {
         )}
       </AnimatePresence>
 
-      {/* 4. iOS Safari Installation Guidance Modal */}
       <AnimatePresence>
         {showIosPrompt && (
           <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4 bg-purple-950/40 backdrop-blur-md">
@@ -98,7 +96,7 @@ export const PwaBanner: React.FC<PwaBannerProps> = ({ isLight = false }) => {
               initial={{ scale: 0.9, opacity: 0, y: 8 }}
               animate={{ scale: 1, opacity: 1, y: 0 }}
               exit={{ scale: 0.9, opacity: 0, y: 8 }}
-              transition={{ type: "spring", stiffness: 350, damping: 28 }}
+              transition={{ type: 'spring', stiffness: 350, damping: 28 }}
               className={`w-full max-w-md rounded-3xl p-5 space-y-3 shadow-2xl border ${
                 isLight ? 'bg-white border-purple-200/90 text-slate-900' : 'bg-[#151622] border-purple-900/50 text-slate-100'
               }`}
@@ -109,8 +107,8 @@ export const PwaBanner: React.FC<PwaBannerProps> = ({ isLight = false }) => {
                     <Smartphone className="w-4 h-4" />
                   </div>
                   <div>
-                    <h3 className="font-bold text-sm">Installer sur iOS</h3>
-                    <p className="text-xs text-slate-400">Ajouter à l'écran d'accueil</p>
+                    <h3 className="font-bold text-sm">Installer TradeStudio</h3>
+                    <p className="text-xs text-slate-400">Ajouter l'application à votre appareil</p>
                   </div>
                 </div>
                 <button
@@ -124,14 +122,12 @@ export const PwaBanner: React.FC<PwaBannerProps> = ({ isLight = false }) => {
               <div className="space-y-2 text-xs leading-relaxed">
                 <div className="flex items-start gap-2.5 p-2.5 rounded-xl bg-purple-500/10">
                   <span className="w-5 h-5 rounded-full font-bold flex items-center justify-center text-[10px] shrink-0 bg-violet-600 text-white">1</span>
-                  <p>Appuyez sur <strong>Partager</strong> <Share className="w-3.5 h-3.5 inline mx-1 text-sky-400" /> dans Safari.</p>
+                  <p>Sur iPhone/iPad : appuyez sur <strong>Partager</strong> <Share className="w-3.5 h-3.5 inline mx-1 text-sky-400" /> dans Safari.</p>
                 </div>
-
                 <div className="flex items-start gap-2.5 p-2.5 rounded-xl bg-purple-500/10">
                   <span className="w-5 h-5 rounded-full font-bold flex items-center justify-center text-[10px] shrink-0 bg-violet-600 text-white">2</span>
                   <p>Sélectionnez <strong>Sur l'écran d'accueil</strong> <PlusSquare className="w-3.5 h-3.5 inline mx-1 text-emerald-400" />.</p>
                 </div>
-
                 <div className="flex items-start gap-2.5 p-2.5 rounded-xl bg-purple-500/10">
                   <span className="w-5 h-5 rounded-full font-bold flex items-center justify-center text-[10px] shrink-0 bg-violet-600 text-white">3</span>
                   <p>Confirmez en appuyant sur <strong>Ajouter</strong>.</p>
@@ -141,7 +137,7 @@ export const PwaBanner: React.FC<PwaBannerProps> = ({ isLight = false }) => {
               <motion.button
                 whileHover={{ scale: 1.02, y: -1 }}
                 whileTap={{ scale: 0.96 }}
-                transition={{ type: "spring", stiffness: 400, damping: 25 }}
+                transition={{ type: 'spring', stiffness: 400, damping: 25 }}
                 onClick={() => setShowIosPrompt(false)}
                 className="w-full py-2.5 text-white font-bold text-xs rounded-xl transition-all cursor-pointer bg-gradient-to-r from-violet-600 via-purple-700 to-indigo-800 shadow-md shadow-purple-500/25"
               >
