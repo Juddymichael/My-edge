@@ -84,8 +84,10 @@ export function usePwa() {
   }, []);
 
   const installApp = async () => {
+    // Chrome/Edge: this is the only browser-supported way for a website to
+    // open the native PWA installation dialog from our own button.
     if (deferredPrompt) {
-      deferredPrompt.prompt();
+      await deferredPrompt.prompt();
       const choice = await deferredPrompt.userChoice;
       if (choice.outcome === 'accepted') {
         setIsInstallPromptAvailable(false);
@@ -95,20 +97,20 @@ export function usePwa() {
       return;
     }
 
-    // iOS does not expose beforeinstallprompt: show the manual Add to Home Screen guide.
+    // iOS intentionally has no beforeinstallprompt API.
     if (isIos && !isStandalone) {
       setShowIosPrompt(true);
       return;
     }
 
-    // Some Android/desktop browsers delay or suppress beforeinstallprompt. Keep an
-    // installation action visible and give the user a reliable manual path instead
-    // of silently doing nothing.
+    // Chrome can suppress beforeinstallprompt until its installability criteria
+    // are satisfied. A web page cannot force-install itself without Chrome's
+    // permission, so provide the exact Chrome path instead of pretending it did.
     if (!isStandalone) {
       window.alert(
-        'Installation de TradeStudio\n\n' +
-        'Chrome / Edge : ouvrez le menu du navigateur puis choisissez « Installer TradeStudio » ou « Installer cette application ».\n\n' +
-        'Si cette option n’apparaît pas encore, rechargez l’application après l’avoir utilisée quelques secondes avec Internet.'
+        'Thunder Edge est prêt à être installé.\n\n' +
+        'Dans Chrome Android : ouvrez ⋮ puis « Installer l\'application » (ou « Ajouter à l\'écran d\'accueil » selon la version de Chrome).\n\n' +
+        'Si « Installer » n\'apparaît pas encore, rechargez cette page une fois après le déploiement et utilisez-la quelques secondes avec Internet.'
       );
     }
   };
@@ -122,8 +124,6 @@ export function usePwa() {
   };
 
   return {
-    // Keep the Settings installation action visible whenever the app is not installed.
-    // The floating banner still uses isPromptAvailable so it does not become intrusive.
     isInstallable: !isStandalone,
     isInstallPromptAvailable,
     isStandalone,
