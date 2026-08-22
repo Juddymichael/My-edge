@@ -1,4 +1,4 @@
-const CACHE_NAME = 'trading-edge-v1';
+const CACHE_NAME = 'trading-edge-v2';
 const PRECACHE_ASSETS = [
   '/',
   '/index.html',
@@ -10,95 +10,59 @@ const PRECACHE_ASSETS = [
   '/maskable-icon.png'
 ];
 
-// Install Event - Precache critical assets
 self.addEventListener('install', (event) => {
   event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => {
-      return cache.addAll(PRECACHE_ASSETS).catch((err) => {
-        console.warn('Some assets failed to precache:', err);
-      });
-    })
+    caches.open(CACHE_NAME).then((cache) => cache.addAll(PRECACHE_ASSETS).catch(() => undefined))
   );
   self.skipWaiting();
 });
 
-// Activate Event - Clean up old caches
 self.addEventListener('activate', (event) => {
   event.waitUntil(
-    caches.keys().then((cacheNames) => {
-      return Promise.all(
-        cacheNames.map((cacheName) => {
-          if (cacheName !== CACHE_NAME) {
-            console.log('[SW] Deleting old cache:', cacheName);
-            return caches.delete(cacheName);
-          }
-        })
-      );
-    }).then(() => self.clients.claim())
+    caches.keys().then((names) => Promise.all(
+      names.filter((name) => name !== CACHE_NAME).map((name) => caches.delete(name))
+    )).then(() => self.clients.claim())
   );
 });
 
-// Fetch Event - Serve from network first for API, cache first for static assets, network fallback for navigation
 self.addEventListener('fetch', (event) => {
-  const url = new URL(event.request.url);
+  const request = event.request;
+  const url = new URL(request.url);
 
-  // Bypass API requests to network directly
-  if (url.pathname.startsWith('/api/')) {
-    return;
-  }
+  // AI/API features need the network. Never cache authenticated/dynamic API data.
+  if (url.pathname.startsWith('/api/')) return;
 
-  // Handle navigation requests (HTML)
-  if (event.request.mode === 'navigate') {
+  // For navigation, prefer the newest page but fall back to the cached app shell offline.
+  if (request.mode === 'navigate') {
     event.respondWith(
-      fetch(event.request)
-        .then((response) => {
-          if (response.status === 200) {
-            const copy = response.clone();
-            caches.open(CACHE_NAME).then((cache) => cache.put(event.request, copy));
-          }
-          return response;
-        })
-        .catch(() => {
-          return caches.match('/') || caches.match('/index.html');
-        })
+      fetch(request).then((response) => {
+        if (response.ok) {
+          const copy = response.clone();
+          caches.open(CACHE_NAME).then((cache) => cache.put(request, copy));
+        }
+        return response;
+      }).catch(() => caches.match(request).then((cached) => cached || caches.match('/index.html')))
     );
     return;
   }
 
-  // Handle static assets (JS, CSS, Images, Fonts)
-  event.respondWith(
-    caches.match(event.request).then((cachedResponse) => {
-      if (cachedResponse) {
-        // Fetch background update for cache
-        fetch(event.request)
-          .then((networkResponse) => {
-            if (networkResponse && networkResponse.status === 200) {
-              caches.open(CACHE_NAME).then((cache) => cache.put(event.request, networkResponse));
-            }
-          })
-          .catch(() => {/* Offline fallback */});
-        return cachedResponse;
-      }
-
-      return fetch(event.request).then((networkResponse) => {
-        if (networkResponse && networkResponse.status === 200 && event.request.method === 'GET') {
-          const responseToCache = networkResponse.clone();
-          caches.open(CACHE_NAME).then((cache) => cache.put(event.request, responseToCache));
-        }
-        return networkResponse;
-      }).catch(() => {
-        // Return offline fallback if applicable
-        if (event.request.headers.get('accept')?.includes('text/html')) {
-          return caches.match('/');
-        }
-      });
-    })
-  );
+  // Cache-first for already-known static assets, with a network fallback for new assets.
+  if (request.method === 'GET') {
+    event.respondWith(
+      caches.match(request).then((cached) => {
+        if (cached) return cached;
+        return fetch(request).then((response) => {
+          if (response.ok) {
+            const copy = response.clone();
+            caches.open(CACHE_NAME).then((cache) => cache.put(request, copy));
+          }
+          return response;
+        }).catch(() => caches.match('/index.html'));
+      })
+    );
+  }
 });
 
-// Listen for message to skip waiting when user clicks "Mettre à jour"
 self.addEventListener('message', (event) => {
-  if (event.data && event.data.type === 'SKIP_WAITING') {
-    self.skipWaiting();
-  }
+  if (event.data?.type === 'SKIP_WAITING') self.skipWaiting();
 });
