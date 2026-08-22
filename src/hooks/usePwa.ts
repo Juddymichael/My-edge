@@ -7,7 +7,7 @@ export interface BeforeInstallPromptEvent extends Event {
 
 export function usePwa() {
   const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
-  const [isInstallable, setIsInstallable] = useState(false);
+  const [isInstallPromptAvailable, setIsInstallPromptAvailable] = useState(false);
   const [isStandalone, setIsStandalone] = useState(false);
   const [isOffline, setIsOffline] = useState(!navigator.onLine);
   const [needRefresh, setNeedRefresh] = useState(false);
@@ -16,56 +16,43 @@ export function usePwa() {
   const [showIosPrompt, setShowIosPrompt] = useState(false);
 
   useEffect(() => {
-    // 1. Check if running in standalone mode (already installed)
     const checkStandalone = () => {
-      const isStandaloneMedia = window.matchMedia('(display-mode: standalone)').matches;
-      const isIosStandalone = (navigator as any).standalone === true;
-      return isStandaloneMedia || isIosStandalone;
+      const mediaStandalone = window.matchMedia('(display-mode: standalone)').matches;
+      const iosStandalone = (navigator as any).standalone === true;
+      return mediaStandalone || iosStandalone;
     };
 
     setIsStandalone(checkStandalone());
 
-    // Check iOS Safari
     const userAgent = window.navigator.userAgent.toLowerCase();
-    const isIosDevice = /iphone|ipad|ipod/.test(userAgent);
-    setIsIos(isIosDevice);
+    setIsIos(/iphone|ipad|ipod/.test(userAgent));
 
-    // 2. Online / Offline listeners
     const handleOnline = () => setIsOffline(false);
     const handleOffline = () => setIsOffline(true);
-
     window.addEventListener('online', handleOnline);
     window.addEventListener('offline', handleOffline);
 
-    // 3. BeforeInstallPrompt listener for Android & Desktop Chrome/Edge
     const handleBeforeInstallPrompt = (e: Event) => {
       e.preventDefault();
       setDeferredPrompt(e as BeforeInstallPromptEvent);
-      setIsInstallable(true);
+      setIsInstallPromptAvailable(true);
     };
 
     window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
 
-    // Appinstalled event
     const handleAppInstalled = () => {
-      setIsInstallable(false);
+      setIsInstallPromptAvailable(false);
       setIsStandalone(true);
       setDeferredPrompt(null);
     };
     window.addEventListener('appinstalled', handleAppInstalled);
 
-    // 4. Service Worker Registration
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker
         .register('/sw.js')
         .then((reg) => {
           setSwRegistration(reg);
-
-          // Check if there is an update waiting
-          if (reg.waiting) {
-            setNeedRefresh(true);
-          }
-
+          if (reg.waiting) setNeedRefresh(true);
           reg.addEventListener('updatefound', () => {
             const newWorker = reg.installing;
             if (newWorker) {
@@ -77,9 +64,7 @@ export function usePwa() {
             }
           });
         })
-        .catch((err) => {
-          console.warn('PWA Service Worker registration failed:', err);
-        });
+        .catch((err) => console.warn('PWA Service Worker registration failed:', err));
 
       let refreshing = false;
       navigator.serviceWorker.addEventListener('controllerchange', () => {
@@ -98,24 +83,38 @@ export function usePwa() {
     };
   }, []);
 
-  // Trigger installation prompt
   const installApp = async () => {
     if (deferredPrompt) {
       deferredPrompt.prompt();
       const choice = await deferredPrompt.userChoice;
       if (choice.outcome === 'accepted') {
-        setIsInstallable(false);
+        setIsInstallPromptAvailable(false);
         setIsStandalone(true);
       }
       setDeferredPrompt(null);
-    } else if (isIos && !isStandalone) {
+      return;
+    }
+
+    // iOS does not expose beforeinstallprompt: show the manual Add to Home Screen guide.
+    if (isIos && !isStandalone) {
       setShowIosPrompt(true);
+      return;
+    }
+
+    // Some Android/desktop browsers delay or suppress beforeinstallprompt. Keep an
+    // installation action visible and give the user a reliable manual path instead
+    // of silently doing nothing.
+    if (!isStandalone) {
+      window.alert(
+        'Installation de TradeStudio\n\n' +
+        'Chrome / Edge : ouvrez le menu du navigateur puis choisissez « Installer TradeStudio » ou « Installer cette application ».\n\n' +
+        'Si cette option n’apparaît pas encore, rechargez l’application après l’avoir utilisée quelques secondes avec Internet.'
+      );
     }
   };
 
-  // Update Service Worker to latest version
   const updateServiceWorker = () => {
-    if (swRegistration && swRegistration.waiting) {
+    if (swRegistration?.waiting) {
       swRegistration.waiting.postMessage({ type: 'SKIP_WAITING' });
     } else {
       window.location.reload();
@@ -123,7 +122,10 @@ export function usePwa() {
   };
 
   return {
-    isInstallable: (isInstallable || (isIos && !isStandalone)) && !isStandalone,
+    // Keep the Settings installation action visible whenever the app is not installed.
+    // The floating banner still uses isPromptAvailable so it does not become intrusive.
+    isInstallable: !isStandalone,
+    isInstallPromptAvailable,
     isStandalone,
     isOffline,
     needRefresh,
