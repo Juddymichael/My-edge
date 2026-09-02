@@ -12,5 +12,5 @@ jobs:
       - uses: actions/checkout@v4
       - run: node --version && npm --version
       - run: npm install
-      - run: npm test -- --run src/tests/importRobustness.test.ts src/tests/coachPersistence.test.ts src/tests/coachTools.test.ts src/tests/riskPatterns.test.ts
+      - run: npm test -- --run src/tests/importRobustness.test.ts src/tests/coachPersistence.test.ts src/tests/coachTools.test.ts src/tests/riskPatterns.test.ts src/tests/myEdgeAnalyzerFeatures.test.ts
       - run: npm run lint
