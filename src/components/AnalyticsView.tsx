@@ -33,6 +33,7 @@ import {
 import { TradeDetailModal } from './TradeDetailModal';
 import { motion, AnimatePresence } from 'motion/react';
 import { AnimatedNumber } from './AnimatedNumber';
+import { EquityCurveChart } from './EquityCurveChart';
 
 interface AnalyticsViewProps {
   trades?: Trade[];
@@ -484,28 +485,28 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({
 
   const getScoreBadgeClass = (score: number) => {
     if (score >= 80) return 'text-emerald-400 bg-emerald-950/70 border-emerald-800/80';
-    if (score >= 65) return 'text-cyan-400 bg-cyan-950/70 border-cyan-800/80';
+    if (score >= 65) return 'text-[var(--analytics-accent)] bg-[var(--analytics-accent-soft)]/70 border-[var(--analytics-accent-border)]/80';
     if (score >= 45) return 'text-amber-400 bg-amber-950/70 border-amber-800/80';
     return 'text-rose-400 bg-rose-950/70 border-rose-800/80';
   };
 
   return (
-    <div className="space-y-6 text-slate-100 font-sans select-none pb-12" id="view-analytics">
+    <div className="space-y-6 text-slate-900 dark:text-slate-100 font-sans select-none pb-12" id="view-analytics">
       {/* 1. HEADER */}
-      <div className="rounded-2xl border border-slate-800 bg-[#0e1626] p-6 shadow-md">
+      <div className="rounded-2xl border border-slate-200 dark:border-[#292E38] bg-white dark:bg-[#12151D] p-6 shadow-md">
         <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
           <div className="flex items-center gap-3">
-            <div className="p-2.5 rounded-xl bg-cyan-500/10 text-cyan-400 border border-cyan-500/20">
+            <div className="p-2.5 rounded-xl bg-[var(--analytics-accent)]/10 text-[var(--analytics-accent)] border border-cyan-500/20">
               <BarChart3 className="w-5 h-5" />
             </div>
             <div>
-              <h1 className="text-xl font-bold tracking-tight text-white flex items-center gap-2">
+              <h1 className="text-xl font-bold tracking-tight text-slate-900 dark:text-slate-100 flex items-center gap-2">
                 <span>Statistiques &amp; Analytics</span>
-                <span className="text-xs px-2 py-0.5 rounded-full bg-slate-800 text-slate-300 font-medium">
+                <span className="text-xs px-2 py-0.5 rounded-full bg-slate-800 text-slate-600 dark:text-slate-300 font-medium">
                   {closedTrades.length} trades analysés
                 </span>
               </h1>
-              <p className="text-xs text-slate-400 font-normal mt-0.5">
+              <p className="text-xs text-slate-500 dark:text-slate-500 dark:text-slate-400 font-normal mt-0.5">
                 Hiérarchie analytique : Performance globale → Setup → Session → Paire → Edge
               </p>
             </div>
@@ -514,9 +515,9 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({
       </div>
 
       {/* 2. DYNAMIC FILTERS BAR (6 SYNCHRONIZED FILTERS) */}
-      <div className="p-4 rounded-2xl border border-slate-800 bg-[#0e1626] shadow-xs flex flex-wrap items-center gap-3">
-        <div className="flex items-center gap-1.5 text-xs font-medium text-slate-400 mr-1">
-          <Filter className="w-3.5 h-3.5 text-cyan-400" />
+      <div className="p-4 rounded-2xl border border-slate-200 dark:border-[#292E38] bg-white dark:bg-[#12151D] shadow-xs flex flex-wrap items-center gap-3">
+        <div className="flex items-center gap-1.5 text-xs font-medium text-slate-500 dark:text-slate-500 dark:text-slate-400 mr-1">
+          <Filter className="w-3.5 h-3.5 text-[var(--analytics-accent)]" />
           <span>Filtres :</span>
         </div>
 
@@ -524,7 +525,7 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({
         <select
           value={selectedPeriod}
           onChange={(e) => setSelectedPeriod(e.target.value)}
-          className="px-3 py-1.5 text-xs font-medium rounded-xl border border-slate-700 bg-slate-900 text-slate-200 focus:ring-2 focus:ring-cyan-500 cursor-pointer"
+          className="px-3 py-1.5 text-xs font-medium rounded-xl border border-slate-700 bg-slate-900 text-slate-700 dark:text-slate-200 focus:ring-2 focus:ring-[var(--analytics-accent)] cursor-pointer"
         >
           <option value="ALL">Période : Toute</option>
           <option value="7D">7 derniers jours</option>
@@ -537,7 +538,7 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({
         <select
           value={selectedSymbol}
           onChange={(e) => setSelectedSymbol(e.target.value)}
-          className="px-3 py-1.5 text-xs font-medium rounded-xl border border-slate-700 bg-slate-900 text-slate-200 focus:ring-2 focus:ring-cyan-500 cursor-pointer"
+          className="px-3 py-1.5 text-xs font-medium rounded-xl border border-slate-700 bg-slate-900 text-slate-700 dark:text-slate-200 focus:ring-2 focus:ring-[var(--analytics-accent)] cursor-pointer"
         >
           <option value="ALL">Toutes les paires ({availableSymbols.length})</option>
           {availableSymbols.map((sym) => (
@@ -551,7 +552,7 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({
         <select
           value={selectedSetup}
           onChange={(e) => setSelectedSetup(e.target.value)}
-          className="px-3 py-1.5 text-xs font-medium rounded-xl border border-slate-700 bg-slate-900 text-slate-200 focus:ring-2 focus:ring-cyan-500 cursor-pointer"
+          className="px-3 py-1.5 text-xs font-medium rounded-xl border border-slate-700 bg-slate-900 text-slate-700 dark:text-slate-200 focus:ring-2 focus:ring-[var(--analytics-accent)] cursor-pointer"
         >
           <option value="ALL">Tous les setups ({availableSetups.length})</option>
           {availableSetups.map((st) => (
@@ -565,7 +566,7 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({
         <select
           value={selectedSession}
           onChange={(e) => setSelectedSession(e.target.value)}
-          className="px-3 py-1.5 text-xs font-medium rounded-xl border border-slate-700 bg-slate-900 text-slate-200 focus:ring-2 focus:ring-cyan-500 cursor-pointer"
+          className="px-3 py-1.5 text-xs font-medium rounded-xl border border-slate-700 bg-slate-900 text-slate-700 dark:text-slate-200 focus:ring-2 focus:ring-[var(--analytics-accent)] cursor-pointer"
         >
           <option value="ALL">Toutes les sessions</option>
           <option value="LONDON">Londres (London)</option>
@@ -578,7 +579,7 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({
         <select
           value={selectedDirection}
           onChange={(e) => setSelectedDirection(e.target.value)}
-          className="px-3 py-1.5 text-xs font-medium rounded-xl border border-slate-700 bg-slate-900 text-slate-200 focus:ring-2 focus:ring-cyan-500 cursor-pointer"
+          className="px-3 py-1.5 text-xs font-medium rounded-xl border border-slate-700 bg-slate-900 text-slate-700 dark:text-slate-200 focus:ring-2 focus:ring-[var(--analytics-accent)] cursor-pointer"
         >
           <option value="ALL">Toutes directions (BUY &amp; SELL)</option>
           <option value="BUY">Achats (BUY)</option>
@@ -589,7 +590,7 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({
         <select
           value={selectedResult}
           onChange={(e) => setSelectedResult(e.target.value)}
-          className="px-3 py-1.5 text-xs font-medium rounded-xl border border-slate-700 bg-slate-900 text-slate-200 focus:ring-2 focus:ring-cyan-500 cursor-pointer"
+          className="px-3 py-1.5 text-xs font-medium rounded-xl border border-slate-700 bg-slate-900 text-slate-700 dark:text-slate-200 focus:ring-2 focus:ring-[var(--analytics-accent)] cursor-pointer"
         >
           <option value="ALL">Tous résultats</option>
           <option value="WIN">Gagnants (WIN)</option>
@@ -612,7 +613,7 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({
               setSelectedDirection('ALL');
               setSelectedResult('ALL');
             }}
-            className="text-xs text-cyan-400 hover:underline ml-auto font-semibold cursor-pointer"
+            className="text-xs text-[var(--analytics-accent)] hover:underline ml-auto font-semibold cursor-pointer"
           >
             Réinitialiser les filtres
           </button>
@@ -621,13 +622,13 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({
 
       {/* 3. LOGICAL PROGRESSION NAVIGATION TABS */}
       {/* Performance globale → Performance par Setup → Performance par Session → Performance par Paire → Edge */}
-      <div className="flex items-center gap-2 border-b border-slate-800 pb-2 overflow-x-auto">
+      <div className="flex items-center gap-2 border-b border-slate-200 dark:border-[#292E38] pb-2 overflow-x-auto">
         <button
           onClick={() => setActiveTab('overview')}
           className={`px-4 py-2 rounded-xl text-xs font-semibold transition cursor-pointer flex items-center gap-1.5 ${
             activeTab === 'overview'
-              ? 'bg-slate-800 text-cyan-400 border border-cyan-500/30'
-              : 'text-slate-400 hover:text-slate-200'
+              ? 'bg-slate-800 text-[var(--analytics-accent)] border border-[var(--analytics-accent-border)]'
+              : 'text-slate-500 dark:text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:text-slate-200'
           }`}
         >
           <BarChart3 className="w-3.5 h-3.5" />
@@ -638,8 +639,8 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({
           onClick={() => setActiveTab('setups')}
           className={`px-4 py-2 rounded-xl text-xs font-semibold transition cursor-pointer flex items-center gap-1.5 ${
             activeTab === 'setups'
-              ? 'bg-slate-800 text-cyan-400 border border-cyan-500/30'
-              : 'text-slate-400 hover:text-slate-200'
+              ? 'bg-slate-800 text-[var(--analytics-accent)] border border-[var(--analytics-accent-border)]'
+              : 'text-slate-500 dark:text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:text-slate-200'
           }`}
         >
           <Crosshair className="w-3.5 h-3.5" />
@@ -650,8 +651,8 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({
           onClick={() => setActiveTab('sessions')}
           className={`px-4 py-2 rounded-xl text-xs font-semibold transition cursor-pointer flex items-center gap-1.5 ${
             activeTab === 'sessions'
-              ? 'bg-slate-800 text-cyan-400 border border-cyan-500/30'
-              : 'text-slate-400 hover:text-slate-200'
+              ? 'bg-slate-800 text-[var(--analytics-accent)] border border-[var(--analytics-accent-border)]'
+              : 'text-slate-500 dark:text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:text-slate-200'
           }`}
         >
           <Clock className="w-3.5 h-3.5" />
@@ -662,8 +663,8 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({
           onClick={() => setActiveTab('pairs')}
           className={`px-4 py-2 rounded-xl text-xs font-semibold transition cursor-pointer flex items-center gap-1.5 ${
             activeTab === 'pairs'
-              ? 'bg-slate-800 text-cyan-400 border border-cyan-500/30'
-              : 'text-slate-400 hover:text-slate-200'
+              ? 'bg-slate-800 text-[var(--analytics-accent)] border border-[var(--analytics-accent-border)]'
+              : 'text-slate-500 dark:text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:text-slate-200'
           }`}
         >
           <Globe className="w-3.5 h-3.5" />
@@ -674,8 +675,8 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({
           onClick={() => setActiveTab('edge')}
           className={`px-4 py-2 rounded-xl text-xs font-semibold transition cursor-pointer flex items-center gap-1.5 ${
             activeTab === 'edge'
-              ? 'bg-slate-800 text-cyan-400 border border-cyan-500/30'
-              : 'text-slate-400 hover:text-slate-200'
+              ? 'bg-slate-800 text-[var(--analytics-accent)] border border-[var(--analytics-accent-border)]'
+              : 'text-slate-500 dark:text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:text-slate-200'
           }`}
         >
           <Award className="w-3.5 h-3.5" />
@@ -686,8 +687,8 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({
           onClick={() => setActiveTab('directions')}
           className={`px-3 py-2 rounded-xl text-xs font-medium transition cursor-pointer flex items-center gap-1.5 ${
             activeTab === 'directions'
-              ? 'bg-slate-800 text-slate-200 border border-slate-700'
-              : 'text-slate-500 hover:text-slate-300'
+              ? 'bg-slate-800 text-slate-700 dark:text-slate-200 border border-slate-700'
+              : 'text-slate-500 dark:text-slate-500 hover:text-slate-600 dark:text-slate-300'
           }`}
         >
           <TrendingUp className="w-3.5 h-3.5" />
@@ -698,8 +699,8 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({
           onClick={() => setActiveTab('timeline')}
           className={`px-3 py-2 rounded-xl text-xs font-medium transition cursor-pointer flex items-center gap-1.5 ${
             activeTab === 'timeline'
-              ? 'bg-slate-800 text-slate-200 border border-slate-700'
-              : 'text-slate-500 hover:text-slate-300'
+              ? 'bg-slate-800 text-slate-700 dark:text-slate-200 border border-slate-700'
+              : 'text-slate-500 dark:text-slate-500 hover:text-slate-600 dark:text-slate-300'
           }`}
         >
           <Calendar className="w-3.5 h-3.5" />
@@ -713,8 +714,8 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({
           {/* Top 6 KPI Cards */}
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
             {/* KPI 1: Solde & P&L */}
-            <div className="p-4 rounded-2xl bg-[#0e1626] border border-slate-800 shadow-sm flex flex-col justify-between interactive-card">
-              <span className="text-[11px] font-medium text-slate-400">P&amp;L Net Total</span>
+            <div className="p-4 rounded-2xl bg-white dark:bg-[#12151D] border border-slate-200 dark:border-[#292E38] shadow-sm flex flex-col justify-between interactive-card">
+              <span className="text-[11px] font-medium text-slate-500 dark:text-slate-500 dark:text-slate-400">P&amp;L Net Total</span>
               <div className="text-lg font-bold tabular-nums mt-1 color-transition">
                 <AnimatedNumber
                   value={globalMetrics.totalNetPnL}
@@ -723,45 +724,45 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({
                   duration={850}
                 />
               </div>
-              <span className="text-[10px] text-slate-500 font-medium mt-1">
+              <span className="text-[10px] text-slate-500 dark:text-slate-500 font-medium mt-1">
                 Rendement : {globalMetrics.netReturnPercent >= 0 ? '+' : ''}
                 {formatPercent(globalMetrics.netReturnPercent)}
               </span>
             </div>
 
             {/* KPI 2: Win Rate */}
-            <div className="p-4 rounded-2xl bg-[#0e1626] border border-slate-800 shadow-sm flex flex-col justify-between interactive-card">
-              <span className="text-[11px] font-medium text-slate-400">Win Rate</span>
-              <div className="text-lg font-bold tabular-nums text-white mt-1">
+            <div className="p-4 rounded-2xl bg-white dark:bg-[#12151D] border border-slate-200 dark:border-[#292E38] shadow-sm flex flex-col justify-between interactive-card">
+              <span className="text-[11px] font-medium text-slate-500 dark:text-slate-500 dark:text-slate-400">Win Rate</span>
+              <div className="text-lg font-bold tabular-nums text-slate-900 dark:text-slate-100 mt-1">
                 <AnimatedNumber
                   value={globalMetrics.winRate}
                   format={(val) => formatPercent(val)}
                   duration={850}
                 />
               </div>
-              <span className="text-[10px] text-slate-400 mt-1">
+              <span className="text-[10px] text-slate-500 dark:text-slate-500 dark:text-slate-400 mt-1">
                 {globalMetrics.wins}W / {globalMetrics.losses}L ({globalMetrics.breakevens} BE)
               </span>
             </div>
 
             {/* KPI 3: Profit Factor */}
-            <div className="p-4 rounded-2xl bg-[#0e1626] border border-slate-800 shadow-sm flex flex-col justify-between interactive-card">
-              <span className="text-[11px] font-medium text-slate-400">Profit Factor</span>
-              <div className="text-lg font-bold tabular-nums text-white mt-1">
+            <div className="p-4 rounded-2xl bg-white dark:bg-[#12151D] border border-slate-200 dark:border-[#292E38] shadow-sm flex flex-col justify-between interactive-card">
+              <span className="text-[11px] font-medium text-slate-500 dark:text-slate-500 dark:text-slate-400">Profit Factor</span>
+              <div className="text-lg font-bold tabular-nums text-slate-900 dark:text-slate-100 mt-1">
                 <AnimatedNumber
                   value={globalMetrics.profitFactor > 0 ? globalMetrics.profitFactor : 0}
                   format={(val) => (val > 0 ? formatDecimal(val, 2) : '—')}
                   duration={800}
                 />
               </div>
-              <span className="text-[10px] text-slate-500 mt-1">
+              <span className="text-[10px] text-slate-500 dark:text-slate-500 mt-1">
                 Gains / Pertes brutes
               </span>
             </div>
 
             {/* KPI 4: Expectancy */}
-            <div className="p-4 rounded-2xl bg-[#0e1626] border border-slate-800 shadow-sm flex flex-col justify-between interactive-card">
-              <span className="text-[11px] font-medium text-slate-400">Espérance / Trade</span>
+            <div className="p-4 rounded-2xl bg-white dark:bg-[#12151D] border border-slate-200 dark:border-[#292E38] shadow-sm flex flex-col justify-between interactive-card">
+              <span className="text-[11px] font-medium text-slate-500 dark:text-slate-500 dark:text-slate-400">Espérance / Trade</span>
               <div className="text-lg font-bold tabular-nums mt-1 color-transition">
                 {globalMetrics.rExpectancy !== null ? (
                   <AnimatedNumber
@@ -779,16 +780,16 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({
                   />
                 )}
               </div>
-              <span className="text-[10px] text-slate-500 mt-1">
+              <span className="text-[10px] text-slate-500 dark:text-slate-500 mt-1">
                 {globalMetrics.rCount > 0 ? `Sur ${globalMetrics.rCount} trades en R` : 'Espérance monétaire'}
               </span>
             </div>
 
             {/* KPI 5: Avg Win / Avg Loss */}
-            <div className="p-4 rounded-2xl bg-[#0e1626] border border-slate-800 shadow-sm flex flex-col justify-between interactive-card">
-              <span className="text-[11px] font-medium text-slate-400">Gain / Perte Moyenne</span>
-              <div className="text-sm font-bold tabular-nums text-white mt-1">
-                <span className="text-cyan-400">
+            <div className="p-4 rounded-2xl bg-white dark:bg-[#12151D] border border-slate-200 dark:border-[#292E38] shadow-sm flex flex-col justify-between interactive-card">
+              <span className="text-[11px] font-medium text-slate-500 dark:text-slate-500 dark:text-slate-400">Gain / Perte Moyenne</span>
+              <div className="text-sm font-bold tabular-nums text-slate-900 dark:text-slate-100 mt-1">
+                <span className="text-[var(--analytics-accent)]">
                   +<AnimatedNumber value={globalMetrics.avgWin} format={(v) => formatCurrency(v, currency)} duration={800} />
                 </span>
                 <span className="text-slate-600 mx-1">/</span>
@@ -796,115 +797,64 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({
                   -<AnimatedNumber value={globalMetrics.avgLoss} format={(v) => formatCurrency(v, currency)} duration={800} />
                 </span>
               </div>
-              <span className="text-[10px] text-slate-500 mt-1">
+              <span className="text-[10px] text-slate-500 dark:text-slate-500 mt-1">
                 R/R réalisé : {formatDecimal(globalMetrics.realizedRR, 2)}
               </span>
             </div>
 
             {/* KPI 6: Max Drawdown */}
-            <div className="p-4 rounded-2xl bg-[#0e1626] border border-slate-800 shadow-sm flex flex-col justify-between interactive-card">
-              <span className="text-[11px] font-medium text-slate-400">Max Drawdown</span>
+            <div className="p-4 rounded-2xl bg-white dark:bg-[#12151D] border border-slate-200 dark:border-[#292E38] shadow-sm flex flex-col justify-between interactive-card">
+              <span className="text-[11px] font-medium text-slate-500 dark:text-slate-500 dark:text-slate-400">Max Drawdown</span>
               <div className="text-lg font-bold tabular-nums text-rose-400 mt-1">
                 -<AnimatedNumber value={globalMetrics.maxDrawdownPercent} format={(v) => formatPercent(v)} duration={850} />
               </div>
-              <span className="text-[10px] text-slate-500 mt-1">
+              <span className="text-[10px] text-slate-500 dark:text-slate-500 mt-1">
                 -{formatCurrency(globalMetrics.maxDrawdownMoney, currency)} du pic
               </span>
             </div>
           </div>
 
           {/* Equity Curve Tracing */}
-          <div className="p-6 rounded-2xl bg-[#0e1626] border border-slate-800 shadow-md space-y-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <h2 className="text-base font-bold text-white tracking-tight">
-                  Courbe d&apos;Équité &amp; Évolution du Capital
-                </h2>
-                <p className="text-xs text-slate-400">
-                  Trajectoire après chaque trade fermé ({globalMetrics.totalClosed} points de données)
-                </p>
-              </div>
-              <div className="text-right">
-                <span className="text-xs text-slate-400 block">Solde Actuel</span>
-                <span className="text-base font-bold text-cyan-400 tabular-nums">
-                  {formatCurrency(globalMetrics.currentBalance, currency)}
-                </span>
-              </div>
-            </div>
-
-            {globalMetrics.equityCurve.length <= 1 ? (
-              <div className="py-12 text-center text-xs text-slate-500">
-                Pas assez de trades clôturés pour tracer la courbe d&apos;équité.
-              </div>
-            ) : (
-              <div className="h-64 w-full flex items-end gap-1 pt-6 pb-2 border-b border-slate-800 relative">
-                {(() => {
-                  const points = globalMetrics.equityCurve.map((p) => p.equity);
-                  const min = Math.min(...points);
-                  const max = Math.max(...points);
-                  const range = max - min || 1;
-
-                  return (
-                    <svg className="w-full h-full overflow-visible" preserveAspectRatio="none">
-                      <polyline
-                        fill="none"
-                        stroke="#06b6d4"
-                        strokeWidth="2.5"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        points={globalMetrics.equityCurve
-                          .map((p, idx) => {
-                            const x = (idx / (globalMetrics.equityCurve.length - 1)) * 100;
-                            const y = 100 - ((p.equity - min) / range) * 85 - 8;
-                            return `${x}%,${y}%`;
-                          })
-                          .join(' ')}
-                      />
-                    </svg>
-                  );
-                })()}
-              </div>
-            )}
-          </div>
+          <EquityCurveChart trades={closedTrades} initialBalance={globalMetrics.initialBalance} currency={currency} />
 
           {/* Streaks & Consecutive Performance */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="p-4 rounded-2xl bg-[#0e1626] border border-slate-800 flex items-center justify-between">
+            <div className="p-4 rounded-2xl bg-white dark:bg-[#12151D] border border-slate-200 dark:border-[#292E38] flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <div className="p-2 rounded-xl bg-cyan-500/10 text-cyan-400">
+                <div className="p-2 rounded-xl bg-[var(--analytics-accent)]/10 text-[var(--analytics-accent)]">
                   <Flame className="w-4 h-4" />
                 </div>
                 <div>
-                  <span className="text-xs text-slate-400 block font-normal">Max Série Gagnante</span>
-                  <span className="text-base font-bold text-white">
+                  <span className="text-xs text-slate-500 dark:text-slate-500 dark:text-slate-400 block font-normal">Max Série Gagnante</span>
+                  <span className="text-base font-bold text-slate-900 dark:text-slate-100">
                     {globalMetrics.streaks.maxConsecutiveWins} victoires d&apos;affilée
                   </span>
                 </div>
               </div>
             </div>
 
-            <div className="p-4 rounded-2xl bg-[#0e1626] border border-slate-800 flex items-center justify-between">
+            <div className="p-4 rounded-2xl bg-white dark:bg-[#12151D] border border-slate-200 dark:border-[#292E38] flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <div className="p-2 rounded-xl bg-rose-500/10 text-rose-400">
                   <ShieldAlert className="w-4 h-4" />
                 </div>
                 <div>
-                  <span className="text-xs text-slate-400 block font-normal">Max Série Perdante</span>
-                  <span className="text-base font-bold text-white">
+                  <span className="text-xs text-slate-500 dark:text-slate-500 dark:text-slate-400 block font-normal">Max Série Perdante</span>
+                  <span className="text-base font-bold text-slate-900 dark:text-slate-100">
                     {globalMetrics.streaks.maxConsecutiveLosses} pertes d&apos;affilée
                   </span>
                 </div>
               </div>
             </div>
 
-            <div className="p-4 rounded-2xl bg-[#0e1626] border border-slate-800 flex items-center justify-between">
+            <div className="p-4 rounded-2xl bg-white dark:bg-[#12151D] border border-slate-200 dark:border-[#292E38] flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <div className="p-2 rounded-xl bg-indigo-500/10 text-indigo-400">
+                <div className="p-2 rounded-xl bg-[var(--analytics-accent)]/10 text-[var(--analytics-accent)]">
                   <TrendingUp className="w-4 h-4" />
                 </div>
                 <div>
-                  <span className="text-xs text-slate-400 block font-normal">Série Actuelle</span>
-                  <span className="text-base font-bold text-white">
+                  <span className="text-xs text-slate-500 dark:text-slate-500 dark:text-slate-400 block font-normal">Série Actuelle</span>
+                  <span className="text-base font-bold text-slate-900 dark:text-slate-100">
                     {globalMetrics.streaks.currentStreak > 0
                       ? `+${globalMetrics.streaks.currentStreak} Victoires`
                       : globalMetrics.streaks.currentStreak < 0
@@ -920,13 +870,13 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({
 
       {/* 5. TAB 2: PERFORMANCE PAR SETUP */}
       {activeTab === 'setups' && (
-        <div className="p-6 rounded-2xl bg-[#0e1626] border border-slate-800 shadow-md space-y-4">
+        <div className="p-6 rounded-2xl bg-white dark:bg-[#12151D] border border-slate-200 dark:border-[#292E38] shadow-md space-y-4">
           <div className="flex items-center justify-between">
             <div>
-              <h2 className="text-base font-bold text-white tracking-tight">
+              <h2 className="text-base font-bold text-slate-900 dark:text-slate-100 tracking-tight">
                 Performance par Setup &amp; Modèle d&apos;Exécution ({setupBreakdown.length})
               </h2>
-              <p className="text-xs text-slate-400">
+              <p className="text-xs text-slate-500 dark:text-slate-500 dark:text-slate-400">
                 Chaque setup reçoit un Edge Score objectif et transparent sur 100 points
               </p>
             </div>
@@ -935,7 +885,7 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({
           <div className="overflow-x-auto">
             <table className="w-full text-left text-xs border-collapse">
               <thead>
-                <tr className="border-b border-slate-800 text-slate-400 uppercase text-[10px] tracking-wider">
+                <tr className="border-b border-slate-200 dark:border-[#292E38] text-slate-500 dark:text-slate-500 dark:text-slate-400 uppercase text-[10px] tracking-wider">
                   <th className="pb-3 font-semibold">Nom du Setup</th>
                   <th className="pb-3 font-semibold text-center">Trades (n)</th>
                   <th className="pb-3 font-semibold text-center">Win Rate</th>
@@ -947,31 +897,31 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({
                   <th className="pb-3 font-semibold text-right">Détails</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-800/60">
+              <tbody className="divide-y divide-slate-200 dark:divide-[#292E38]">
                 {setupBreakdown.map((s, idx) => (
                   <tr key={idx} className="hover:bg-slate-800/40 transition">
-                    <td className="py-3 font-bold text-white">{s.name}</td>
-                    <td className="py-3 text-center font-bold tabular-nums text-slate-200">
+                    <td className="py-3 font-bold text-slate-900 dark:text-slate-100">{s.name}</td>
+                    <td className="py-3 text-center font-bold tabular-nums text-slate-700 dark:text-slate-200">
                       {s.tradesCount}
                     </td>
-                    <td className="py-3 text-center font-bold tabular-nums text-cyan-400">
+                    <td className="py-3 text-center font-bold tabular-nums text-[var(--analytics-accent)]">
                       {s.winRate.toFixed(1)}%
                     </td>
                     <td
                       className={`py-3 text-right font-bold tabular-nums ${
-                        s.pnl >= 0 ? 'text-cyan-400' : 'text-rose-400'
+                        s.pnl >= 0 ? 'text-[var(--analytics-accent)]' : 'text-rose-400'
                       }`}
                     >
                       {s.pnl >= 0 ? '+' : ''}
                       {formatCurrency(s.pnl, currency)}
                     </td>
-                    <td className="py-3 text-right font-bold tabular-nums text-slate-200">
+                    <td className="py-3 text-right font-bold tabular-nums text-slate-700 dark:text-slate-200">
                       {s.totalR !== null ? `${s.totalR > 0 ? '+' : ''}${s.totalR.toFixed(2)}R` : '—'}
                     </td>
-                    <td className="py-3 text-center font-bold tabular-nums text-white">
+                    <td className="py-3 text-center font-bold tabular-nums text-slate-900 dark:text-slate-100">
                       {s.profitFactor ? s.profitFactor.toFixed(2) : '—'}
                     </td>
-                    <td className="py-3 text-right font-semibold tabular-nums text-indigo-400">
+                    <td className="py-3 text-right font-semibold tabular-nums text-[var(--analytics-accent)]">
                       {s.rExpectancy !== null
                         ? `${s.rExpectancy > 0 ? '+' : ''}${s.rExpectancy.toFixed(2)}R`
                         : formatCurrency(s.monetaryExpectancy, currency)}
@@ -999,7 +949,7 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({
                             breakdown: s.edgeScore,
                           })
                         }
-                        className="text-xs text-cyan-400 hover:underline font-semibold cursor-pointer"
+                        className="text-xs text-[var(--analytics-accent)] hover:underline font-semibold cursor-pointer"
                       >
                         Score →
                       </button>
@@ -1014,8 +964,8 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({
 
       {/* 6. TAB 3: PERFORMANCE PAR SESSION */}
       {activeTab === 'sessions' && (
-        <div className="p-6 rounded-2xl bg-[#0e1626] border border-slate-800 shadow-md space-y-4">
-          <h2 className="text-base font-bold text-white tracking-tight">
+        <div className="p-6 rounded-2xl bg-white dark:bg-[#12151D] border border-slate-200 dark:border-[#292E38] shadow-md space-y-4">
+          <h2 className="text-base font-bold text-slate-900 dark:text-slate-100 tracking-tight">
             Performance par Session de Marché &amp; Killzone ({sessionBreakdown.length})
           </h2>
 
@@ -1023,28 +973,28 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({
             {sessionBreakdown.map((s, idx) => (
               <div
                 key={idx}
-                className="p-5 rounded-2xl bg-[#080d1a] border border-slate-800 shadow-sm flex flex-col justify-between space-y-4"
+                className="p-5 rounded-2xl bg-slate-50 dark:bg-[#0B0D12] border border-slate-200 dark:border-[#292E38] shadow-sm flex flex-col justify-between space-y-4"
               >
                 <div>
                   <div className="flex items-center justify-between text-xs mb-1.5">
-                    <span className="text-slate-400 font-medium">Session</span>
-                    <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-indigo-950 text-indigo-400 border border-indigo-800">
+                    <span className="text-slate-500 dark:text-slate-500 dark:text-slate-400 font-medium">Session</span>
+                    <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-[var(--analytics-accent-soft)] text-[var(--analytics-accent)] border border-[var(--analytics-accent-border)]">
                       n = {s.tradesCount}
                     </span>
                   </div>
-                  <h3 className="text-base font-bold text-white">{s.session}</h3>
+                  <h3 className="text-base font-bold text-slate-900 dark:text-slate-100">{s.session}</h3>
                 </div>
 
                 <div className="space-y-1.5 text-xs">
                   <div className="flex justify-between">
-                    <span className="text-slate-400">Win Rate :</span>
-                    <span className="font-bold text-cyan-400">{s.winRate.toFixed(1)}%</span>
+                    <span className="text-slate-500 dark:text-slate-500 dark:text-slate-400">Win Rate :</span>
+                    <span className="font-bold text-[var(--analytics-accent)]">{s.winRate.toFixed(1)}%</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-slate-400">P&amp;L Net :</span>
+                    <span className="text-slate-500 dark:text-slate-500 dark:text-slate-400">P&amp;L Net :</span>
                     <span
                       className={`font-bold tabular-nums ${
-                        s.pnl >= 0 ? 'text-cyan-400' : 'text-rose-400'
+                        s.pnl >= 0 ? 'text-[var(--analytics-accent)]' : 'text-rose-400'
                       }`}
                     >
                       {s.pnl >= 0 ? '+' : ''}
@@ -1052,14 +1002,14 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({
                     </span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-slate-400">Profit Factor :</span>
-                    <span className="font-semibold text-slate-200">
+                    <span className="text-slate-500 dark:text-slate-500 dark:text-slate-400">Profit Factor :</span>
+                    <span className="font-semibold text-slate-700 dark:text-slate-200">
                       {s.profitFactor ? s.profitFactor.toFixed(2) : '—'}
                     </span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-slate-400">Gains / Pertes :</span>
-                    <span className="text-slate-300 font-medium">
+                    <span className="text-slate-500 dark:text-slate-500 dark:text-slate-400">Gains / Pertes :</span>
+                    <span className="text-slate-600 dark:text-slate-300 font-medium">
                       {s.wins}W / {s.losses}L
                     </span>
                   </div>
@@ -1072,15 +1022,15 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({
 
       {/* 7. TAB 4: PERFORMANCE PAR PAIRE */}
       {activeTab === 'pairs' && (
-        <div className="p-6 rounded-2xl bg-[#0e1626] border border-slate-800 shadow-md space-y-4">
-          <h2 className="text-base font-bold text-white tracking-tight">
+        <div className="p-6 rounded-2xl bg-white dark:bg-[#12151D] border border-slate-200 dark:border-[#292E38] shadow-md space-y-4">
+          <h2 className="text-base font-bold text-slate-900 dark:text-slate-100 tracking-tight">
             Classement de Performance par Paire ({pairBreakdown.length})
           </h2>
 
           <div className="overflow-x-auto">
             <table className="w-full text-left text-xs border-collapse">
               <thead>
-                <tr className="border-b border-slate-800 text-slate-400 uppercase text-[10px] tracking-wider">
+                <tr className="border-b border-slate-200 dark:border-[#292E38] text-slate-500 dark:text-slate-500 dark:text-slate-400 uppercase text-[10px] tracking-wider">
                   <th className="pb-3 font-semibold">Symbole</th>
                   <th className="pb-3 font-semibold text-center">Trades (n)</th>
                   <th className="pb-3 font-semibold text-center">Win Rate</th>
@@ -1090,35 +1040,35 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({
                   <th className="pb-3 font-semibold text-center">Profit Factor</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-800/60">
+              <tbody className="divide-y divide-slate-200 dark:divide-[#292E38]">
                 {pairBreakdown.map((p, idx) => (
                   <tr key={idx} className="hover:bg-slate-800/40 transition">
-                    <td className="py-3 font-bold text-white">
-                      <span className="px-2 py-0.5 rounded bg-cyan-950 text-cyan-400 border border-cyan-800">
+                    <td className="py-3 font-bold text-slate-900 dark:text-slate-100">
+                      <span className="px-2 py-0.5 rounded bg-[var(--analytics-accent-soft)] text-[var(--analytics-accent)] border border-[var(--analytics-accent-border)]">
                         {p.symbol}
                       </span>
                     </td>
-                    <td className="py-3 text-center font-bold tabular-nums text-slate-200">
+                    <td className="py-3 text-center font-bold tabular-nums text-slate-700 dark:text-slate-200">
                       {p.tradesCount}
                     </td>
-                    <td className="py-3 text-center font-bold tabular-nums text-cyan-400">
+                    <td className="py-3 text-center font-bold tabular-nums text-[var(--analytics-accent)]">
                       {p.winRate.toFixed(1)}%
                     </td>
                     <td
                       className={`py-3 text-right font-bold tabular-nums ${
-                        p.pnl >= 0 ? 'text-cyan-400' : 'text-rose-400'
+                        p.pnl >= 0 ? 'text-[var(--analytics-accent)]' : 'text-rose-400'
                       }`}
                     >
                       {p.pnl >= 0 ? '+' : ''}
                       {formatCurrency(p.pnl, currency)}
                     </td>
-                    <td className="py-3 text-right font-medium text-cyan-400 tabular-nums">
+                    <td className="py-3 text-right font-medium text-[var(--analytics-accent)] tabular-nums">
                       +{formatCurrency(p.grossProfit, currency)}
                     </td>
                     <td className="py-3 text-right font-medium text-rose-400 tabular-nums">
                       -{formatCurrency(p.grossLoss, currency)}
                     </td>
-                    <td className="py-3 text-center font-bold text-slate-200 tabular-nums">
+                    <td className="py-3 text-center font-bold text-slate-700 dark:text-slate-200 tabular-nums">
                       {p.profitFactor ? p.profitFactor.toFixed(2) : '—'}
                     </td>
                   </tr>
@@ -1132,15 +1082,15 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({
       {/* 8. TAB 5: EDGE & SYNTHÈSE STRATÉGIQUE */}
       {activeTab === 'edge' && (
         <div className="space-y-6">
-          <div className="p-6 rounded-2xl bg-[#0e1626] border border-cyan-500/30 shadow-md space-y-4">
+          <div className="p-6 rounded-2xl bg-white dark:bg-[#12151D] border border-[var(--analytics-accent-border)] shadow-md space-y-4">
             <div className="flex items-start justify-between gap-4">
               <div className="flex items-start gap-3">
-                <Compass className="w-6 h-6 text-cyan-400 shrink-0 mt-0.5" />
+                <Compass className="w-6 h-6 text-[var(--analytics-accent)] shrink-0 mt-0.5" />
                 <div>
-                  <span className="text-[11px] uppercase font-bold tracking-wider text-cyan-400 block">
+                  <span className="text-[11px] uppercase font-bold tracking-wider text-[var(--analytics-accent)] block">
                     Synthèse de l&apos;Edge Stratégique
                   </span>
-                  <h3 className="text-base font-bold text-white mt-1">
+                  <h3 className="text-base font-bold text-slate-900 dark:text-slate-100 mt-1">
                     {edgeAudit.verdict.keyTakeaway}
                   </h3>
                 </div>
@@ -1149,21 +1099,21 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({
               {onNavigateToMyEdge && (
                 <button
                   onClick={onNavigateToMyEdge}
-                  className="px-4 py-2 rounded-xl bg-cyan-500 text-slate-950 text-xs font-bold hover:bg-cyan-400 transition cursor-pointer shrink-0"
+                  className="px-4 py-2 rounded-xl bg-[var(--analytics-accent)] text-slate-950 text-xs font-bold hover:bg-cyan-400 transition cursor-pointer shrink-0"
                 >
                   Ouvrir My Edge complet →
                 </button>
               )}
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-3 pt-3 border-t border-slate-800">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3 pt-3 border-t border-slate-200 dark:border-[#292E38]">
               {edgeAudit.verdict.recurringConditions.map((cond, idx) => (
                 <div
                   key={idx}
-                  className="p-3 rounded-xl bg-slate-900 border border-slate-800 flex items-start gap-2"
+                  className="p-3 rounded-xl bg-slate-900 border border-slate-200 dark:border-[#292E38] flex items-start gap-2"
                 >
-                  <CheckCircle2 className="w-4 h-4 text-cyan-400 shrink-0 mt-0.5" />
-                  <span className="text-xs text-slate-300 font-medium">{cond}</span>
+                  <CheckCircle2 className="w-4 h-4 text-[var(--analytics-accent)] shrink-0 mt-0.5" />
+                  <span className="text-xs text-slate-600 dark:text-slate-300 font-medium">{cond}</span>
                 </div>
               ))}
             </div>
@@ -1174,33 +1124,33 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({
       {/* 9. TAB 6: BUY VS SELL */}
       {activeTab === 'directions' && (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-          <div className="p-6 rounded-2xl bg-[#0e1626] border border-slate-800 shadow-md space-y-4">
+          <div className="p-6 rounded-2xl bg-white dark:bg-[#12151D] border border-slate-200 dark:border-[#292E38] shadow-md space-y-4">
             <div className="flex items-center justify-between">
-              <span className="px-2 py-0.5 rounded text-xs font-bold bg-cyan-950 text-cyan-400 border border-cyan-800">
+              <span className="px-2 py-0.5 rounded text-xs font-bold bg-[var(--analytics-accent-soft)] text-[var(--analytics-accent)] border border-[var(--analytics-accent-border)]">
                 BUY (Positions Long)
               </span>
-              <span className="text-xs text-slate-400 font-medium">
+              <span className="text-xs text-slate-500 dark:text-slate-500 dark:text-slate-400 font-medium">
                 {directionBreakdown.buy.count} trades
               </span>
             </div>
-            <div className="grid grid-cols-3 gap-2 py-4 border-y border-slate-800 text-center">
+            <div className="grid grid-cols-3 gap-2 py-4 border-y border-slate-200 dark:border-[#292E38] text-center">
               <div>
-                <span className="text-[10px] text-slate-400 block">Win Rate</span>
-                <span className="text-lg font-bold text-cyan-400">
+                <span className="text-[10px] text-slate-500 dark:text-slate-500 dark:text-slate-400 block">Win Rate</span>
+                <span className="text-lg font-bold text-[var(--analytics-accent)]">
                   {directionBreakdown.buy.winRate.toFixed(1)}%
                 </span>
               </div>
               <div>
-                <span className="text-[10px] text-slate-400 block">Profit Factor</span>
-                <span className="text-lg font-bold text-white">
+                <span className="text-[10px] text-slate-500 dark:text-slate-500 dark:text-slate-400 block">Profit Factor</span>
+                <span className="text-lg font-bold text-slate-900 dark:text-slate-100">
                   {directionBreakdown.buy.profitFactor ? directionBreakdown.buy.profitFactor.toFixed(2) : '—'}
                 </span>
               </div>
               <div>
-                <span className="text-[10px] text-slate-400 block">P&amp;L Net</span>
+                <span className="text-[10px] text-slate-500 dark:text-slate-500 dark:text-slate-400 block">P&amp;L Net</span>
                 <span
                   className={`text-lg font-bold tabular-nums ${
-                    directionBreakdown.buy.pnl >= 0 ? 'text-cyan-400' : 'text-rose-400'
+                    directionBreakdown.buy.pnl >= 0 ? 'text-[var(--analytics-accent)]' : 'text-rose-400'
                   }`}
                 >
                   {directionBreakdown.buy.pnl >= 0 ? '+' : ''}
@@ -1210,33 +1160,33 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({
             </div>
           </div>
 
-          <div className="p-6 rounded-2xl bg-[#0e1626] border border-slate-800 shadow-md space-y-4">
+          <div className="p-6 rounded-2xl bg-white dark:bg-[#12151D] border border-slate-200 dark:border-[#292E38] shadow-md space-y-4">
             <div className="flex items-center justify-between">
               <span className="px-2 py-0.5 rounded text-xs font-bold bg-rose-950 text-rose-400 border border-rose-800">
                 SELL (Positions Short)
               </span>
-              <span className="text-xs text-slate-400 font-medium">
+              <span className="text-xs text-slate-500 dark:text-slate-500 dark:text-slate-400 font-medium">
                 {directionBreakdown.sell.count} trades
               </span>
             </div>
-            <div className="grid grid-cols-3 gap-2 py-4 border-y border-slate-800 text-center">
+            <div className="grid grid-cols-3 gap-2 py-4 border-y border-slate-200 dark:border-[#292E38] text-center">
               <div>
-                <span className="text-[10px] text-slate-400 block">Win Rate</span>
-                <span className="text-lg font-bold text-cyan-400">
+                <span className="text-[10px] text-slate-500 dark:text-slate-500 dark:text-slate-400 block">Win Rate</span>
+                <span className="text-lg font-bold text-[var(--analytics-accent)]">
                   {directionBreakdown.sell.winRate.toFixed(1)}%
                 </span>
               </div>
               <div>
-                <span className="text-[10px] text-slate-400 block">Profit Factor</span>
-                <span className="text-lg font-bold text-white">
+                <span className="text-[10px] text-slate-500 dark:text-slate-500 dark:text-slate-400 block">Profit Factor</span>
+                <span className="text-lg font-bold text-slate-900 dark:text-slate-100">
                   {directionBreakdown.sell.profitFactor ? directionBreakdown.sell.profitFactor.toFixed(2) : '—'}
                 </span>
               </div>
               <div>
-                <span className="text-[10px] text-slate-400 block">P&amp;L Net</span>
+                <span className="text-[10px] text-slate-500 dark:text-slate-500 dark:text-slate-400 block">P&amp;L Net</span>
                 <span
                   className={`text-lg font-bold tabular-nums ${
-                    directionBreakdown.sell.pnl >= 0 ? 'text-cyan-400' : 'text-rose-400'
+                    directionBreakdown.sell.pnl >= 0 ? 'text-[var(--analytics-accent)]' : 'text-rose-400'
                   }`}
                 >
                   {directionBreakdown.sell.pnl >= 0 ? '+' : ''}
@@ -1251,21 +1201,21 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({
       {/* 10. TAB 7: TIMING (JOURS & MOIS) */}
       {activeTab === 'timeline' && (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-          <div className="p-6 rounded-2xl bg-[#0e1626] border border-slate-800 shadow-md space-y-4">
-            <h2 className="text-base font-bold text-white">Rentabilité par Jour de la Semaine</h2>
+          <div className="p-6 rounded-2xl bg-white dark:bg-[#12151D] border border-slate-200 dark:border-[#292E38] shadow-md space-y-4">
+            <h2 className="text-base font-bold text-slate-900 dark:text-slate-100">Rentabilité par Jour de la Semaine</h2>
             <div className="space-y-2">
               {timelineBreakdown.byDay.map((d, idx) => (
                 <div
                   key={idx}
-                  className="p-3 rounded-xl bg-[#080d1a] border border-slate-800 flex items-center justify-between text-xs"
+                  className="p-3 rounded-xl bg-slate-50 dark:bg-[#0B0D12] border border-slate-200 dark:border-[#292E38] flex items-center justify-between text-xs"
                 >
-                  <span className="font-semibold text-slate-200">{d.dayName}</span>
+                  <span className="font-semibold text-slate-700 dark:text-slate-200">{d.dayName}</span>
                   <div className="flex items-center gap-4">
-                    <span className="text-slate-400">{d.tradesCount} trades</span>
-                    <span className="font-bold text-cyan-400">{d.winRate.toFixed(1)}% WR</span>
+                    <span className="text-slate-500 dark:text-slate-500 dark:text-slate-400">{d.tradesCount} trades</span>
+                    <span className="font-bold text-[var(--analytics-accent)]">{d.winRate.toFixed(1)}% WR</span>
                     <span
                       className={`font-bold tabular-nums ${
-                        d.pnl >= 0 ? 'text-cyan-400' : 'text-rose-400'
+                        d.pnl >= 0 ? 'text-[var(--analytics-accent)]' : 'text-rose-400'
                       }`}
                     >
                       {d.pnl >= 0 ? '+' : ''}
@@ -1277,21 +1227,21 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({
             </div>
           </div>
 
-          <div className="p-6 rounded-2xl bg-[#0e1626] border border-slate-800 shadow-md space-y-4">
-            <h2 className="text-base font-bold text-white">Rentabilité par Mois</h2>
+          <div className="p-6 rounded-2xl bg-white dark:bg-[#12151D] border border-slate-200 dark:border-[#292E38] shadow-md space-y-4">
+            <h2 className="text-base font-bold text-slate-900 dark:text-slate-100">Rentabilité par Mois</h2>
             <div className="space-y-2">
               {timelineBreakdown.byMonth.map((m, idx) => (
                 <div
                   key={idx}
-                  className="p-3 rounded-xl bg-[#080d1a] border border-slate-800 flex items-center justify-between text-xs"
+                  className="p-3 rounded-xl bg-slate-50 dark:bg-[#0B0D12] border border-slate-200 dark:border-[#292E38] flex items-center justify-between text-xs"
                 >
-                  <span className="font-semibold text-slate-200">{m.month}</span>
+                  <span className="font-semibold text-slate-700 dark:text-slate-200">{m.month}</span>
                   <div className="flex items-center gap-4">
-                    <span className="text-slate-400">{m.tradesCount} trades</span>
-                    <span className="font-bold text-cyan-400">{m.winRate.toFixed(1)}% WR</span>
+                    <span className="text-slate-500 dark:text-slate-500 dark:text-slate-400">{m.tradesCount} trades</span>
+                    <span className="font-bold text-[var(--analytics-accent)]">{m.winRate.toFixed(1)}% WR</span>
                     <span
                       className={`font-bold tabular-nums ${
-                        m.pnl >= 0 ? 'text-cyan-400' : 'text-rose-400'
+                        m.pnl >= 0 ? 'text-[var(--analytics-accent)]' : 'text-rose-400'
                       }`}
                     >
                       {m.pnl >= 0 ? '+' : ''}
@@ -1308,13 +1258,13 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({
       {/* 11. INDIVIDUAL SCORE BREAKDOWN POPUP */}
       {selectedScoreBreakdown && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-xs">
-          <div className="bg-[#0e1626] border border-cyan-500/40 rounded-2xl max-w-xl w-full p-6 space-y-5 shadow-2xl">
-            <div className="flex items-center justify-between border-b border-slate-800 pb-4">
+          <div className="bg-white dark:bg-[#12151D] border border-cyan-500/40 rounded-2xl max-w-xl w-full p-6 space-y-5 shadow-2xl">
+            <div className="flex items-center justify-between border-b border-slate-200 dark:border-[#292E38] pb-4">
               <div>
-                <span className="text-[10px] text-slate-400 uppercase font-semibold">
+                <span className="text-[10px] text-slate-500 dark:text-slate-500 dark:text-slate-400 uppercase font-semibold">
                   Décomposition de l&apos;Edge Score
                 </span>
-                <h3 className="text-lg font-bold text-white">
+                <h3 className="text-lg font-bold text-slate-900 dark:text-slate-100">
                   {selectedScoreBreakdown.title}
                 </h3>
               </div>
@@ -1328,10 +1278,10 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({
             </div>
 
             <div className="space-y-3">
-              <div className="p-3.5 rounded-xl bg-slate-900 border border-slate-800 space-y-2">
+              <div className="p-3.5 rounded-xl bg-slate-900 border border-slate-200 dark:border-[#292E38] space-y-2">
                 <div className="flex justify-between items-center text-xs">
-                  <span className="text-slate-300 font-semibold">1. Espérance Mathématique (Expectancy) :</span>
-                  <span className="font-bold text-cyan-400">
+                  <span className="text-slate-600 dark:text-slate-300 font-semibold">1. Espérance Mathématique (Expectancy) :</span>
+                  <span className="font-bold text-[var(--analytics-accent)]">
                     {selectedScoreBreakdown.breakdown.expectancyPoints} / 30 pts
                   </span>
                 </div>
@@ -1343,24 +1293,24 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({
                 </div>
               </div>
 
-              <div className="p-3.5 rounded-xl bg-slate-900 border border-slate-800 space-y-2">
+              <div className="p-3.5 rounded-xl bg-slate-900 border border-slate-200 dark:border-[#292E38] space-y-2">
                 <div className="flex justify-between items-center text-xs">
-                  <span className="text-slate-300 font-semibold">2. Facteur de Profit (Profit Factor) :</span>
-                  <span className="font-bold text-indigo-400">
+                  <span className="text-slate-600 dark:text-slate-300 font-semibold">2. Facteur de Profit (Profit Factor) :</span>
+                  <span className="font-bold text-[var(--analytics-accent)]">
                     {selectedScoreBreakdown.breakdown.profitFactorPoints} / 25 pts
                   </span>
                 </div>
                 <div className="w-full bg-slate-800 h-1.5 rounded-full overflow-hidden">
                   <div
-                    className="bg-indigo-400 h-full rounded-full"
+                    className="bg-[var(--analytics-accent)] h-full rounded-full"
                     style={{ width: `${(selectedScoreBreakdown.breakdown.profitFactorPoints / 25) * 100}%` }}
                   />
                 </div>
               </div>
 
-              <div className="p-3.5 rounded-xl bg-slate-900 border border-slate-800 space-y-2">
+              <div className="p-3.5 rounded-xl bg-slate-900 border border-slate-200 dark:border-[#292E38] space-y-2">
                 <div className="flex justify-between items-center text-xs">
-                  <span className="text-slate-300 font-semibold">3. Efficience Win Rate / RR :</span>
+                  <span className="text-slate-600 dark:text-slate-300 font-semibold">3. Efficience Win Rate / RR :</span>
                   <span className="font-bold text-emerald-400">
                     {selectedScoreBreakdown.breakdown.winRateEfficiencyPoints} / 25 pts
                   </span>
@@ -1373,9 +1323,9 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({
                 </div>
               </div>
 
-              <div className="p-3.5 rounded-xl bg-slate-900 border border-slate-800 space-y-2">
+              <div className="p-3.5 rounded-xl bg-slate-900 border border-slate-200 dark:border-[#292E38] space-y-2">
                 <div className="flex justify-between items-center text-xs">
-                  <span className="text-slate-300 font-semibold">4. Fiabilité Statistique (Sample Size) :</span>
+                  <span className="text-slate-600 dark:text-slate-300 font-semibold">4. Fiabilité Statistique (Sample Size) :</span>
                   <span className="font-bold text-amber-400">
                     {selectedScoreBreakdown.breakdown.sampleConfidencePoints} / 20 pts
                   </span>
@@ -1391,21 +1341,21 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({
 
             {/* Explanations list */}
             <div className="space-y-1.5 pt-2">
-              <span className="text-[11px] font-semibold text-slate-400">Justifications mathématiques :</span>
-              <ul className="space-y-1 text-xs text-slate-300">
+              <span className="text-[11px] font-semibold text-slate-500 dark:text-slate-500 dark:text-slate-400">Justifications mathématiques :</span>
+              <ul className="space-y-1 text-xs text-slate-600 dark:text-slate-300">
                 {selectedScoreBreakdown.breakdown.explanations.map((exp, idx) => (
                   <li key={idx} className="flex items-start gap-2">
-                    <span className="text-cyan-400 font-bold">•</span>
+                    <span className="text-[var(--analytics-accent)] font-bold">•</span>
                     <span>{exp}</span>
                   </li>
                 ))}
               </ul>
             </div>
 
-            <div className="pt-4 border-t border-slate-800 flex justify-end">
+            <div className="pt-4 border-t border-slate-200 dark:border-[#292E38] flex justify-end">
               <button
                 onClick={() => setSelectedScoreBreakdown(null)}
-                className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-white rounded-xl text-xs font-semibold cursor-pointer"
+                className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-900 dark:text-slate-100 rounded-xl text-xs font-semibold cursor-pointer"
               >
                 Fermer
               </button>
