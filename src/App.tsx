@@ -72,7 +72,7 @@ export default function App() {
             {activeTab === 'edge' && <motion.div key="edge" {...viewMotion}><MyEdgeAnalyzerView trades={safeTrades} setups={safeSetups} currency={settings.currency||'EUR'} onOpenSetupsModal={()=>setIsSetupsOpen(true)} onSelectTrade={setSelectedTrade}/></motion.div>}
             {activeTab === 'analytics' && <motion.div key="analytics" {...viewMotion}><AnalyticsView trades={safeTrades} currency={settings.currency||'EUR'} initialBalance={settings.initialAccountBalance||10000} onSelectTrade={setSelectedTrade}/></motion.div>}
             {activeTab === 'coach' && <motion.div key="coach" {...viewMotion}><CoachView trades={safeTrades} setups={safeSetups} currency={settings.currency||'USD'} initialBalance={settings.initialAccountBalance||10000}/></motion.div>}
-            {activeTab === 'settings' && <motion.div key="settings" {...viewMotion}><SettingsView settings={settings} alerts={alerts} onUpdateSettings={updateSettings} onOpenBackup={()=>setIsBackupOpen(true)} onSeed={handleSeed} onClear={handleClear} tradeCount={safeTrades.length}/></motion.div>}
+            {activeTab === 'settings' && <motion.div key="settings" {...viewMotion}><SettingsView settings={settings} alerts={alerts} onUpdateSettings={updateSettings} onOpenBackup={()=>setIsBackupOpen(true)} onOpenSetups={()=>setIsSetupsOpen(true)} onOpenImport={()=>setIsImportOpen(true)} onSeed={handleSeed} onClear={handleClear} tradeCount={safeTrades.length}/></motion.div>}
           </>}
         </AnimatePresence>
       </main>
