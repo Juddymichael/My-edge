@@ -16,6 +16,8 @@ import {
   CalendarDays,
   BookOpen,
   Upload,
+  Bell,
+  Trash2,
 } from 'lucide-react';
 import { useTheme } from '../hooks/useTheme';
 import { ActiveTab } from './Sidebar';
@@ -29,6 +31,8 @@ interface TopBarProps {
   onOpenSetupsModal: () => void;
   onOpenBackup: () => void;
   onSeed: () => void;
+  unreadCount?: number;
+  onDismissAllNotifications?: () => void;
   isLoading?: boolean;
   tradeCount: number;
 }
@@ -81,6 +85,8 @@ export const TopBar: React.FC<TopBarProps> = ({
   onSeed,
   isLoading = false,
   tradeCount,
+  unreadCount = 0,
+  onDismissAllNotifications,
 }) => {
   const { isDark, toggleTheme } = useTheme();
   const info = TAB_INFO[activeTab] || TAB_INFO.dashboard;
@@ -166,6 +172,31 @@ export const TopBar: React.FC<TopBarProps> = ({
         >
           <Database className="w-4 h-4 btn-icon" />
         </button>
+
+        {/* Bulk notification control */}
+        {onDismissAllNotifications && (
+          <button
+            onClick={onDismissAllNotifications}
+            disabled={unreadCount === 0}
+            className="relative p-2 rounded-2xl text-[#6B668D] dark:text-[#9299A8] hover:text-[#0F0E26] dark:hover:text-[#F5F5F5] hover:bg-[#FAF8FF] dark:hover:bg-[#181C25] transition-all duration-200 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed btn-press btn-icon-animate group"
+            title={unreadCount > 0 ? 'Marquer toutes les notifications comme vues / les retirer des alertes actives' : 'Aucune notification non lue'}
+            aria-label="Effacer les notifications actives"
+          >
+            <Bell className="w-4 h-4 btn-icon" />
+            {unreadCount > 0 && <span className="absolute -top-0.5 -right-0.5 min-w-4 h-4 px-1 rounded-full bg-[#F97316] text-white text-[9px] font-bold flex items-center justify-center border-2 border-white dark:border-[#0B0D12]">{unreadCount > 99 ? '99+' : unreadCount}</span>}
+          </button>
+        )}
+        {onDismissAllNotifications && (
+          <button
+            onClick={onDismissAllNotifications}
+            disabled={unreadCount === 0}
+            className="hidden lg:inline-flex items-center gap-1.5 px-2.5 py-1.5 text-[11px] font-bold rounded-2xl text-slate-600 dark:text-slate-300 bg-slate-50 dark:bg-[#181C25] hover:bg-slate-100 dark:hover:bg-[#202531] border border-slate-200 dark:border-[#292E38] transition-all duration-200 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed btn-press"
+            title="Retirer toutes les notifications actives"
+          >
+            <Trash2 className="w-3.5 h-3.5" />
+            <span>Tout effacer</span>
+          </button>
+        )}
 
         {/* Theme Toggle Button */}
         <motion.button
