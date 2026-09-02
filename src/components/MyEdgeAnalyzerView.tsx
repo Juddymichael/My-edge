@@ -5,6 +5,7 @@ import { Setup } from '../types/setup';
 import { calculateMyEdgeDeepAudit, DimensionPerformance } from '../lib/calculations/edge';
 import { formatCurrency } from '../lib/formatting';
 import { SetupComparison, SetupScreenshotGallery } from './MyEdgeAnalyzerFeatures';
+import { MyEdgeView } from './MyEdgeView';
 
 interface MyEdgeAnalyzerViewProps { trades?: Trade[]; setups?: Setup[]; currency?: string; onOpenSetupsModal?: () => void; onSelectTrade?: (trade: Trade) => void; }
 const setupName=(trade:Trade)=>trade.setup?.trim()||trade.setupId||'Non défini / Général';
