@@ -30,8 +30,8 @@ app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
-// AI Coach endpoint
-app.post('/api/coach/chat', async (req, res) => {
+// AI Coach endpoint — mirrors the Vercel serverless route for local development.
+app.post('/api/coach', async (req, res) => {
   try {
     const { message, history = [], context } = req.body;
 
@@ -48,8 +48,6 @@ app.post('/api/coach/chat', async (req, res) => {
     }
 
     const ai = getGenAI();
-
-    // Prepare rich system instruction with the trader's actual context
     const contextJson = context ? JSON.stringify(context, null, 2) : 'Aucun trade disponible.';
 
     const systemInstruction = `
@@ -76,26 +74,17 @@ RÈGLES ET DIRECTIVES FONDAMENTALES :
    - En français, clair, fluide avec listes à puces et gras sur les données clés.
 `;
 
-    // Format chat contents
     const formattedContents: Array<{ role: 'user' | 'model'; parts: Array<{ text: string }> }> = [];
 
-    // Add previous history turns
     if (Array.isArray(history)) {
-      for (const turn of history) {
-        if (turn.role === 'user' || turn.role === 'model') {
-          formattedContents.push({
-            role: turn.role,
-            parts: [{ text: turn.text || '' }],
-          });
+      for (const turn of history.slice(-10)) {
+        if ((turn.role === 'user' || turn.role === 'model') && typeof turn.text === 'string') {
+          formattedContents.push({ role: turn.role, parts: [{ text: turn.text }] });
         }
       }
     }
 
-    // Add current user prompt
-    formattedContents.push({
-      role: 'user',
-      parts: [{ text: message }],
-    });
+    formattedContents.push({ role: 'user', parts: [{ text: message }] });
 
     const modelsToTry = ['gemini-3.7-flash', 'gemini-3.1-flash-lite', 'gemini-flash-latest'];
     let replyText = '';
@@ -108,7 +97,7 @@ RÈGLES ET DIRECTIVES FONDAMENTALES :
           contents: formattedContents,
           config: {
             systemInstruction,
-            temperature: 0.2, // Low temperature for high factual consistency
+            temperature: 0.2,
             maxOutputTokens: 1200,
           },
         });
@@ -122,13 +111,9 @@ RÈGLES ET DIRECTIVES FONDAMENTALES :
       }
     }
 
-    if (!replyText) {
-      throw lastError || new Error('Impossible de générer une réponse.');
-    }
+    if (!replyText) throw lastError || new Error('Impossible de générer une réponse.');
 
-    return res.json({
-      reply: replyText,
-    });
+    return res.json({ reply: replyText });
   } catch (error: any) {
     console.error('[AI Coach Error]:', error);
     return res.status(500).json({
@@ -137,7 +122,6 @@ RÈGLES ET DIRECTIVES FONDAMENTALES :
   }
 });
 
-// Setup server and Vite middleware
 async function startServer() {
   if (process.env.NODE_ENV !== 'production') {
     const vite = await createViteServer({
