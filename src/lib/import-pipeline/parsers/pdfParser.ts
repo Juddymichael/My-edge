@@ -1,134 +1,90 @@
 import * as pdfjsLib from 'pdfjs-dist';
 import { ITradeParser, ParseResult, RawParsedRow } from '../parser';
 import { ImportFileType } from '../../../types/import';
+import { normalizeNumber } from '../../normalization';
 
-// Configure worker safely
 try {
   if (typeof window !== 'undefined' && !pdfjsLib.GlobalWorkerOptions.workerSrc) {
     pdfjsLib.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${pdfjsLib.version}/build/pdf.worker.min.mjs`;
   }
-} catch {
-  // Ignore worker setting if in test or node environment
-}
+} catch { /* worker configuration is optional in tests */ }
 
-/**
- * Universal PDF Statement Parser.
- * Extracts trade tables and statement records from MT4/MT5, cTrader, prop firm, and broker PDFs.
- */
 export class PdfTradeParser implements ITradeParser {
   readonly supportedType: ImportFileType = 'PDF';
 
-  async parse(rawInput: string | ArrayBuffer, options?: Record<string, unknown>): Promise<ParseResult> {
-    let data: Uint8Array;
-    if (typeof rawInput === 'string') {
-      const encoder = new TextEncoder();
-      data = encoder.encode(rawInput);
-    } else {
-      data = new Uint8Array(rawInput);
-    }
-
+  async parse(rawInput: string | ArrayBuffer): Promise<ParseResult> {
+    const data = typeof rawInput === 'string' ? new TextEncoder().encode(rawInput) : new Uint8Array(rawInput);
     try {
-      const loadingTask = pdfjsLib.getDocument({
-        data,
-        useSystemFonts: true,
-        disableFontFace: true,
-      });
-
-      const pdf = await loadingTask.promise;
-      const totalPages = pdf.numPages;
+      const pdf = await pdfjsLib.getDocument({ data, useSystemFonts: true, disableFontFace: true }).promise;
       const allTextLines: string[] = [];
-
-      for (let pageNum = 1; pageNum <= totalPages; pageNum++) {
+      for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
         const page = await pdf.getPage(pageNum);
         const textContent = await page.getTextContent();
-        
-        // Group items by vertical Y coordinate with a tolerance to reconstruct table lines
         const items = textContent.items as { str: string; transform: number[] }[];
         const lineMap = new Map<number, { x: number; text: string }[]>();
-
         for (const item of items) {
-          if (!item.str || !item.str.trim()) continue;
-          const y = Math.round(item.transform[5]); // Y coordinate
-          const x = Math.round(item.transform[4]); // X coordinate
-
-          // Find existing line bucket within 3px tolerance
+          if (!item.str?.trim()) continue;
+          const y = Math.round(item.transform[5]);
+          const x = Math.round(item.transform[4]);
           let matchedY = y;
-          for (const existingY of lineMap.keys()) {
-            if (Math.abs(existingY - y) <= 4) {
-              matchedY = existingY;
-              break;
-            }
-          }
-
-          if (!lineMap.has(matchedY)) {
-            lineMap.set(matchedY, []);
-          }
+          for (const existingY of lineMap.keys()) if (Math.abs(existingY - y) <= 4) { matchedY = existingY; break; }
+          if (!lineMap.has(matchedY)) lineMap.set(matchedY, []);
           lineMap.get(matchedY)!.push({ x, text: item.str });
         }
-
-        // Sort lines from top (highest Y) to bottom
-        const sortedY = Array.from(lineMap.keys()).sort((a, b) => b - a);
-
-        for (const y of sortedY) {
-          const rowItems = lineMap.get(y)!;
-          // Sort items by horizontal X position
-          rowItems.sort((a, b) => a.x - b.x);
-          const fullLine = rowItems.map((i) => i.text.trim()).join('   ');
-          if (fullLine.trim()) {
-            allTextLines.push(fullLine);
-          }
+        for (const y of Array.from(lineMap.keys()).sort((a, b) => b - a)) {
+          const row = lineMap.get(y)!;
+          row.sort((a, b) => a.x - b.x);
+          const line = row.map((i) => i.text.trim()).join('   ');
+          if (line.trim()) allTextLines.push(line);
         }
       }
-
       return this.parseExtractedPdfLines(allTextLines);
     } catch (err) {
       console.error('Failed to parse PDF document:', err);
-      return {
-        fileType: 'PDF',
-        totalRawRows: 0,
-        rows: [],
-      };
+      return { fileType: 'PDF', totalRawRows: 0, rows: [] };
     }
   }
 
   private parseExtractedPdfLines(lines: string[]): ParseResult {
     const rows: RawParsedRow[] = [];
     let rowNum = 1;
+    let invalidRows = 0;
+    let sourceTotalPnl: number | null = null;
 
-    // Look for lines that contain trade signatures:
-    // Dates (2026.08.15 or 15/08/2026), Direction (buy/sell), Prices (1.0850), Profit numbers
-    const tradeLinePattern = /(buy|sell|long|short)/i;
+    const datePattern = /\b(?:\d{4}[./-]\d{1,2}[./-]\d{1,2}|\d{1,2}[./-]\d{1,2}[./-]\d{4}|\d{1,2}[ -](?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec|Janv|Fév|Mar|Avr|Mai|Jun|Jul|Aoû|Sep|Oct|Nov|Déc)[a-zéû]*[ -]\d{4})(?:[ T]\d{1,2}:\d{2}(?::\d{2}(?:\.\d+)?)?)?/gi;
+    const symbolPattern = /\b(?:[A-Z]{3}\/?[A-Z]{3}|XAUUSD|XAGUSD|USOIL|UKOIL|BRENT|NAS100|US30|SPX500|GER40|BTCUSD|ETHUSD)\b/i;
 
     for (const line of lines) {
-      if (tradeLinePattern.test(line) && !line.toLowerCase().startsWith('type') && !line.toLowerCase().startsWith('summary')) {
-        // Split on multiple spaces or tab characters
-        const tokens = line.split(/\s{2,}|\t/).map((t) => t.trim()).filter(Boolean);
-        
-        if (tokens.length >= 4) {
-          const rowData: Record<string, unknown> = {
-            rawText: line,
-          };
-
-          tokens.forEach((token, idx) => {
-            rowData[`col_${idx}`] = token;
-          });
-
-          rows.push({
-            rowNumber: rowNum++,
-            data: rowData,
-            rawString: line,
-          });
-        }
+      if (/^(summary|résumé|resume|total|account summary|deposits?|withdrawals?|balance)\b/i.test(line.trim())) {
+        const nums = line.match(/[+-]?\s*[\d\u00a0\u202f\s.,]+/g) || [];
+        const last = nums.map((n) => normalizeNumber(n)).filter((n): n is number => n !== null).pop();
+        if (last !== undefined) sourceTotalPnl = last;
+        continue;
       }
+
+      const directionMatch = line.match(/\b(buy|sell|long|short|achat|vente)\b/i);
+      const symbolMatch = line.match(symbolPattern);
+      const dates = line.match(datePattern) || [];
+      if (!directionMatch || !symbolMatch || !dates.length) { invalidRows++; continue; }
+
+      const rowData: Record<string, unknown> = {
+        symbol: symbolMatch[0],
+        direction: directionMatch[0],
+        date: dates[0],
+        rawText: line,
+      };
+      if (dates[1]) rowData.heuredecloture = dates[1];
+
+      // Keep broker tokens available for future PDF-specific mappings; do not invent a PnL when ambiguous.
+      line.split(/\s{2,}|\t/).filter(Boolean).forEach((token, idx) => { rowData[`col_${idx}`] = token.trim(); });
+      rows.push({ rowNumber: rowNum++, data: rowData, rawString: line });
     }
 
     return {
       fileType: 'PDF',
       totalRawRows: rows.length,
       rows,
-      metadata: {
-        totalLinesExtracted: lines.length,
-      },
+      metadata: { totalLinesExtracted: lines.length, invalidRows, sourceTotalPnl },
     };
   }
 }
