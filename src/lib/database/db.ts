@@ -24,40 +24,10 @@ export class ThunderEdgeDatabase extends Dexie {
 
   constructor() {
     super('ThunderEdgeDB');
-
-    this.version(1).stores({
-      trades: 'id, ticket, sourceId, symbol, direction, status, dataQuality, openedAt, closedAt, createdAt',
-      imports: 'id, filename, fileType, importedAt, status',
-      settings: 'id',
-    });
-
-    this.version(2).stores({
-      trades: 'id, ticket, sourceId, symbol, direction, status, dataQuality, openedAt, closedAt, createdAt, setupId, setup, session',
-      imports: 'id, filename, fileType, importedAt, status',
-      settings: 'id',
-      setups: 'id, name, shortName, category, enabled, createdAt',
-      entryModels: 'id, name, setupId, enabled',
-    });
-
-    this.version(3).stores({
-      trades: 'id, ticket, sourceId, symbol, direction, status, dataQuality, openedAt, closedAt, createdAt, setupId, setup, session',
-      imports: 'id, filename, fileType, importedAt, status',
-      settings: 'id',
-      setups: 'id, name, shortName, category, enabled, createdAt',
-      entryModels: 'id, name, setupId, enabled',
-      coachHistory: 'id, role, timestamp',
-    });
-
-    // Version 4: persistent proactive behavioral-risk alerts.
-    this.version(4).stores({
-      trades: 'id, ticket, sourceId, symbol, direction, status, dataQuality, openedAt, closedAt, createdAt, setupId, setup, session',
-      imports: 'id, filename, fileType, importedAt, status',
-      settings: 'id',
-      setups: 'id, name, shortName, category, enabled, createdAt',
-      entryModels: 'id, name, setupId, enabled',
-      coachHistory: 'id, role, timestamp',
-      riskAlerts: 'id, type, detectedAt, read, dismissed',
-    });
+    this.version(1).stores({ trades: 'id, ticket, sourceId, symbol, direction, status, dataQuality, openedAt, closedAt, createdAt', imports: 'id, filename, fileType, importedAt, status', settings: 'id' });
+    this.version(2).stores({ trades: 'id, ticket, sourceId, symbol, direction, status, dataQuality, openedAt, closedAt, createdAt, setupId, setup, session', imports: 'id, filename, fileType, importedAt, status', settings: 'id', setups: 'id, name, shortName, category, enabled, createdAt', entryModels: 'id, name, setupId, enabled' });
+    this.version(3).stores({ trades: 'id, ticket, sourceId, symbol, direction, status, dataQuality, openedAt, closedAt, createdAt, setupId, setup, session', imports: 'id, filename, fileType, importedAt, status', settings: 'id', setups: 'id, name, shortName, category, enabled, createdAt', entryModels: 'id, name, setupId, enabled', coachHistory: 'id, role, timestamp' });
+    this.version(4).stores({ trades: 'id, ticket, sourceId, symbol, direction, status, dataQuality, openedAt, closedAt, createdAt, setupId, setup, session', imports: 'id, filename, fileType, importedAt, status', settings: 'id', setups: 'id, name, shortName, category, enabled, createdAt', entryModels: 'id, name, setupId, enabled', coachHistory: 'id, role, timestamp', riskAlerts: 'id, type, detectedAt, read, dismissed' });
   }
 
   async ensureSettings(): Promise<UserSettings> {
@@ -66,15 +36,19 @@ export class ThunderEdgeDatabase extends Dexie {
       await this.settings.put(DEFAULT_USER_SETTINGS);
       return DEFAULT_USER_SETTINGS;
     }
+    // Backfill fields introduced after the original settings schema without
+    // overwriting the user's existing preferences.
+    if (!existing.riskPatternSettings) {
+      const migrated = { ...DEFAULT_USER_SETTINGS, ...existing, riskPatternSettings: DEFAULT_USER_SETTINGS.riskPatternSettings };
+      await this.settings.put(migrated);
+      return migrated;
+    }
     return existing;
   }
 
   async ensureDefaultSetups(): Promise<Setup[]> {
     const count = await this.setups.count();
-    if (count === 0) {
-      await this.setups.bulkPut(DEFAULT_SETUPS);
-      return DEFAULT_SETUPS;
-    }
+    if (count === 0) { await this.setups.bulkPut(DEFAULT_SETUPS); return DEFAULT_SETUPS; }
     return await this.setups.toArray();
   }
 }
