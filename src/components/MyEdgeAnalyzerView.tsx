@@ -1,118 +1,19 @@
 import React, { useMemo, useState } from 'react';
-import { GitCompareArrows, Image as ImageIcon } from 'lucide-react';
+import { AlertTriangle, BookOpen, GitCompareArrows, Image as ImageIcon } from 'lucide-react';
 import { Trade } from '../types/trade';
 import { Setup } from '../types/setup';
-import { calculateMyEdgeDeepAudit } from '../lib/calculations/edge';
-import { MyEdgeView } from './MyEdgeView';
+import { calculateMyEdgeDeepAudit, DimensionPerformance } from '../lib/calculations/edge';
+import { formatCurrency } from '../lib/formatting';
 import { SetupComparison, SetupScreenshotGallery } from './MyEdgeAnalyzerFeatures';
 
-interface MyEdgeAnalyzerViewProps {
-  trades?: Trade[];
-  setups?: Setup[];
-  currency?: string;
-  onOpenSetupsModal?: () => void;
-  onSelectTrade?: (trade: Trade) => void;
-}
+interface MyEdgeAnalyzerViewProps { trades?: Trade[]; setups?: Setup[]; currency?: string; onOpenSetupsModal?: () => void; onSelectTrade?: (trade: Trade) => void; }
+const setupName=(trade:Trade)=>trade.setup?.trim()||trade.setupId||'Non défini / Général';
+const closed=(trade:Trade)=>trade.status!=='OPEN'&&trade.netPnL!==null&&trade.netPnL!==undefined;
+const win=(trade:Trade)=>(trade.netPnL??0)>0;
+const statusFor=(s:DimensionPerformance)=>s.confidenceTier==='CONFIRMED'&&s.monetaryExpectancy>0&&(s.profitFactor??0)>=1?'Edge confirmé':s.monetaryExpectancy<0||((s.profitFactor??0)>0&&(s.profitFactor??0)<1)?'À éviter':'En observation';
+const esc=(v:string)=>v.replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[c]||c));
+const bestSession=(stats:DimensionPerformance,trades:Trade[])=>{const m=trades.filter(t=>setupName(t)===stats.label||setupName(t)===stats.key),b=new Map<string,Trade[]>();m.forEach(t=>b.set(t.session||'Non spécifiée',[...(b.get(t.session||'Non spécifiée')||[]),t]));return [...b.entries()].map(([session,ts])=>{const c=ts.filter(closed).length;const w=ts.filter(t=>closed(t)&&win(t)).length;return{session,wr:c?w/c*100:0,pnl:ts.reduce((s,t)=>s+(t.netPnL??0),0),count:c};}).filter(x=>x.count).sort((a,b)=>b.pnl-a.pnl||b.wr-a.wr)[0]||null;};
+const correlations=(trades:Trade[])=>{const o=[...trades].filter(t=>t.openedAt).sort((a,b)=>new Date(a.openedAt).getTime()-new Date(b.openedAt).getTime()),losses=new Map<string,number>(),rev=new Map<string,number>();let totalL=0,totalR=0;for(let i=0;i<o.length;i++){const t=o[i];if(!closed(t)||!((t.netPnL??0)<0))continue;const k=setupName(t);losses.set(k,(losses.get(k)||0)+1);totalL++;const n=o[i+1];if(n){const gap=(new Date(n.openedAt).getTime()-new Date(t.openedAt).getTime())/60000;if(gap>=0&&gap<=15){rev.set(k,(rev.get(k)||0)+1);totalR++;}}}const global=totalL?totalR/totalL:0;return[...losses.entries()].map(([setup,l])=>{const r=rev.get(setup)||0;return{setup,losses:l,revenge:r,rate:l?r/l:0,elevated:l>=2&&r>=1&&r/l>global};}).filter(x=>x.elevated).sort((a,b)=>b.rate-a.rate);};
+const exportPlaybook=(confirmed:DimensionPerformance[],trades:Trade[],currency:string)=>{const date=new Date().toLocaleString('fr-FR',{dateStyle:'long',timeStyle:'short'});const cards=confirmed.map(s=>{const ts=trades.filter(t=>setupName(t)===s.label||setupName(t)===s.key).sort((a,b)=>(b.netPnL??0)-(a.netPnL??0));const session=bestSession(s,trades)?.session||'Session non déterminée';const imgs=ts.flatMap(t=>[t.screenshotBefore,t.screenshotAfter].filter(Boolean) as string[]).slice(0,2);const exp=s.rExpectancy!==null?`${s.rExpectancy}R`:formatCurrency(s.monetaryExpectancy,currency);const rule=`Privilégier ce setup pendant la session ${session}.`;return `<section class="card"><h2>Setup : ${esc(s.label)}</h2><p><b>Session :</b> ${esc(session)} &nbsp; <b>Winrate :</b> ${s.winRate}% &nbsp; <b>Trades :</b> ${s.sampleSize}</p><p><b>Espérance :</b> ${esc(exp)}</p><p class="rule"><b>Règle :</b> ${esc(rule)} Edge confirmé sur les données enregistrées.</p>${imgs.length?`<div class="shots">${imgs.map(src=>`<img src="${src}" alt="Capture ${esc(s.label)}">`).join('')}</div>`:''}</section>`;}).join('');const w=window.open('','_blank','noopener,noreferrer,width=1000,height=800');if(!w)return false;w.document.write(`<!doctype html><html lang="fr"><head><meta charset="utf-8"><title>Thunder Edge — Playbook</title><style>body{font-family:Arial,sans-serif;color:#111827;max-width:900px;margin:0 auto;padding:40px;background:#fff}h1{margin-bottom:4px}.date{color:#64748b;margin-bottom:28px}.card{border:1px solid #dbe3ec;border-radius:16px;padding:22px;margin:18px 0;page-break-inside:avoid}.rule{background:#f1f5f9;padding:14px;border-radius:10px;line-height:1.5}.shots{display:flex;gap:12px;margin-top:16px}.shots img{width:48%;max-height:260px;object-fit:contain;border:1px solid #dbe3ec;border-radius:10px}@media print{body{padding:18px}}</style></head><body><h1>Thunder Edge — My Edge Playbook</h1><div class="date">Généré le ${esc(date)}</div>${cards||'<p>Aucun setup avec le badge « Edge confirmé » au moment de la génération.</p>'}</body></html>`);w.document.close();w.focus();setTimeout(()=>w.print(),400);return true;};
 
-export const MyEdgeAnalyzerView: React.FC<MyEdgeAnalyzerViewProps> = ({
-  trades = [],
-  setups = [],
-  currency = 'EUR',
-  onOpenSetupsModal,
-  onSelectTrade,
-}) => {
-  const safeTrades = trades || [];
-  const safeSetups = setups || [];
-  const [gallerySetup, setGallerySetup] = useState<string | null>(null);
-  const [comparisonOpen, setComparisonOpen] = useState(false);
-
-  const setupStats = useMemo(() => {
-    return calculateMyEdgeDeepAudit(safeTrades, safeSetups).setups;
-  }, [safeTrades, safeSetups]);
-
-  const gallerySetupNames = useMemo(() => {
-    return setupStats.map((setup) => setup.label);
-  }, [setupStats]);
-
-  return (
-    <div className="space-y-5">
-      <div className="p-4 rounded-3xl bg-white dark:bg-[#12151D] border border-slate-200 dark:border-[#292E38] shadow-sm dark:shadow-md">
-        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
-          <div>
-            <div className="flex items-center gap-2">
-              <ImageIcon className="w-4 h-4 text-[#F97316]" />
-              <h2 className="text-sm font-bold text-slate-900 dark:text-[#F5F5F5]">My Edge Analyzer — Outils Setup</h2>
-            </div>
-            <p className="text-[11px] text-slate-500 dark:text-[#9299A8] mt-1">
-              Accès direct aux captures réelles et comparaison de deux setups, sans modifier les analyses existantes.
-            </p>
-          </div>
-
-          <div className="flex flex-wrap items-center gap-2">
-            <select
-              defaultValue=""
-              onChange={(event) => {
-                if (event.target.value) setGallerySetup(event.target.value);
-                event.currentTarget.value = '';
-              }}
-              className="px-3 py-2 rounded-xl border border-slate-200 dark:border-[#292E38] bg-slate-50 dark:bg-[#181C25] text-xs font-semibold text-slate-900 dark:text-[#F5F5F5]"
-              aria-label="Choisir un setup pour la galerie"
-            >
-              <option value="">Galerie captures par setup…</option>
-              {gallerySetupNames.map((name) => <option key={name} value={name}>{name}</option>)}
-            </select>
-            <button
-              onClick={() => setComparisonOpen(true)}
-              disabled={setupStats.length < 2}
-              className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-[#F97316] hover:bg-[#EA580C] disabled:opacity-40 disabled:cursor-not-allowed text-white text-xs font-bold transition"
-            >
-              <GitCompareArrows className="w-4 h-4" />
-              Comparer
-            </button>
-          </div>
-        </div>
-
-        {setupStats.length > 0 && (
-          <div className="mt-3 flex flex-wrap gap-2">
-            {setupStats.slice(0, 8).map((setup) => (
-              <button
-                key={setup.key}
-                onClick={() => setGallerySetup(setup.label)}
-                className="px-2.5 py-1.5 rounded-xl border border-slate-200 dark:border-[#292E38] bg-slate-50 dark:bg-[#181C25] hover:border-[#F97316]/50 text-[11px] font-semibold text-slate-700 dark:text-[#F5F5F5] transition"
-              >
-                {setup.label}
-              </button>
-            ))}
-          </div>
-        )}
-      </div>
-
-      <MyEdgeView
-        trades={safeTrades}
-        setups={safeSetups}
-        currency={currency}
-        onOpenSetupsModal={onOpenSetupsModal}
-        onSelectTrade={onSelectTrade}
-      />
-
-      {gallerySetup && (
-        <SetupScreenshotGallery
-          setupName={gallerySetup}
-          trades={safeTrades}
-          currency={currency}
-          onClose={() => setGallerySetup(null)}
-          onSelectTrade={onSelectTrade}
-        />
-      )}
-
-      {comparisonOpen && (
-        <SetupComparison
-          setupStats={setupStats}
-          trades={safeTrades}
-          currency={currency}
-          onClose={() => setComparisonOpen(false)}
-        />
-      )}
-    </div>
-  );
-};
+export const MyEdgeAnalyzerView:React.FC<MyEdgeAnalyzerViewProps>=({trades=[],setups=[],currency='EUR',onOpenSetupsModal,onSelectTrade})=>{const safeTrades=trades||[],safeSetups=setups||[],[gallerySetup,setGallerySetup]=useState<string|null>(null),[comparisonOpen,setComparisonOpen]=useState(false);const audit=useMemo(()=>calculateMyEdgeDeepAudit(safeTrades,safeSetups),[safeTrades,safeSetups]),setupStats=audit.setups,revCorrelations=useMemo(()=>correlations(safeTrades),[safeTrades]),confirmed=setupStats.filter(s=>statusFor(s)==='Edge confirmé');return <div className="space-y-5"><div className="p-4 rounded-3xl bg-white dark:bg-[#12151D] border border-slate-200 dark:border-[#292E38] shadow-sm"><div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4"><div><div className="flex items-center gap-2"><ImageIcon className="w-4 h-4 text-[#F97316]"/><h2 className="text-sm font-bold">My Edge Analyzer — Outils Setup</h2></div><p className="text-[11px] text-slate-500 dark:text-[#9299A8] mt-1">Captures réelles, comparaison, Playbook et corrélation comportementale à partir de vos trades.</p></div><div className="flex flex-wrap items-center gap-2"><select defaultValue="" onChange={e=>{if(e.target.value)setGallerySetup(e.target.value);e.currentTarget.value='';}} className="px-3 py-2 rounded-xl border border-slate-200 dark:border-[#292E38] bg-slate-50 dark:bg-[#181C25] text-xs font-semibold"><option value="">Galerie captures par setup…</option>{setupStats.map(s=><option key={s.key} value={s.label}>{s.label}</option>)}</select><button onClick={()=>setComparisonOpen(true)} disabled={setupStats.length<2} className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-[#F97316] disabled:opacity-40 text-white text-xs font-bold"><GitCompareArrows className="w-4 h-4"/>Comparer</button><button onClick={()=>exportPlaybook(confirmed,safeTrades,currency)} className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-slate-900 dark:bg-white text-white dark:text-slate-900 text-xs font-bold"><BookOpen className="w-4 h-4"/>Exporter mon Playbook</button></div></div><div className="mt-3 flex flex-wrap gap-2">{setupStats.slice(0,8).map(s=><button key={s.key} onClick={()=>setGallerySetup(s.label)} className="px-2.5 py-1.5 rounded-xl border border-slate-200 dark:border-[#292E38] bg-slate-50 dark:bg-[#181C25] text-[11px] font-semibold">{s.label}</button>)}</div></div>{revCorrelations.length>0&&<div className="p-4 rounded-3xl bg-white dark:bg-[#12151D] border border-amber-500/20 shadow-sm"><div className="flex items-center gap-2 mb-2"><AlertTriangle className="w-4 h-4 text-amber-500"/><h3 className="text-xs font-bold">Corrélations comportementales observées</h3></div><div className="space-y-2">{revCorrelations.map(x=><div key={x.setup} className="text-[11px] text-slate-600 dark:text-[#B8BFCC]"><span className="font-bold text-slate-900 dark:text-white">{x.setup}</span> — ⚠ Souvent suivi d'un comportement à risque après un échec <span className="text-slate-400">({x.revenge}/{x.losses} pertes suivies d'un nouveau trade ≤ 15 min)</span></div>)}</div></div>}<MyEdgeView trades={safeTrades} setups={safeSetups} currency={currency} onOpenSetupsModal={onOpenSetupsModal} onSelectTrade={onSelectTrade}/>{gallerySetup&&<SetupScreenshotGallery setupName={gallerySetup} trades={safeTrades} currency={currency} onClose={()=>setGallerySetup(null)} onSelectTrade={onSelectTrade}/>} {comparisonOpen&&<SetupComparison setupStats={setupStats} trades={safeTrades} currency={currency} onClose={()=>setComparisonOpen(false)}/>}</div>;};
