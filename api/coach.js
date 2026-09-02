@@ -2,128 +2,84 @@ const GEMINI_MODEL = 'gemini-2.5-flash';
 const GEMINI_API_URL = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent`;
 const REQUEST_TIMEOUT_MS = 30000;
 
-function sendJson(res, status, payload) {
-  res.status(status).json(payload);
-}
+function sendJson(res, status, payload) { res.status(status).json(payload); }
+
+const FUNCTION_DECLARATIONS = [
+  {
+    name: 'getTradesByPeriod',
+    description: 'Récupère tous les trades de l’utilisateur ouverts dans une plage de dates précise. Utilise cette fonction lorsque la question demande les trades eux-mêmes sur une période.',
+    parameters: { type: 'OBJECT', properties: { dateDebut: { type: 'STRING', description: 'Date de début au format YYYY-MM-DD, incluse.' }, dateFin: { type: 'STRING', description: 'Date de fin au format YYYY-MM-DD, incluse.' } }, required: ['dateDebut', 'dateFin'] },
+  },
+  {
+    name: 'getStatsForFilter',
+    description: 'Calcule les statistiques exactes des trades correspondant à une combinaison de filtres. Utilise cette fonction pour répondre à une question de performance filtrée.',
+    parameters: { type: 'OBJECT', properties: { filtres: { type: 'OBJECT', description: 'Filtres optionnels combinables : paire, dateDebut, dateFin, session, setup.', properties: { paire: { type: 'STRING', description: 'Paire/instrument, par exemple GBPUSD ou XAUUSD.' }, dateDebut: { type: 'STRING', description: 'Date de début YYYY-MM-DD.' }, dateFin: { type: 'STRING', description: 'Date de fin YYYY-MM-DD.' }, session: { type: 'STRING', description: 'Session de trading, par exemple LONDON, NEW_YORK, TOKYO ou SYDNEY.' }, setup: { type: 'STRING', description: 'Nom exact du setup/PD Array.' } } } } },
+  },
+  {
+    name: 'getBestTrades',
+    description: 'Renvoie les N meilleurs trades selon le PnL net, avec leurs détails. Utilise-la pour les questions sur les meilleurs trades.',
+    parameters: { type: 'OBJECT', properties: { nombre: { type: 'INTEGER', description: 'Nombre de trades à retourner, entre 1 et 50.' } }, required: ['nombre'] },
+  },
+  {
+    name: 'getWorstTrades',
+    description: 'Renvoie les N pires trades selon le PnL net, avec leurs détails. Utilise-la pour les questions sur les pertes ou les pires trades.',
+    parameters: { type: 'OBJECT', properties: { nombre: { type: 'INTEGER', description: 'Nombre de trades à retourner, entre 1 et 50.' } }, required: ['nombre'] },
+  },
+];
 
 function normalizeHistory(history) {
   if (!Array.isArray(history)) return [];
-
-  return history
-    .filter((turn) => turn && (turn.role === 'user' || turn.role === 'model'))
-    .slice(-10)
-    .map((turn) => ({
-      role: turn.role,
-      parts: [{ text: typeof turn.text === 'string' ? turn.text.slice(0, 12000) : '' }],
-    }))
-    .filter((turn) => turn.parts[0].text.trim());
+  return history.slice(-30).flatMap((turn) => {
+    if (!turn || !['user', 'model'].includes(turn.role)) return [];
+    if (turn.functionCall) return [{ role: 'model', parts: [{ functionCall: turn.functionCall }] }];
+    if (turn.functionResponse) return [{ role: 'user', parts: [{ functionResponse: turn.functionResponse }] }];
+    if (typeof turn.text !== 'string' || !turn.text.trim()) return [];
+    return [{ role: turn.role, parts: [{ text: turn.text.slice(0, 12000) }] }];
+  });
 }
 
 export default async function handler(req, res) {
-  if (req.method !== 'POST') {
-    res.setHeader('Allow', 'POST');
-    return sendJson(res, 405, { error: 'Méthode non autorisée. Utilisez POST.' });
-  }
-
+  if (req.method !== 'POST') { res.setHeader('Allow', 'POST'); return sendJson(res, 405, { error: 'Méthode non autorisée. Utilisez POST.' }); }
   const apiKey = process.env.GEMINI_API_KEY;
-  if (!apiKey) {
-    return sendJson(res, 500, {
-      error: 'La variable d’environnement GEMINI_API_KEY est manquante sur le serveur.',
-      code: 'MISSING_API_KEY',
-    });
-  }
+  if (!apiKey) return sendJson(res, 500, { error: 'La variable d’environnement GEMINI_API_KEY est manquante sur le serveur.', code: 'MISSING_API_KEY' });
 
   const body = req.body || {};
   const message = typeof body.message === 'string' ? body.message.trim() : '';
-
-  if (!message) {
-    return sendJson(res, 400, {
-      error: 'Un message utilisateur valide est requis.',
-      code: 'INVALID_MESSAGE',
-    });
-  }
-
-  if (message.length > 12000) {
-    return sendJson(res, 413, {
-      error: 'Le message est trop long. Limite : 12 000 caractères.',
-      code: 'MESSAGE_TOO_LARGE',
-    });
-  }
+  const continuation = body.continuation === true;
+  if (!continuation && !message) return sendJson(res, 400, { error: 'Un message utilisateur valide est requis.', code: 'INVALID_MESSAGE' });
+  if (message.length > 12000) return sendJson(res, 413, { error: 'Le message est trop long. Limite : 12 000 caractères.', code: 'MESSAGE_TOO_LARGE' });
 
   const history = normalizeHistory(body.history);
   const context = body.context ?? null;
+  const systemInstruction = `Tu es l’AI Trading Coach & Performance Auditor de Thunder Edge. Réponds en français, clairement, professionnellement et rigoureusement. Pour toute question portant sur les données personnelles de trading, utilise les fonctions disponibles plutôt que d’inventer ou d’inférer des chiffres. Les données retournées par les fonctions sont la source de vérité. Tu peux utiliser le résumé statistique global fourni par l’application comme contexte de base, mais les fonctions servent à obtenir les données précises. Ne révèle pas les détails techniques du function calling à l’utilisateur. Pour les questions théoriques, réponds normalement.\n\nRésumé statistique global / contexte de base :\n${JSON.stringify(context ?? 'Aucun contexte fourni.')}`;
 
-  const systemInstruction = `
-Tu es l’AI Trading Coach & Performance Auditor de Thunder Edge.
-Réponds en français, de manière claire, professionnelle et rigoureuse.
-Pour les analyses de performances, base-toi uniquement sur les données de trading fournies dans le contexte.
-N’invente jamais de statistiques. Si les données sont insuffisantes, indique-le clairement.
-Pour les questions théoriques, donne des explications pédagogiques et directement exploitables.
-
-Contexte de trading fourni par l’application :
-${JSON.stringify(context ?? 'Aucun contexte fourni.')}
-`.trim();
-
-  const contents = [
-    ...history,
-    { role: 'user', parts: [{ text: message }] },
-  ];
+  const contents = [...history];
+  if (!continuation) contents.push({ role: 'user', parts: [{ text: message }] });
 
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
-
   try {
     const response = await fetch(`${GEMINI_API_URL}?key=${encodeURIComponent(apiKey)}`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        systemInstruction: { parts: [{ text: systemInstruction }] },
-        contents,
-        generationConfig: {
-          temperature: 0.2,
-          maxOutputTokens: 1200,
-        },
-      }),
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ systemInstruction: { parts: [{ text: systemInstruction }] }, contents, tools: [{ functionDeclarations: FUNCTION_DECLARATIONS }], generationConfig: { temperature: 0.2, maxOutputTokens: 1200 } }),
       signal: controller.signal,
     });
-
     const data = await response.json().catch(() => null);
+    if (!response.ok) { console.error('[Gemini API error]', response.status, data?.error?.message || 'Unknown error'); return sendJson(res, 502, { error: 'Gemini n’a pas pu traiter la demande.', code: 'GEMINI_API_ERROR' }); }
 
-    if (!response.ok) {
-      console.error('[Gemini API error]', response.status, data?.error?.message || 'Unknown error');
-      return sendJson(res, 502, {
-        error: 'Gemini n’a pas pu traiter la demande.',
-        code: 'GEMINI_API_ERROR',
-      });
+    const parts = data?.candidates?.[0]?.content?.parts || [];
+    const functionCallPart = parts.find((part) => part?.functionCall?.name);
+    if (functionCallPart) {
+      const functionCall = functionCallPart.functionCall;
+      return sendJson(res, 200, { type: 'function_call', toolCall: { name: functionCall.name, args: functionCall.args || {} } });
     }
 
-    const reply = data?.candidates?.[0]?.content?.parts
-      ?.map((part) => part?.text || '')
-      .join('')
-      .trim();
-
-    if (!reply) {
-      return sendJson(res, 502, {
-        error: 'Gemini a renvoyé une réponse vide.',
-        code: 'EMPTY_GEMINI_RESPONSE',
-      });
-    }
-
-    return sendJson(res, 200, { reply });
+    const reply = parts.map((part) => part?.text || '').join('').trim();
+    if (!reply) return sendJson(res, 502, { error: 'Gemini a renvoyé une réponse vide.', code: 'EMPTY_GEMINI_RESPONSE' });
+    return sendJson(res, 200, { type: 'message', reply });
   } catch (error) {
-    if (error?.name === 'AbortError') {
-      return sendJson(res, 504, {
-        error: 'La requête vers Gemini a dépassé le délai de 30 secondes.',
-        code: 'GEMINI_TIMEOUT',
-      });
-    }
-
+    if (error?.name === 'AbortError') return sendJson(res, 504, { error: 'La requête vers Gemini a dépassé le délai de 30 secondes.', code: 'GEMINI_TIMEOUT' });
     console.error('[Coach relay error]', error);
-    return sendJson(res, 500, {
-      error: 'Erreur interne lors de la communication avec Gemini.',
-      code: 'INTERNAL_ERROR',
-    });
-  } finally {
-    clearTimeout(timeout);
-  }
+    return sendJson(res, 500, { error: 'Erreur interne lors de la communication avec Gemini.', code: 'INTERNAL_ERROR' });
+  } finally { clearTimeout(timeout); }
 }
