@@ -26,12 +26,13 @@ function resolveTheme(theme: AppTheme): 'dark' | 'light' {
   return theme;
 }
 
-function applyThemeToDOM(theme: AppTheme) {
+function applyThemeToDOM(theme: AppTheme, animate = true) {
   if (typeof document === 'undefined') return;
   const root = document.documentElement;
   const body = document.body;
   const resolved = resolveTheme(theme);
 
+  if (animate) root.classList.add('theme-switching');
   root.classList.remove('dark', 'light');
   root.classList.add(resolved);
   root.setAttribute('data-theme', resolved);
@@ -50,6 +51,7 @@ function applyThemeToDOM(theme: AppTheme) {
   }
 
   window.dispatchEvent(new CustomEvent('themechange', { detail: { theme: resolved } }));
+  if (animate) window.setTimeout(() => root.classList.remove('theme-switching'), 90);
 }
 
 export function useTheme() {
@@ -61,11 +63,11 @@ export function useTheme() {
   const activeTheme = settings.theme || localTheme;
 
   useEffect(() => {
-    applyThemeToDOM(activeTheme);
+    applyThemeToDOM(activeTheme, false);
 
     if (activeTheme === 'system' && typeof window !== 'undefined') {
       const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
-      const handleChange = () => applyThemeToDOM('system');
+      const handleChange = () => applyThemeToDOM('system', false);
       mediaQuery.addEventListener('change', handleChange);
       return () => mediaQuery.removeEventListener('change', handleChange);
     }
@@ -74,7 +76,7 @@ export function useTheme() {
   const setTheme = useCallback(
     async (newTheme: AppTheme) => {
       setLocalTheme(newTheme);
-      applyThemeToDOM(newTheme);
+
       try {
         await updateSettings({ theme: newTheme });
       } catch {
