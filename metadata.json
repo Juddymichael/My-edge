@@ -1,0 +1,6 @@
+{
+  "name": "Thunder Edge",
+  "description": "High-integrity trading journal architecture, financial calculation engine, and performance analyzer.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
