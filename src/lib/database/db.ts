@@ -3,6 +3,7 @@ import { Trade } from '../../types/trade';
 import { ImportLog } from '../../types/import';
 import { UserSettings, DEFAULT_USER_SETTINGS } from '../../types/settings';
 import { Setup, EntryModel, DEFAULT_SETUPS } from '../../types/setup';
+import { RiskAlert } from '../riskPatterns';
 
 export interface CoachHistoryMessage {
   id: string;
@@ -12,10 +13,6 @@ export interface CoachHistoryMessage {
   isError?: boolean;
 }
 
-/**
- * Institutional Dexie IndexedDB instance for Thunder Edge.
- * Schema handles fast querying across thousands of trades and setup models.
- */
 export class ThunderEdgeDatabase extends Dexie {
   trades!: Table<Trade, string>;
   imports!: Table<ImportLog, string>;
@@ -23,6 +20,7 @@ export class ThunderEdgeDatabase extends Dexie {
   setups!: Table<Setup, string>;
   entryModels!: Table<EntryModel, string>;
   coachHistory!: Table<CoachHistoryMessage, string>;
+  riskAlerts!: Table<RiskAlert, string>;
 
   constructor() {
     super('ThunderEdgeDB');
@@ -41,7 +39,6 @@ export class ThunderEdgeDatabase extends Dexie {
       entryModels: 'id, name, setupId, enabled',
     });
 
-    // Version 3: persistent AI Coach conversation history.
     this.version(3).stores({
       trades: 'id, ticket, sourceId, symbol, direction, status, dataQuality, openedAt, closedAt, createdAt, setupId, setup, session',
       imports: 'id, filename, fileType, importedAt, status',
@@ -49,6 +46,17 @@ export class ThunderEdgeDatabase extends Dexie {
       setups: 'id, name, shortName, category, enabled, createdAt',
       entryModels: 'id, name, setupId, enabled',
       coachHistory: 'id, role, timestamp',
+    });
+
+    // Version 4: persistent proactive behavioral-risk alerts.
+    this.version(4).stores({
+      trades: 'id, ticket, sourceId, symbol, direction, status, dataQuality, openedAt, closedAt, createdAt, setupId, setup, session',
+      imports: 'id, filename, fileType, importedAt, status',
+      settings: 'id',
+      setups: 'id, name, shortName, category, enabled, createdAt',
+      entryModels: 'id, name, setupId, enabled',
+      coachHistory: 'id, role, timestamp',
+      riskAlerts: 'id, type, detectedAt, read, dismissed',
     });
   }
 
