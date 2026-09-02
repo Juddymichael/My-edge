@@ -42,6 +42,14 @@ export function useRiskAlerts(trades: Trade[], settings: UserSettings) {
     setAlerts((current) => current.map((item) => item.id === id ? { ...item, read: true } : item));
   }, []);
 
+  const dismissAll = useCallback(async () => {
+    const current = await db.riskAlerts.toArray();
+    if (!current.length) return;
+    const updated = current.map((alert) => ({ ...alert, dismissed: true, read: true }));
+    await db.riskAlerts.bulkPut(updated);
+    setAlerts(updated);
+  }, []);
+
   const dismiss = useCallback(async (id: string) => {
     const alert = await db.riskAlerts.get(id);
     if (!alert) return;
@@ -52,5 +60,5 @@ export function useRiskAlerts(trades: Trade[], settings: UserSettings) {
   const activeAlerts = alerts.filter((alert) => !alert.dismissed);
   const unreadCount = activeAlerts.filter((alert) => !alert.read).length;
 
-  return { alerts, activeAlerts, unreadCount, isAnalyzing, refresh, markViewed, dismiss };
+  return { alerts, activeAlerts, unreadCount, isAnalyzing, refresh, markViewed, dismiss, dismissAll };
 }
