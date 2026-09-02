@@ -1,8 +1,4 @@
-import { useState, useCallback, useEffect } from 'react';
-import { Trade } from '../types/trade';
-import { Setup } from '../types/setup';
-import { buildCoachContext, CoachContextPayload } from '../lib/coachContext';
-import { generateLocalCoachAnalysis } from '../lib/coachLocalEngine';
+import { useCallback, useState } from 'react';
 
 export interface ChatMessage {
   id: string;
@@ -12,51 +8,27 @@ export interface ChatMessage {
   isError?: boolean;
 }
 
-const STORAGE_KEY = 'thunder_edge_ai_coach_messages_v1';
+const createMessage = (role: ChatMessage['role'], text: string, isError = false): ChatMessage => ({
+  id: `${role}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+  role,
+  text,
+  timestamp: new Date().toISOString(),
+  ...(isError ? { isError: true } : {}),
+});
 
-export function useAICoach(
-  trades: Trade[] = [],
-  setups: Setup[] = [],
-  initialBalance: number = 10000
-) {
-  const [messages, setMessages] = useState<ChatMessage[]>(() => {
-    try {
-      const stored = localStorage.getItem(STORAGE_KEY);
-      if (stored) return JSON.parse(stored);
-    } catch {
-      // ignore
-    }
+const WELCOME_MESSAGE: ChatMessage = {
+  id: 'welcome-msg',
+  role: 'model',
+  text: `Bonjour 👋 Je suis votre **Trading Coach**.\n\nJe peux discuter avec vous de trading, de stratégie, de discipline, de psychologie et de gestion du risque. Posez-moi vos questions comme dans une conversation normale et je vous répondrai directement.\n\nPour cette première version, cette conversation reste générale : je ne consulte pas encore vos données de trading personnelles.`,
+  timestamp: new Date().toISOString(),
+};
 
-    return [
-      {
-        id: 'welcome-msg',
-        role: 'model',
-        text: `Bonjour. Je suis votre **AI Trading Coach & Performance Auditor**.\n\nJe suis connecté en temps réel à l'intégralité de vos données de trading :\n- **Vos trades réels** (entrées, sorties, R-multiples, sessions, P&L)\n- **Vos setups & votre Edge** quantifié\n- **Votre discipline & psychologie** (erreurs récurrentes, comportements post-perte)\n\nPosez-moi une question précise pour auditer vos performances.`,
-        timestamp: new Date().toISOString(),
-      },
-    ];
-  });
-
+export function useAICoach() {
+  const [messages, setMessages] = useState<ChatMessage[]>([WELCOME_MESSAGE]);
   const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(messages));
-    } catch {
-      // ignore
-    }
-  }, [messages]);
 
   const clearHistory = useCallback(() => {
-    const welcome: ChatMessage = {
-      id: `welcome-${Date.now()}`,
-      role: 'model',
-      text: `Historique réinitialisé. Que souhaitez-vous analyser sur vos performances ?`,
-      timestamp: new Date().toISOString(),
-    };
-    setMessages([welcome]);
-    setError(null);
+    setMessages([{ ...WELCOME_MESSAGE, id: `welcome-${Date.now()}`, timestamp: new Date().toISOString() }]);
   }, []);
 
   const sendMessage = useCallback(
@@ -64,80 +36,51 @@ export function useAICoach(
       const trimmed = userText.trim();
       if (!trimmed || isLoading) return;
 
-      const userMsg: ChatMessage = {
-        id: `user-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
-        role: 'user',
-        text: trimmed,
-        timestamp: new Date().toISOString(),
-      };
+      const userMessage = createMessage('user', trimmed);
+      const historyForRequest = messages
+        .filter((message) => !message.isError)
+        .map((message) => ({ role: message.role, text: message.text }));
 
-      setMessages((prev) => [...prev, userMsg]);
+      setMessages((previous) => [...previous, userMessage]);
       setIsLoading(true);
-      setError(null);
-
-      const context: CoachContextPayload = buildCoachContext(trades, setups, initialBalance);
-      const historyPayload = messages
-        .filter((m) => m.id !== 'welcome-msg' && !m.isError)
-        .slice(-10)
-        .map((m) => ({ role: m.role, text: m.text }));
 
       try {
-        // The browser talks only to our internal serverless endpoint.
-        // GEMINI_API_KEY never belongs in client-side code.
         const response = await fetch('/api/coach', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             message: trimmed,
-            history: historyPayload,
-            context,
+            history: [...historyForRequest, { role: 'user', text: trimmed }],
           }),
         });
 
+        const data = await response.json().catch(() => ({}));
+
         if (!response.ok) {
-          const errData = await response.json().catch(() => ({}));
-          console.warn('[AI Coach API response not ok, switching to local analysis]:', errData);
-          const localReply = generateLocalCoachAnalysis(trimmed, context, historyPayload);
-          setMessages((prev) => [
-            ...prev,
-            {
-              id: `model-${Date.now()}`,
-              role: 'model',
-              text: localReply,
-              timestamp: new Date().toISOString(),
-            },
+          const detail = typeof data?.error === 'string' ? data.error : 'Le relais Gemini est momentanément indisponible.';
+          setMessages((previous) => [
+            ...previous,
+            createMessage('model', `⚠️ **Impossible d'obtenir une réponse du coach.**\n\n${detail}\n\nVérifiez la configuration du relais /api/coach puis réessayez.`, true),
           ]);
           return;
         }
 
-        const data = await response.json();
-        setMessages((prev) => [
-          ...prev,
-          {
-            id: `model-${Date.now()}`,
-            role: 'model',
-            text: data.reply || 'Aucune réponse reçue.',
-            timestamp: new Date().toISOString(),
-          },
-        ]);
-      } catch (err: any) {
-        console.warn('[AI Coach fetch failed, falling back to local engine]:', err);
-        const localReply = generateLocalCoachAnalysis(trimmed, context, historyPayload);
-        setMessages((prev) => [
-          ...prev,
-          {
-            id: `model-${Date.now()}`,
-            role: 'model',
-            text: localReply,
-            timestamp: new Date().toISOString(),
-          },
+        const reply = typeof data?.reply === 'string' && data.reply.trim()
+          ? data.reply.trim()
+          : 'Le coach n’a pas renvoyé de réponse. Veuillez réessayer.';
+
+        setMessages((previous) => [...previous, createMessage('model', reply)]);
+      } catch {
+        setMessages((previous) => [
+          ...previous,
+          createMessage('model', `⚠️ **Connexion au coach impossible.**\n\nLe relais /api/coach n’est pas accessible pour le moment. Vérifiez votre connexion ou la configuration du déploiement, puis réessayez.`, true),
         ]);
       } finally {
         setIsLoading(false);
       }
     },
-    [messages, isLoading, trades, setups, initialBalance]
+    [isLoading, messages]
   );
 
-  return { messages, isLoading, error, sendMessage, clearHistory };
+  return { messages, isLoading, sendMessage, clearHistory };
 }
