@@ -1,6 +1,8 @@
 const GEMINI_MODEL = 'gemini-3.6-flash';
 const GEMINI_API_URL = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent`;
-const REQUEST_TIMEOUT_MS = 30000;
+const REQUEST_TIMEOUT_MS = 120000;
+const MAX_RETRIES = 1;
+const RETRY_DELAY_MS = 800;
 
 function sendJson(res, status, payload) { res.status(status).json(payload); }
 
@@ -74,6 +76,54 @@ function extractGeminiError(data) {
   return message.replace(/AIza[\w-]{20,}/g, '[REDACTED_API_KEY]').slice(0, 1000);
 }
 
+function isRetryableStatus(status) {
+  return status === 408 || status === 429 || status === 500 || status === 502 || status === 503 || status === 504;
+}
+
+function sleep(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+async function callGemini(apiKey, payload) {
+  let lastError = null;
+
+  for (let attempt = 0; attempt <= MAX_RETRIES; attempt += 1) {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+
+    try {
+      const response = await fetch(GEMINI_API_URL, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-goog-api-key': apiKey,
+        },
+        body: JSON.stringify(payload),
+        signal: controller.signal,
+      });
+
+      const data = await response.json().catch(() => null);
+      if (response.ok || !isRetryableStatus(response.status) || attempt === MAX_RETRIES) {
+        return { response, data };
+      }
+
+      lastError = new Error(`Gemini HTTP ${response.status}`);
+      console.warn('[Gemini retry]', { status: response.status, attempt: attempt + 1 });
+    } catch (error) {
+      lastError = error;
+      if (error?.name === 'AbortError' && attempt === MAX_RETRIES) throw error;
+      if (attempt === MAX_RETRIES) throw error;
+      console.warn('[Gemini retry]', { reason: error?.message || 'request failed', attempt: attempt + 1 });
+    } finally {
+      clearTimeout(timeout);
+    }
+
+    await sleep(RETRY_DELAY_MS * (attempt + 1));
+  }
+
+  throw lastError || new Error('Gemini request failed');
+}
+
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
     res.setHeader('Allow', 'POST');
@@ -106,23 +156,16 @@ export default async function handler(req, res) {
   const contents = [...history];
   if (!continuation) contents.push({ role: 'user', parts: [{ text: message }] });
 
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+  const payload = {
+    systemInstruction: { parts: [{ text: systemInstruction }] },
+    contents,
+    tools: [{ functionDeclarations: FUNCTION_DECLARATIONS }],
+    generationConfig: { maxOutputTokens: 1000 },
+    thinkingConfig: { thinkingLevel: 'minimal' },
+  };
 
   try {
-    const response = await fetch(`${GEMINI_API_URL}?key=${encodeURIComponent(apiKey)}`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        systemInstruction: { parts: [{ text: systemInstruction }] },
-        contents,
-        tools: [{ functionDeclarations: FUNCTION_DECLARATIONS }],
-        generationConfig: { maxOutputTokens: 1200 },
-      }),
-      signal: controller.signal,
-    });
-
-    const data = await response.json().catch(() => null);
+    const { response, data } = await callGemini(apiKey, payload);
 
     if (!response.ok) {
       const details = extractGeminiError(data);
@@ -161,7 +204,7 @@ export default async function handler(req, res) {
   } catch (error) {
     if (error?.name === 'AbortError') {
       return sendJson(res, 504, {
-        error: 'La requête vers Gemini a dépassé le délai de 30 secondes.',
+        error: 'Gemini n’a pas répondu dans le délai de 120 secondes. Réessayez.',
         code: 'GEMINI_TIMEOUT',
       });
     }
@@ -171,7 +214,5 @@ export default async function handler(req, res) {
       code: 'INTERNAL_ERROR',
       details: String(error?.message || 'Erreur inconnue').slice(0, 500),
     });
-  } finally {
-    clearTimeout(timeout);
   }
 }
