@@ -16,15 +16,12 @@ html.dark body, body.dark { background-color:#0B0D12; color:#F5F5F5; }
 .nav-item-interactive{position:relative;overflow:hidden;transition:color .2s ease-out,background-color .2s ease-out,border-color .2s ease-out,transform .2s ease-out}.nav-item-interactive::before{content:'';position:absolute;left:0;top:20%;bottom:20%;width:3px;border-radius:0 4px 4px 0;background:linear-gradient(to bottom,#6D19E8,#FF8A00);opacity:0;transform:scaleY(.4);transition:opacity .2s ease-out,transform .2s ease-out}.nav-item-interactive:hover::before,.nav-item-interactive.active::before{opacity:1;transform:scaleY(1)}.nav-item-interactive:hover{transform:translateX(2px)}
 .color-transition{transition:color .25s ease-out,background-color .25s ease-out,border-color .25s ease-out}
 .analyzer-interactive{transition:transform .22s ease-out,box-shadow .22s ease-out,border-color .22s ease-out,background-color .22s ease-out}.analyzer-interactive:hover{transform:translateY(-2px) scale(1.01);box-shadow:0 12px 24px -8px rgba(249,115,22,.18)}.analyzer-press:active{transform:scale(.97)}
-/* Gallery: the existing screenshot zoom remains, while the card and preview now use the shared motion language. */
 .fixed.inset-0 button.group.text-left.rounded-2xl{transition:transform .22s ease-out,box-shadow .22s ease-out,border-color .22s ease-out,background-color .22s ease-out}.fixed.inset-0 button.group.text-left.rounded-2xl:hover{transform:translateY(-2px) scale(1.01);box-shadow:0 12px 24px -8px rgba(249,115,22,.18)}
 .fixed.inset-0[class~="z-[60]"]{animation:edge-fade-in 220ms ease-out both}.fixed.inset-0[class~="z-[60]"] > div{animation:edge-preview-scale 240ms ease-out both}.edge-preview-image{transition:transform 280ms ease-out,opacity 220ms ease-out}.edge-preview-image:hover{transform:scale(1.01)}
-/* Comparison metric rows animate their numeric/content change without delaying the data itself. */
 [class~="grid-cols-[1fr_100px_1fr]"] > div{transition:opacity 180ms ease-out,transform 220ms ease-out}.edge-metric-transition{transition:opacity 180ms ease-out,transform 220ms ease-out}
 @keyframes shimmer{0%{transform:translateX(-100%)}100%{transform:translateX(100%)}}.animate-shimmer{animation:shimmer 1.8s infinite}
 @keyframes edge-fade-up{from{opacity:0;transform:translateY(7px)}to{opacity:1;transform:translateY(0)}}@keyframes edge-fade-in{from{opacity:0}to{opacity:1}}@keyframes edge-preview-scale{from{opacity:0;transform:scale(.985)}to{opacity:1;transform:scale(1)}}.edge-message-enter{animation:edge-fade-up 240ms ease-out both}.edge-alert-enter{animation:edge-fade-in 280ms ease-out both}.edge-preview-enter{animation:edge-fade-in 220ms ease-out both}
 .tabular-nums,.num-financial{font-variant-numeric:tabular-nums;font-feature-settings:"tnum","zero"}::-webkit-scrollbar{width:6px;height:6px}::-webkit-scrollbar-track{background:transparent}::-webkit-scrollbar-thumb{background:#CBD5E1;border-radius:9999px}.dark ::-webkit-scrollbar-thumb{background:#292E38}
-
 #view-analytics{--analytics-accent:#6D19E8;--analytics-accent-soft:rgba(109,25,232,.08);--analytics-accent-border:rgba(109,25,232,.28)}
 html.dark #view-analytics,body.dark #view-analytics{--analytics-accent:#FF8A00;--analytics-accent-soft:rgba(255,138,0,.10);--analytics-accent-border:rgba(255,138,0,.32)}
 #component-equity-curve{--chart-accent:#6D19E8}html.dark #component-equity-curve,body.dark #component-equity-curve{--chart-accent:#FF8A00}
@@ -32,8 +29,6 @@ html.dark #view-analytics,body.dark #view-analytics{--analytics-accent:#FF8A00;-
 @media (prefers-color-scheme: light){ }
 html:not(.dark) #view-analytics .text-slate-500{color:#475569}html:not(.dark) #view-analytics .text-slate-600{color:#475569}html:not(.dark) #view-analytics .text-slate-700{color:#334155}
 @media (prefers-reduced-motion:reduce){*,*::before,*::after{scroll-behavior:auto!important;animation-duration:1ms!important;animation-iteration-count:1!important;transition-duration:1ms!important}.interactive-card:hover,.btn-press:hover,.nav-item-interactive:hover,.analyzer-interactive:hover{transform:none!important}}
-
-/* Collapsible desktop navigation */
 #thunder-edge-sidebar.sidebar-collapsed .sidebar-copy,#thunder-edge-sidebar.sidebar-collapsed .sidebar-brand-copy,#thunder-edge-sidebar.sidebar-collapsed .sidebar-section-label{display:none}
 #thunder-edge-sidebar.sidebar-collapsed .sidebar-action{padding-left:.75rem;padding-right:.75rem}
 #thunder-edge-sidebar.sidebar-collapsed .sidebar-action button{padding-left:.65rem;padding-right:.65rem}
@@ -51,11 +46,31 @@ html:not(.dark) #view-analytics .text-slate-500{color:#475569}html:not(.dark) #v
 #thunder-edge-sidebar.sidebar-collapsed .nav-item-interactive>svg,#thunder-edge-sidebar.sidebar-collapsed #sidebar-btn-setups-manager>svg,#thunder-edge-sidebar.sidebar-collapsed #sidebar-btn-import>svg,#thunder-edge-sidebar.sidebar-collapsed #sidebar-btn-backup>svg{display:none}
 #thunder-edge-sidebar{transition:background-color .2s ease-out,border-color .2s ease-out}
 @media (max-width:767px){#thunder-edge-sidebar.sidebar-collapsed .sidebar-copy,#thunder-edge-sidebar.sidebar-collapsed .sidebar-brand-copy,#thunder-edge-sidebar.sidebar-collapsed .sidebar-section-label{display:block}}
-
-/* Theme switching: freeze visual transitions for one frame to prevent a repaint cascade / lag. */
 html.theme-switching *,html.theme-switching *::before,html.theme-switching *::after{transition:none!important;animation:none!important}
-
-/* My Edge light/dark semantic accent */
 #view-my-edge{--edge-accent:#6D19E8;--edge-accent-hover:#5513B8;--edge-accent-soft:rgba(109,25,232,.08);--edge-accent-border:rgba(109,25,232,.26)}
 html.dark #view-my-edge,body.dark #view-my-edge{--edge-accent:#FF8A00;--edge-accent-hover:#EA580C;--edge-accent-soft:rgba(255,138,0,.10);--edge-accent-border:rgba(255,138,0,.30)}
 .edge-filter-panel{transition:opacity .22s ease-out,transform .22s ease-out;transform:translateX(4px);opacity:.86}.edge-filter-panel.is-open{transform:translateX(0);opacity:1}.animate-filter-panel{animation:edge-filter-reveal 220ms ease-out both}@keyframes edge-filter-reveal{from{opacity:0;transform:translateX(8px)}to{opacity:1;transform:translateX(0)}}
+
+/* My Edge readability: neutral text for content, purple/orange reserved for accents. */
+#view-my-edge{color:#0F172A}
+#view-my-edge .text-slate-900{color:#0F172A}
+#view-my-edge .text-slate-800{color:#1E293B}
+#view-my-edge .text-slate-700{color:#334155}
+#view-my-edge .text-slate-600{color:#475569}
+#view-my-edge .text-slate-500{color:#64748B}
+#view-my-edge .text-slate-400{color:#64748B}
+#view-my-edge .text-slate-300{color:#475569}
+html.dark #view-my-edge,body.dark #view-my-edge{color:#E5E7EB}
+html.dark #view-my-edge .text-slate-900,body.dark #view-my-edge .text-slate-900{color:#F8FAFC}
+html.dark #view-my-edge .text-slate-800,body.dark #view-my-edge .text-slate-800{color:#F1F5F9}
+html.dark #view-my-edge .text-slate-700,body.dark #view-my-edge .text-slate-700{color:#E2E8F0}
+html.dark #view-my-edge .text-slate-600,body.dark #view-my-edge .text-slate-600{color:#CBD5E1}
+html.dark #view-my-edge .text-slate-500,body.dark #view-my-edge .text-slate-500{color:#AAB2C0}
+html.dark #view-my-edge .text-slate-400,body.dark #view-my-edge .text-slate-400{color:#9CA3AF}
+html.dark #view-my-edge .text-slate-300,body.dark #view-my-edge .text-slate-300{color:#CBD5E1}
+#view-my-edge input,#view-my-edge select,#view-my-edge textarea{color:#0F172A;background-color:#F8FAFC}
+#view-my-edge input::placeholder,#view-my-edge textarea::placeholder{color:#64748B;opacity:1}
+html.dark #view-my-edge input,html.dark #view-my-edge select,html.dark #view-my-edge textarea,body.dark #view-my-edge input,body.dark #view-my-edge select,body.dark #view-my-edge textarea{color:#F1F5F9;background-color:#181C25}
+html.dark #view-my-edge input::placeholder,html.dark #view-my-edge textarea::placeholder,body.dark #view-my-edge input::placeholder,body.dark #view-my-edge textarea::placeholder{color:#9299A8;opacity:1}
+#view-my-edge option{color:#0F172A;background:#FFFFFF}
+html.dark #view-my-edge option,body.dark #view-my-edge option{color:#F1F5F9;background:#181C25}
