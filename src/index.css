@@ -32,3 +32,22 @@ html.dark #view-analytics,body.dark #view-analytics{--analytics-accent:#FF8A00;-
 @media (prefers-color-scheme: light){ }
 html:not(.dark) #view-analytics .text-slate-500{color:#475569}html:not(.dark) #view-analytics .text-slate-600{color:#475569}html:not(.dark) #view-analytics .text-slate-700{color:#334155}
 @media (prefers-reduced-motion:reduce){*,*::before,*::after{scroll-behavior:auto!important;animation-duration:1ms!important;animation-iteration-count:1!important;transition-duration:1ms!important}.interactive-card:hover,.btn-press:hover,.nav-item-interactive:hover,.analyzer-interactive:hover{transform:none!important}}
+
+/* Collapsible desktop navigation */
+#thunder-edge-sidebar.sidebar-collapsed .sidebar-copy,#thunder-edge-sidebar.sidebar-collapsed .sidebar-brand-copy,#thunder-edge-sidebar.sidebar-collapsed .sidebar-section-label{display:none}
+#thunder-edge-sidebar.sidebar-collapsed .sidebar-action{padding-left:.75rem;padding-right:.75rem}
+#thunder-edge-sidebar.sidebar-collapsed .sidebar-action button{padding-left:.65rem;padding-right:.65rem}
+#thunder-edge-sidebar.sidebar-collapsed .sidebar-action .sidebar-copy{display:none}
+#thunder-edge-sidebar.sidebar-collapsed .sidebar-footer{padding:.75rem}
+#thunder-edge-sidebar.sidebar-collapsed .sidebar-theme-card{justify-content:center;padding:.5rem}
+#thunder-edge-sidebar.sidebar-collapsed .sidebar-theme-label{justify-content:center}
+#thunder-edge-sidebar.sidebar-collapsed .sidebar-theme-label svg{margin:0}
+#thunder-edge-sidebar.sidebar-collapsed .sidebar-theme-label .sidebar-copy{display:none}
+#thunder-edge-sidebar.sidebar-collapsed .sidebar-status{justify-content:center}
+#thunder-edge-sidebar.sidebar-collapsed .sidebar-status .sidebar-copy{display:none}
+#thunder-edge-sidebar.sidebar-collapsed .sidebar-status .sidebar-copy:last-child{display:none}
+#thunder-edge-sidebar.sidebar-collapsed .nav-item-interactive,#thunder-edge-sidebar.sidebar-collapsed #sidebar-btn-setups-manager,#thunder-edge-sidebar.sidebar-collapsed #sidebar-btn-import,#thunder-edge-sidebar.sidebar-collapsed #sidebar-btn-backup{justify-content:center;padding-left:.5rem;padding-right:.5rem}
+#thunder-edge-sidebar.sidebar-collapsed .nav-item-interactive>div:first-child>div:first-child,#thunder-edge-sidebar.sidebar-collapsed #sidebar-btn-setups-manager>div:first-child,#thunder-edge-sidebar.sidebar-collapsed #sidebar-btn-import>div:first-child,#thunder-edge-sidebar.sidebar-collapsed #sidebar-btn-backup>div:first-child{margin:0}
+#thunder-edge-sidebar.sidebar-collapsed .nav-item-interactive>svg,#thunder-edge-sidebar.sidebar-collapsed #sidebar-btn-setups-manager>svg,#thunder-edge-sidebar.sidebar-collapsed #sidebar-btn-import>svg,#thunder-edge-sidebar.sidebar-collapsed #sidebar-btn-backup>svg{display:none}
+#thunder-edge-sidebar{transition:background-color .2s ease-out,border-color .2s ease-out}
+@media (max-width:767px){#thunder-edge-sidebar.sidebar-collapsed .sidebar-copy,#thunder-edge-sidebar.sidebar-collapsed .sidebar-brand-copy,#thunder-edge-sidebar.sidebar-collapsed .sidebar-section-label{display:block}}
