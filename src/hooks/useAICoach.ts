@@ -21,6 +21,52 @@ function incrementDailyUsage() { const usage = readDailyUsage(); const next = { 
 
 interface CoachContext { [key: string]: unknown }
 
+function parseSseEvents(buffer: string, onEvent: (data: Record<string, unknown>) => void) {
+  let remaining = buffer.replace(/\r\n/g, '\n');
+  let separatorIndex = remaining.indexOf('\n\n');
+  while (separatorIndex !== -1) {
+    const event = remaining.slice(0, separatorIndex);
+    remaining = remaining.slice(separatorIndex + 2);
+    const dataLine = event.split('\n').find((line) => line.startsWith('data:'));
+    if (dataLine) {
+      const raw = dataLine.slice(5).trim();
+      if (raw && raw !== '[DONE]') {
+        try { onEvent(JSON.parse(raw) as Record<string, unknown>); } catch { /* ignore malformed SSE frames */ }
+      }
+    }
+    separatorIndex = remaining.indexOf('\n\n');
+  }
+  return remaining;
+}
+
+async function readCoachStream(response: Response, onDelta: (text: string) => void, onFunctionCall: (toolCall: CoachToolCall) => void, onError: (error: string) => void) {
+  if (!response.body) throw new Error('Le flux du coach est indisponible.');
+  const reader = response.body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = '';
+  let functionCall: CoachToolCall | null = null;
+  let streamError: string | null = null;
+
+  const handleEvent = (event: Record<string, unknown>) => {
+    if (event.type === 'delta' && typeof event.text === 'string') onDelta(event.text);
+    if (event.type === 'function_call' && event.toolCall && typeof event.toolCall === 'object') functionCall = event.toolCall as CoachToolCall;
+    if (event.type === 'error' && typeof event.error === 'string') streamError = event.error;
+  };
+
+  while (true) {
+    const { value, done } = await reader.read();
+    if (done) break;
+    buffer += decoder.decode(value, { stream: true });
+    buffer = parseSseEvents(buffer, handleEvent);
+  }
+  buffer += decoder.decode();
+  if (buffer.trim()) parseSseEvents(`${buffer}\n\n`, handleEvent);
+
+  if (streamError) { onError(streamError); return { functionCall: null }; }
+  if (functionCall) onFunctionCall(functionCall);
+  return { functionCall };
+}
+
 export function useAICoach(context: CoachContext | null = null) {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -59,24 +105,65 @@ export function useAICoach(context: CoachContext | null = null) {
       let requestHistory = conversationHistory;
       let continuation = false;
       for (let iteration = 0; iteration < 3; iteration += 1) {
-        const response = await fetch('/api/coach', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ message: continuation ? '' : trimmed, history: requestHistory, context, continuation }) });
-        const data = await response.json().catch(() => ({}));
-        if (!response.ok) { const detail = typeof data?.error === 'string' ? data.error : 'Le relais Gemini est momentanément indisponible.'; await addMessage(createMessage('model', `⚠️ **Impossible d'obtenir une réponse du coach.**\n\n${detail}`, true)); break; }
+        const response = await fetch('/api/coach', { method: 'POST', headers: { 'Content-Type': 'application/json', Accept: continuation ? 'application/json' : 'text/event-stream' }, body: JSON.stringify({ message: continuation ? '' : trimmed, history: requestHistory, context, continuation, stream: !continuation }) });
 
+        if (!response.ok) {
+          const data = await response.json().catch(() => ({}));
+          const detail = typeof data?.error === 'string' ? data.error : 'Le relais Gemini est momentanément indisponible.';
+          await addMessage(createMessage('model', `⚠️ **Impossible d'obtenir une réponse du coach.**\n\n${detail}${typeof data?.details === 'string' ? `\n\n_${data.details}_` : ''}`, true));
+          break;
+        }
+
+        if (!continuation) {
+          let streamedReply = '';
+          let assistantMessageId = `model-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+          const updateAssistant = (text: string) => {
+            streamedReply += text;
+            const message: ChatMessage = { id: assistantMessageId, role: 'model', text: streamedReply, timestamp: new Date().toISOString() };
+            setMessages((previous) => {
+              const existing = previous.some((item) => item.id === assistantMessageId);
+              return existing ? previous.map((item) => item.id === assistantMessageId ? message : item) : [...previous, message].slice(-ACTIVE_HISTORY_LIMIT);
+            });
+          };
+
+          setIsUsingTool(false);
+          setToolName(null);
+          let streamFunctionCall: CoachToolCall | null = null;
+          const streamResult = await readCoachStream(response, updateAssistant, (toolCall) => { streamFunctionCall = toolCall; }, (error) => { streamFunctionCall = null; if (!streamedReply) updateAssistant(`⚠️ **Impossible d'obtenir une réponse du coach.**\n\n${error}`); });
+
+          if (streamFunctionCall) {
+            const toolCall = streamFunctionCall;
+            setIsUsingTool(true); setToolName(toolCall.name);
+            // Remove the temporary assistant bubble if Gemini selected a tool.
+            setMessages((previous) => previous.filter((item) => item.id !== assistantMessageId));
+            try {
+              const result = await executeCoachTool(toolCall.name, toolCall.args || {});
+              requestHistory = [...requestHistory, { role: 'model', functionCall: toolCall }, { role: 'user', functionResponse: { id: toolCall.id, name: toolCall.name, response: { result } } }];
+            } catch (error) {
+              const errorText = error instanceof Error ? error.message : 'La consultation locale des données a échoué.';
+              requestHistory = [...requestHistory, { role: 'model', functionCall: toolCall }, { role: 'user', functionResponse: { id: toolCall.id, name: toolCall.name, response: { error: errorText } } }];
+            }
+            continuation = true;
+            continue;
+          }
+
+          if (streamedReply.trim()) await db.coachHistory.put({ id: assistantMessageId, role: 'model', text: streamedReply.trim(), timestamp: new Date().toISOString() });
+          else if (!streamResult.functionCall) await addMessage(createMessage('model', 'Le coach n’a pas renvoyé de réponse. Veuillez réessayer.', true));
+          break;
+        }
+
+        const data = await response.json().catch(() => ({}));
         if (data?.type === 'function_call' && data?.toolCall?.name) {
           const toolCall = data.toolCall as CoachToolCall;
           setIsUsingTool(true); setToolName(toolCall.name);
           try {
             const result = await executeCoachTool(toolCall.name, toolCall.args || {});
-            requestHistory = [...requestHistory, { role: 'model', functionCall: { name: toolCall.name, args: toolCall.args || {} } }, { role: 'user', functionResponse: { name: toolCall.name, response: { result } } }];
-            continuation = true;
-            continue;
+            requestHistory = [...requestHistory, { role: 'model', functionCall: toolCall }, { role: 'user', functionResponse: { id: toolCall.id, name: toolCall.name, response: { result } } }];
           } catch (error) {
             const errorText = error instanceof Error ? error.message : 'La consultation locale des données a échoué.';
-            requestHistory = [...requestHistory, { role: 'model', functionCall: { name: toolCall.name, args: toolCall.args || {} } }, { role: 'user', functionResponse: { name: toolCall.name, response: { error: errorText } } }];
-            continuation = true;
-            continue;
+            requestHistory = [...requestHistory, { role: 'model', functionCall: toolCall }, { role: 'user', functionResponse: { id: toolCall.id, name: toolCall.name, response: { error: errorText } } }];
           }
+          continue;
         }
 
         const reply = typeof data?.reply === 'string' && data.reply.trim() ? data.reply.trim() : 'Le coach n’a pas renvoyé de réponse. Veuillez réessayer.';
