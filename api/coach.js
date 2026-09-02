@@ -1,8 +1,13 @@
 const GEMINI_MODEL = 'gemini-3.6-flash';
 const GEMINI_API_URL = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent`;
-const REQUEST_TIMEOUT_MS = 120000;
+
+// Latency-first configuration for an interactive chat.
+const REQUEST_TIMEOUT_MS = 20000;
 const MAX_RETRIES = 1;
-const RETRY_DELAY_MS = 800;
+const RETRY_DELAY_MS = 500;
+const MAX_HISTORY_TURNS = 16;
+const MAX_HISTORY_TEXT = 6000;
+const MAX_OUTPUT_TOKENS = 800;
 
 function sendJson(res, status, payload) { res.status(status).json(payload); }
 
@@ -61,12 +66,12 @@ const FUNCTION_DECLARATIONS = [
 
 function normalizeHistory(history) {
   if (!Array.isArray(history)) return [];
-  return history.slice(-30).flatMap((turn) => {
+  return history.slice(-MAX_HISTORY_TURNS).flatMap((turn) => {
     if (!turn || !['user', 'model'].includes(turn.role)) return [];
     if (turn.functionCall) return [{ role: 'model', parts: [{ functionCall: turn.functionCall }] }];
     if (turn.functionResponse) return [{ role: 'user', parts: [{ functionResponse: turn.functionResponse }] }];
     if (typeof turn.text !== 'string' || !turn.text.trim()) return [];
-    return [{ role: turn.role, parts: [{ text: turn.text.slice(0, 12000) }] }];
+    return [{ role: turn.role, parts: [{ text: turn.text.slice(0, MAX_HISTORY_TEXT) }] }];
   });
 }
 
@@ -85,8 +90,6 @@ function sleep(ms) {
 }
 
 async function callGemini(apiKey, payload) {
-  let lastError = null;
-
   for (let attempt = 0; attempt <= MAX_RETRIES; attempt += 1) {
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
@@ -107,11 +110,10 @@ async function callGemini(apiKey, payload) {
         return { response, data };
       }
 
-      lastError = new Error(`Gemini HTTP ${response.status}`);
       console.warn('[Gemini retry]', { status: response.status, attempt: attempt + 1 });
     } catch (error) {
-      lastError = error;
-      if (error?.name === 'AbortError' && attempt === MAX_RETRIES) throw error;
+      // Never retry a timeout: doing so doubles the perceived latency of chat.
+      if (error?.name === 'AbortError') throw error;
       if (attempt === MAX_RETRIES) throw error;
       console.warn('[Gemini retry]', { reason: error?.message || 'request failed', attempt: attempt + 1 });
     } finally {
@@ -121,7 +123,7 @@ async function callGemini(apiKey, payload) {
     await sleep(RETRY_DELAY_MS * (attempt + 1));
   }
 
-  throw lastError || new Error('Gemini request failed');
+  throw new Error('Gemini request failed');
 }
 
 export default async function handler(req, res) {
@@ -151,7 +153,11 @@ export default async function handler(req, res) {
 
   const history = normalizeHistory(body.history);
   const context = body.context ?? null;
-  const systemInstruction = `Tu es l’AI Trading Coach & Performance Auditor de Thunder Edge. Réponds en français, clairement, professionnellement et rigoureusement. Pour toute question portant sur les données personnelles de trading, utilise les fonctions disponibles plutôt que d’inventer ou d’inférer des chiffres. Les données retournées par les fonctions sont la source de vérité. Tu peux utiliser le résumé statistique global fourni par l’application comme contexte de base, mais les fonctions servent à obtenir les données précises. Ne révèle pas les détails techniques du function calling à l’utilisateur. Pour les questions théoriques, réponds normalement.\n\nRésumé statistique global / contexte de base :\n${JSON.stringify(context ?? 'Aucun contexte fourni.')}`;
+  const contextText = JSON.stringify(context ?? 'Aucun contexte fourni.').slice(0, 8000);
+  const systemInstruction = `Tu es l’AI Trading Coach & Performance Auditor de Thunder Edge. Réponds en français, clairement, professionnellement et rigoureusement. Pour toute question portant sur les données personnelles de trading, utilise les fonctions disponibles plutôt que d’inventer ou d’inférer des chiffres. Les données retournées par les fonctions sont la source de vérité. Ne révèle pas les détails techniques du function calling. Pour les questions théoriques, réponds directement et de façon concise.
+
+Résumé statistique global / contexte de base :
+${contextText}`;
 
   const contents = [...history];
   if (!continuation) contents.push({ role: 'user', parts: [{ text: message }] });
@@ -160,8 +166,11 @@ export default async function handler(req, res) {
     systemInstruction: { parts: [{ text: systemInstruction }] },
     contents,
     tools: [{ functionDeclarations: FUNCTION_DECLARATIONS }],
-    generationConfig: { maxOutputTokens: 1000 },
-    thinkingConfig: { thinkingLevel: 'minimal' },
+    generationConfig: {
+      maxOutputTokens: MAX_OUTPUT_TOKENS,
+      // IMPORTANT: thinkingConfig belongs inside generationConfig for REST generateContent.
+      thinkingConfig: { thinkingLevel: 'minimal' },
+    },
   };
 
   try {
@@ -204,7 +213,7 @@ export default async function handler(req, res) {
   } catch (error) {
     if (error?.name === 'AbortError') {
       return sendJson(res, 504, {
-        error: 'Gemini n’a pas répondu dans le délai de 120 secondes. Réessayez.',
+        error: 'Gemini n’a pas répondu dans le délai de 20 secondes. Réessayez.',
         code: 'GEMINI_TIMEOUT',
       });
     }
