@@ -1,4 +1,4 @@
-const GEMINI_MODEL = 'gemini-2.5-flash';
+const GEMINI_MODEL = 'gemini-3.6-flash';
 const GEMINI_API_URL = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent`;
 const REQUEST_TIMEOUT_MS = 30000;
 
@@ -117,7 +117,7 @@ export default async function handler(req, res) {
         systemInstruction: { parts: [{ text: systemInstruction }] },
         contents,
         tools: [{ functionDeclarations: FUNCTION_DECLARATIONS }],
-        generationConfig: { temperature: 0.2, maxOutputTokens: 1200 },
+        generationConfig: { maxOutputTokens: 1200 },
       }),
       signal: controller.signal,
     });
