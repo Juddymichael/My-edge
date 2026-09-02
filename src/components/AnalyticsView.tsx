@@ -496,7 +496,7 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({
       <div className="rounded-2xl border border-slate-200 dark:border-[#292E38] bg-white dark:bg-[#12151D] p-6 shadow-md">
         <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
           <div className="flex items-center gap-3">
-            <div className="p-2.5 rounded-xl bg-[var(--analytics-accent)]/10 text-[var(--analytics-accent)] border border-cyan-500/20">
+            <div className="p-2.5 rounded-xl bg-[var(--analytics-accent)]/10 text-[var(--analytics-accent)] border border-[var(--analytics-accent-border)]">
               <BarChart3 className="w-5 h-5" />
             </div>
             <div>
@@ -1099,7 +1099,7 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({
               {onNavigateToMyEdge && (
                 <button
                   onClick={onNavigateToMyEdge}
-                  className="px-4 py-2 rounded-xl bg-[var(--analytics-accent)] text-slate-950 text-xs font-bold hover:bg-cyan-400 transition cursor-pointer shrink-0"
+                  className="px-4 py-2 rounded-xl bg-[var(--analytics-accent)] text-slate-950 text-xs font-bold hover:bg-[var(--analytics-accent)] transition cursor-pointer shrink-0"
                 >
                   Ouvrir My Edge complet →
                 </button>
@@ -1258,7 +1258,7 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({
       {/* 11. INDIVIDUAL SCORE BREAKDOWN POPUP */}
       {selectedScoreBreakdown && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-xs">
-          <div className="bg-white dark:bg-[#12151D] border border-cyan-500/40 rounded-2xl max-w-xl w-full p-6 space-y-5 shadow-2xl">
+          <div className="bg-white dark:bg-[#12151D] border border-[var(--analytics-accent-border)] rounded-2xl max-w-xl w-full p-6 space-y-5 shadow-2xl">
             <div className="flex items-center justify-between border-b border-slate-200 dark:border-[#292E38] pb-4">
               <div>
                 <span className="text-[10px] text-slate-500 dark:text-slate-500 dark:text-slate-400 uppercase font-semibold">
@@ -1287,7 +1287,7 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({
                 </div>
                 <div className="w-full bg-slate-800 h-1.5 rounded-full overflow-hidden">
                   <div
-                    className="bg-cyan-400 h-full rounded-full"
+                    className="bg-[var(--analytics-accent)] h-full rounded-full"
                     style={{ width: `${(selectedScoreBreakdown.breakdown.expectancyPoints / 30) * 100}%` }}
                   />
                 </div>
