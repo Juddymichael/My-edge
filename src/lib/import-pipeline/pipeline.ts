@@ -2,7 +2,7 @@ import { IFileDetector, DefaultFileDetector, DetectionResult } from './detector'
 import { ITradeParser, ITradeRowNormalizer } from './parser';
 import { TradeRepository } from '../database/repositories/tradeRepository';
 import { ImportRepository } from '../database/repositories/importRepository';
-import { ImportLog, ImportFileType, ParsedTradePreview } from '../../types/import';
+import { ImportLog, ImportFileType, ParsedTradePreview, ImportReport } from '../../types/import';
 import { NewTradeInput, Trade } from '../../types/trade';
 import { InvalidImportError } from '../../types/errors';
 import { CsvTradeParser } from './parsers/csvParser';
@@ -12,6 +12,7 @@ import { WordTradeParser } from './parsers/wordParser';
 import { JsonTradeParser } from './parsers/jsonParser';
 import { UniversalTradeNormalizer } from './normalizer';
 import { TradeDuplicateDetector } from './duplicateDetector';
+import { validateImportRow } from './importValidation';
 
 export interface ImportPipelineOptions {
   detector?: IFileDetector;
@@ -26,6 +27,7 @@ export interface ImportPipelineExecutionResult {
   duplicatesCount: number;
   needsReviewCount: number;
   failedRows: { rowNumber: number; error: string }[];
+  report: ImportReport;
 }
 
 export interface ImportPreviewResult {
@@ -36,13 +38,31 @@ export interface ImportPreviewResult {
   duplicatesCount: number;
   previews: ParsedTradePreview[];
   normalizedTrades: NewTradeInput[];
+  report: ImportReport;
 }
 
-/**
- * Unified Import Pipeline Architecture.
- * Sequential single-responsibility execution:
- * File -> Detector -> Parser -> Normalizer -> Financial & RR Calculator -> Duplicate Detector -> Preview / Database.
- */
+function buildReport(
+  trades: NewTradeInput[],
+  duplicates: number,
+  invalid: number,
+  sourceTotalPnl: number | null
+): ImportReport {
+  const dates = trades.map((trade) => trade.closedAt || trade.openedAt).filter(Boolean).sort();
+  const calculatedPnl = trades.reduce((sum, trade) => sum + (trade.netPnL ?? 0), 0);
+  const pnlDifference = sourceTotalPnl === null ? null : Math.abs(calculatedPnl - sourceTotalPnl);
+  return {
+    imported: trades.length - duplicates,
+    duplicates,
+    invalid,
+    dateFrom: dates[0] || null,
+    dateTo: dates[dates.length - 1] || null,
+    calculatedPnl,
+    sourceTotalPnl,
+    pnlDifference,
+    pnlMismatchWarning: pnlDifference !== null && pnlDifference > 1,
+  };
+}
+
 export class ImportPipeline {
   private detector: IFileDetector;
   private parsers: Map<ImportFileType, ITradeParser>;
@@ -52,177 +72,107 @@ export class ImportPipeline {
     this.detector = options?.detector || new DefaultFileDetector();
     this.parsers = options?.parsers || new Map();
     this.normalizer = options?.normalizer || new UniversalTradeNormalizer();
-
-    // Register built-in default parsers
     if (this.parsers.size === 0) {
-      const csvParser = new CsvTradeParser();
       const excelParser = new ExcelTradeParser();
-      const pdfParser = new PdfTradeParser();
-      const wordParser = new WordTradeParser();
-      const jsonParser = new JsonTradeParser();
-
-      this.parsers.set('CSV', csvParser);
+      this.parsers.set('CSV', new CsvTradeParser());
       this.parsers.set('XLSX', excelParser);
       this.parsers.set('XLS', excelParser);
-      this.parsers.set('PDF', pdfParser);
-      this.parsers.set('DOCX', wordParser);
-      this.parsers.set('JSON', jsonParser);
+      this.parsers.set('PDF', new PdfTradeParser());
+      this.parsers.set('DOCX', new WordTradeParser());
+      this.parsers.set('JSON', new JsonTradeParser());
     }
   }
 
-  public registerParser(parser: ITradeParser): void {
-    this.parsers.set(parser.supportedType, parser);
-  }
+  public registerParser(parser: ITradeParser): void { this.parsers.set(parser.supportedType, parser); }
+  public setNormalizer(normalizer: ITradeRowNormalizer): void { this.normalizer = normalizer; }
 
-  public setNormalizer(normalizer: ITradeRowNormalizer): void {
-    this.normalizer = normalizer;
-  }
-
-  /**
-   * Parses file and returns structured preview with duplicate analysis and calculated RR metrics.
-   */
-  public async parseAndPreview(
-    file: { name: string; content: string | ArrayBuffer; mimeType?: string },
-    existingTrades: Trade[]
-  ): Promise<ImportPreviewResult> {
+  private async parseValidTrades(file: { name: string; content: string | ArrayBuffer; mimeType?: string }, existingTrades: Trade[]) {
     const detection = await this.detector.detect(file);
     const parser = this.parsers.get(detection.fileType);
-
-    if (!parser) {
-      throw new InvalidImportError(`No parser registered for file format: ${detection.fileType} (${file.name})`);
-    }
+    if (!parser) throw new InvalidImportError(`No parser registered for file format: ${detection.fileType} (${file.name})`);
 
     const parseResult = await parser.parse(file.content, { delimiter: detection.delimiter });
     const normalizedTrades: NewTradeInput[] = [];
+    let invalid = Number((parseResult.metadata?.invalidRows as number) || 0);
+    const validationErrors: { rowNumber: number; error: string }[] = [];
 
     for (const rawRow of parseResult.rows) {
+      const validation = validateImportRow(rawRow.data, rawRow.rawString || '');
+      if (!validation.valid) {
+        invalid++;
+        validationErrors.push({ rowNumber: rawRow.rowNumber, error: validation.reason || 'Ligne invalide' });
+        continue;
+      }
       try {
-        if (this.normalizer) {
-          const norm = this.normalizer.normalizeRow(rawRow, { broker: parseResult.brokerDetected });
-          normalizedTrades.push(norm);
-        } else {
-          normalizedTrades.push(rawRow.data as unknown as NewTradeInput);
-        }
-      } catch (e) {
-        console.warn(`Row normalization warning on row ${rawRow.rowNumber}:`, e);
+        const normalized = this.normalizer
+          ? this.normalizer.normalizeRow(rawRow, { broker: parseResult.brokerDetected, strictImport: true })
+          : rawRow.data as unknown as NewTradeInput;
+        // Never allow the legacy normalizer fallback to manufacture a timestamp.
+        if (!normalized.symbol || normalized.symbol === 'UNKNOWN' || !normalized.openedAt) throw new InvalidImportError('Trade incomplet après normalisation');
+        normalizedTrades.push(normalized);
+      } catch (error) {
+        invalid++;
+        validationErrors.push({ rowNumber: rawRow.rowNumber, error: error instanceof Error ? error.message : String(error) });
       }
     }
 
     const duplicateAnalysis = TradeDuplicateDetector.analyzeBatch(normalizedTrades, existingTrades);
+    const sourceTotalPnl = typeof parseResult.metadata?.sourceTotalPnl === 'number' ? parseResult.metadata.sourceTotalPnl : null;
+    const report = buildReport(normalizedTrades, duplicateAnalysis.duplicatesCount, invalid, sourceTotalPnl);
+    return { detection, parseResult, normalizedTrades, duplicateAnalysis, report, validationErrors };
+  }
 
+  public async parseAndPreview(file: { name: string; content: string | ArrayBuffer; mimeType?: string }, existingTrades: Trade[]): Promise<ImportPreviewResult> {
+    const result = await this.parseValidTrades(file, existingTrades);
     return {
-      fileType: detection.fileType,
-      detection,
-      totalParsed: duplicateAnalysis.totalParsed,
-      newTradesCount: duplicateAnalysis.newTradesCount,
-      duplicatesCount: duplicateAnalysis.duplicatesCount,
-      previews: duplicateAnalysis.previews,
-      normalizedTrades,
+      fileType: result.detection.fileType,
+      detection: result.detection,
+      totalParsed: result.duplicateAnalysis.totalParsed,
+      newTradesCount: result.duplicateAnalysis.newTradesCount,
+      duplicatesCount: result.duplicateAnalysis.duplicatesCount,
+      previews: result.duplicateAnalysis.previews,
+      normalizedTrades: result.normalizedTrades,
+      report: result.report,
     };
   }
 
-  /**
-   * Executes the full ingestion pipeline directly.
-   */
-  public async execute(
-    file: { name: string; content: string | ArrayBuffer; mimeType?: string },
-    options: { skipDuplicates?: boolean } = { skipDuplicates: true }
-  ): Promise<ImportPipelineExecutionResult> {
+  public async execute(file: { name: string; content: string | ArrayBuffer; mimeType?: string }, options: { skipDuplicates?: boolean } = { skipDuplicates: true }): Promise<ImportPipelineExecutionResult> {
     const importId = `imp_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
     const importedAt = new Date().toISOString();
-
-    // 1. Detection
-    const detection = await this.detector.detect(file);
-
-    // 2. Locate Parser
-    const parser = this.parsers.get(detection.fileType);
-    if (!parser) {
-      const failedLog: ImportLog = {
-        id: importId,
-        filename: file.name,
-        fileType: detection.fileType,
-        importedAt,
-        totalRows: 0,
-        validTrades: 0,
-        duplicates: 0,
-        needsReview: 0,
-        status: 'FAILED',
-        errorMessage: `No parser registered for file type: ${detection.fileType}`,
-      };
-      await ImportRepository.save(failedLog);
-      throw new InvalidImportError(failedLog.errorMessage);
-    }
-
-    // 3. Parsing
-    const parseResult = await parser.parse(file.content, { delimiter: detection.delimiter });
-
-    // 4. Normalization & Ingestion Loop
+    const result = await this.parseValidTrades(file, []);
     const savedTrades: Trade[] = [];
-    let duplicatesCount = 0;
+    let duplicatesCount = result.duplicateAnalysis.duplicatesCount;
     let needsReviewCount = 0;
-    const failedRows: { rowNumber: number; error: string }[] = [];
+    const failedRows = [...result.validationErrors];
 
-    for (const rawRow of parseResult.rows) {
+    for (const tradeInput of result.normalizedTrades) {
       try {
-        let tradeInput: NewTradeInput;
-        if (this.normalizer) {
-          tradeInput = this.normalizer.normalizeRow(rawRow, { broker: parseResult.brokerDetected });
-        } else {
-          tradeInput = rawRow.data as unknown as NewTradeInput;
-        }
-
         const saved = await TradeRepository.create(tradeInput, !options.skipDuplicates);
         savedTrades.push(saved);
-
-        if (saved.dataQuality === 'NEEDS_REVIEW') {
-          needsReviewCount++;
-        }
+        if (saved.dataQuality === 'NEEDS_REVIEW') needsReviewCount++;
       } catch (err: unknown) {
-        if (err && typeof err === 'object' && 'code' in err && (err as { code: string }).code === 'DUPLICATE_TRADE_ERROR') {
-          duplicatesCount++;
-        } else {
-          failedRows.push({
-            rowNumber: rawRow.rowNumber,
-            error: err instanceof Error ? err.message : String(err),
-          });
-        }
+        if (err && typeof err === 'object' && 'code' in err && (err as { code: string }).code === 'DUPLICATE_TRADE_ERROR') duplicatesCount++;
+        else failedRows.push({ rowNumber: 0, error: err instanceof Error ? err.message : String(err) });
       }
     }
 
-    // 5. Finalize Import Log in Database
-    const finalStatus =
-      failedRows.length === 0
-        ? 'COMPLETED'
-        : savedTrades.length > 0
-        ? 'PARTIALLY_FAILED'
-        : 'FAILED';
-
+    const report = buildReport(savedTrades, duplicatesCount, failedRows.length, result.report.sourceTotalPnl);
+    const finalStatus = failedRows.length === 0 ? 'COMPLETED' : savedTrades.length > 0 ? 'PARTIALLY_FAILED' : 'FAILED';
     const importLog: ImportLog = {
       id: importId,
       filename: file.name,
-      fileType: detection.fileType,
+      fileType: result.detection.fileType,
       importedAt,
-      totalRows: parseResult.totalRawRows,
+      totalRows: result.parseResult.totalRawRows,
       validTrades: savedTrades.length,
       duplicates: duplicatesCount,
       needsReview: needsReviewCount,
       status: finalStatus,
-      errorMessage: failedRows.length > 0 ? `${failedRows.length} rows failed validation` : null,
-      metadata: {
-        broker: parseResult.brokerDetected,
-        failedRowsSample: failedRows.slice(0, 5),
-      },
+      errorMessage: failedRows.length ? `${failedRows.length} rows failed validation` : null,
+      metadata: { broker: result.parseResult.brokerDetected, report, failedRowsSample: failedRows.slice(0, 5) },
     };
-
     await ImportRepository.save(importLog);
-
-    return {
-      importLog,
-      savedTrades,
-      duplicatesCount,
-      needsReviewCount,
-      failedRows,
-    };
+    return { importLog, savedTrades, duplicatesCount, needsReviewCount, failedRows, report };
   }
 }
 
