@@ -3,14 +3,25 @@
  */
 
 export type ImportFileType = 'CSV' | 'XLSX' | 'XLS' | 'PDF' | 'DOCX' | 'JSON' | 'MANUAL';
-
 export type ImportStatus = 'PENDING' | 'PROCESSING' | 'COMPLETED' | 'FAILED' | 'PARTIALLY_FAILED';
+
+export interface ImportReport {
+  imported: number;
+  duplicates: number;
+  invalid: number;
+  dateFrom: string | null;
+  dateTo: string | null;
+  calculatedPnl: number;
+  sourceTotalPnl: number | null;
+  pnlDifference: number | null;
+  pnlMismatchWarning: boolean;
+}
 
 export interface ImportLog {
   id: string;
   filename: string;
   fileType: ImportFileType;
-  importedAt: string; // ISO 8601
+  importedAt: string;
   totalRows: number;
   validTrades: number;
   duplicates: number;
