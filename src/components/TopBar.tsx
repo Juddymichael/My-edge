@@ -32,6 +32,7 @@ interface TopBarProps {
   onOpenBackup: () => void;
   onSeed: () => void;
   unreadCount?: number;
+  activeNotificationCount?: number;
   onDismissAllNotifications?: () => void;
   isLoading?: boolean;
   tradeCount: number;
@@ -86,6 +87,7 @@ export const TopBar: React.FC<TopBarProps> = ({
   isLoading = false,
   tradeCount,
   unreadCount = 0,
+  activeNotificationCount = 0,
   onDismissAllNotifications,
 }) => {
   const { isDark, toggleTheme } = useTheme();
@@ -177,7 +179,7 @@ export const TopBar: React.FC<TopBarProps> = ({
         {onDismissAllNotifications && (
           <button
             onClick={onDismissAllNotifications}
-            disabled={unreadCount === 0}
+            disabled={activeNotificationCount === 0}
             className="relative p-2 rounded-2xl text-[#6B668D] dark:text-[#9299A8] hover:text-[#0F0E26] dark:hover:text-[#F5F5F5] hover:bg-[#FAF8FF] dark:hover:bg-[#181C25] transition-all duration-200 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed btn-press btn-icon-animate group"
             title={unreadCount > 0 ? 'Marquer toutes les notifications comme vues / les retirer des alertes actives' : 'Aucune notification non lue'}
             aria-label="Effacer les notifications actives"
