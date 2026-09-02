@@ -3,7 +3,7 @@ import { CsvTradeParser } from '../lib/import-pipeline/parsers/csvParser';
 import { ExcelTradeParser } from '../lib/import-pipeline/parsers/excelParser';
 import { TradeDuplicateDetector } from '../lib/import-pipeline/duplicateDetector';
 import { normalizeDate, normalizeNumber } from '../lib/normalization';
-import { NewTradeInput, Trade } from '../types/trade';
+import { NewTradeInput } from '../types/trade';
 import * as XLSX from 'xlsx';
 
 describe('robust trade imports', () => {
@@ -39,7 +39,7 @@ describe('robust trade imports', () => {
   });
 
   it('only treats exact symbol + second + PnL matches as duplicates', () => {
-    const makeTrade = (symbol: string, closedAt: string, netPnL: number): Trade => ({
+    const makeTrade = (symbol: string, closedAt: string, netPnL: number): NewTradeInput => ({
       id: `${symbol}-${closedAt}-${netPnL}`,
       ticket: null, brokerSource: 'test', openedAt: closedAt, closedAt, timezone: 'UTC', symbol, direction: 'BUY',
       entryPrice: 1, exitPrice: 2, stopLoss: null, takeProfit: null, quantity: 1, lotSize: 1, contractSize: 100000,
