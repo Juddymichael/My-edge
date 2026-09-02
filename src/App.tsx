@@ -19,6 +19,7 @@ import { TradeDetailModal } from './components/TradeDetailModal';
 import { BackupModal } from './components/BackupModal';
 import { SetupsManagementModal } from './components/SetupsManagementModal';
 import { ImportModal } from './components/ImportModal';
+import { RiskAlertsPanel } from './components/RiskAlertsPanel';
 import { Trade, NewTradeInput } from './types/trade';
 import { AlertCircle } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
@@ -29,6 +30,7 @@ export default function App() {
   const { trades = [], isLoading, error, addTrade, removeTrade, clearAllTrades, seedDatabase, selectedTrade, setSelectedTrade, loadTrades } = useTrades();
   const { settings, updateSettings } = useSettings();
   const { setups = [] } = useSetups();
+  const { activeAlerts, unreadCount, markViewed, dismiss } = useRiskAlerts(trades || [], settings);
   const [activeTab, setActiveTab] = useState<ActiveTab>('dashboard');
   const [calendarJumpMonth, setCalendarJumpMonth] = useState<{ year: number; month: number } | null>(null);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -39,8 +41,6 @@ export default function App() {
   const [notification, setNotification] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
   const safeTrades = trades || [];
   const safeSetups = setups || [];
-  useRiskAlerts(safeTrades, settings);
-
   const notify = (type: 'success' | 'error', message: string) => { setNotification({ type, message }); setTimeout(() => setNotification(prev => (prev?.message === message ? null : prev)), 4000); };
   const handleImportComplete = async (importedCount: number, duplicatesSkipped: number) => { await loadTrades(); notify('success', `Importation réussie : ${importedCount} trade(s) enregistré(s), ${duplicatesSkipped} doublon(s) ignoré(s).`); };
   const handleSeed = async () => { try { const res = await seedDatabase(); notify('success', `Loaded ${res.inserted} institutional trades with verified SMC setups.`); } catch (err) { notify('error', err instanceof Error ? err.message : 'Failed to seed database'); } };
@@ -48,37 +48,22 @@ export default function App() {
   const handleCreateTrade = async (newTrade: NewTradeInput) => { try { const saved = await addTrade(newTrade); notify('success', `Trade ${saved.symbol} (#${saved.ticket || saved.id.slice(0, 8)}) recorded successfully.`); } catch (err) { notify('error', err instanceof Error ? err.message : 'Failed to save trade'); throw err; } };
   const handleDeleteTrade = async (id: string) => { try { await removeTrade(id); notify('success', 'Trade deleted from IndexedDB.'); } catch { notify('error', 'Failed to delete trade'); } };
   const handleRestoreTrades = async (restoredTrades: Trade[]) => { for (const t of restoredTrades) { try { await addTrade(t); } catch { /* Continue rest */ } } };
-
   return <div className="min-h-screen bg-[#F8FAFC] dark:bg-[#0B0D12] text-[#0F172A] dark:text-[#F5F5F5] font-sans selection:bg-[#F97316]/25 selection:text-[#FDBA74] transition-colors duration-200 flex flex-col md:flex-row relative">
     <div className="fixed inset-0 pointer-events-none bg-gradient-to-tr from-indigo-500/5 dark:from-[#F97316]/5 via-transparent to-purple-500/5 dark:to-[#EA580C]/5 -z-10 blur-3xl" />
-    <Sidebar activeTab={activeTab} onTabChange={setActiveTab} onOpenCreate={() => setIsCreateOpen(true)} onOpenImport={() => setIsImportOpen(true)} onOpenSetupsModal={() => setIsSetupsOpen(true)} onOpenBackup={() => setIsBackupOpen(true)} onSeed={handleSeed} isLoading={isLoading} tradeCount={safeTrades.length} isMobileOpen={isMobileMenuOpen} onCloseMobile={() => setIsMobileMenuOpen(false)} />
-    <div className="flex-1 flex flex-col min-w-0 h-screen overflow-y-auto">
-      <TopBar activeTab={activeTab} onOpenMobileMenu={() => setIsMobileMenuOpen(true)} onOpenCreate={() => setIsCreateOpen(true)} onOpenImport={() => setIsImportOpen(true)} onOpenSetupsModal={() => setIsSetupsOpen(true)} onOpenBackup={() => setIsBackupOpen(true)} onSeed={handleSeed} isLoading={isLoading} tradeCount={safeTrades.length} />
-      <ToastNotification notification={notification} onClose={() => setNotification(null)} />
-      <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
-        {error && <div className="p-4 rounded-2xl bg-[#12151D] border border-rose-500/30 text-rose-400 text-xs flex items-center gap-2"><AlertCircle className="w-4 h-4 shrink-0" /><span>Erreur Base de Données : {error}</span></div>}
-        <AnimatePresence mode="wait">
-          {isLoading && safeTrades.length === 0 ? <motion.div key="skeleton-view" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.2 }}><DashboardSkeleton /></motion.div> : <>
-            {activeTab === 'dashboard' && <motion.div key="tab-dashboard" initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -6 }} transition={{ duration: 0.22, ease: 'easeOut' }} className="space-y-6">
-              {safeTrades.length > 0 && <EquityCurveChart trades={safeTrades} initialBalance={settings.initialAccountBalance || 10000} currency={settings.currency || 'USD'} />}
-              <MonthlyTradingBreakdownCard trades={safeTrades} currency={settings.currency || 'USD'} onSelectTrade={setSelectedTrade} onNavigateToCalendar={(year, month) => { setCalendarJumpMonth({ year, month }); setActiveTab('calendar'); }} />
-              {safeTrades.length > 0 && <CalculationVerificationPanel trades={safeTrades} onSelectTrade={setSelectedTrade} />}
-              <TradeTable trades={safeTrades} onDelete={handleDeleteTrade} onSelect={setSelectedTrade} onSeed={handleSeed} onOpenCreate={() => setIsCreateOpen(true)} onOpenImport={() => setIsImportOpen(true)} />
-            </motion.div>}
-            {activeTab === 'calendar' && <motion.div key="tab-calendar" initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -6 }} transition={{ duration: 0.22, ease: 'easeOut' }} className="space-y-6"><CalendarView trades={safeTrades} currency={settings.currency || 'USD'} onSelectTrade={setSelectedTrade} onSeed={handleSeed} initialYear={calendarJumpMonth?.year} initialMonth={calendarJumpMonth?.month} /></motion.div>}
-            {activeTab === 'trades' && <motion.div key="tab-journal" initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -6 }} transition={{ duration: 0.22, ease: 'easeOut' }} className="space-y-6"><TradeTable trades={safeTrades} onDelete={handleDeleteTrade} onSelect={setSelectedTrade} onSeed={handleSeed} onOpenCreate={() => setIsCreateOpen(true)} onOpenImport={() => setIsImportOpen(true)} /></motion.div>}
-            {activeTab === 'edge' && <motion.div key="tab-edge" initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -6 }} transition={{ duration: 0.22, ease: 'easeOut' }}><MyEdgeView trades={safeTrades} setups={safeSetups} onOpenSetupsModal={() => setIsSetupsOpen(true)} onSelectTrade={setSelectedTrade} /></motion.div>}
-            {activeTab === 'analytics' && <motion.div key="tab-analytics" initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -6 }} transition={{ duration: 0.22, ease: 'easeOut' }}><AnalyticsView trades={safeTrades} currency={settings.currency || 'EUR'} initialBalance={settings.initialAccountBalance || 10000} onSelectTrade={setSelectedTrade} /></motion.div>}
-            {activeTab === 'coach' && <motion.div key="tab-coach" initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -6 }} transition={{ duration: 0.22, ease: 'easeOut' }}><CoachView trades={safeTrades} setups={safeSetups} currency={settings.currency || 'USD'} initialBalance={settings.initialAccountBalance || 10000} /></motion.div>}
-            {activeTab === 'settings' && <motion.div key="tab-settings" initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -6 }} transition={{ duration: 0.22, ease: 'easeOut' }}><SettingsView settings={settings} onUpdateSettings={updateSettings} onOpenBackup={() => setIsBackupOpen(true)} onSeed={handleSeed} onClear={handleClear} tradeCount={safeTrades.length} /></motion.div>}
-          </>}
-        </AnimatePresence>
+    <Sidebar activeTab={activeTab} onTabChange={setActiveTab} onOpenCreate={() => setIsCreateOpen(true)} onOpenImport={() => setIsImportOpen(true)} onOpenSetupsModal={() => setIsSetupsOpen(true)} onOpenBackup={() => setIsBackupOpen(true)} onSeed={handleSeed} isLoading={isLoading} tradeCount={safeTrades.length} unreadRiskAlerts={unreadCount} isMobileOpen={isMobileMenuOpen} onCloseMobile={() => setIsMobileMenuOpen(false)} />
+    <div className="flex-1 flex flex-col min-w-0 h-screen overflow-y-auto"><TopBar activeTab={activeTab} onOpenMobileMenu={() => setIsMobileMenuOpen(true)} onOpenCreate={() => setIsCreateOpen(true)} onOpenImport={() => setIsImportOpen(true)} onOpenSetupsModal={() => setIsSetupsOpen(true)} onOpenBackup={() => setIsBackupOpen(true)} onSeed={handleSeed} isLoading={isLoading} tradeCount={safeTrades.length} /><ToastNotification notification={notification} onClose={() => setNotification(null)} />
+      <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">{error && <div className="p-4 rounded-2xl bg-[#12151D] border border-rose-500/30 text-rose-400 text-xs flex items-center gap-2"><AlertCircle className="w-4 h-4 shrink-0"/><span>Erreur Base de Données : {error}</span></div>}
+        <AnimatePresence mode="wait">{isLoading && safeTrades.length === 0 ? <motion.div key="skeleton-view" initial={{opacity:0}} animate={{opacity:1}} exit={{opacity:0}}><DashboardSkeleton/></motion.div> : <>
+          {activeTab === 'dashboard' && <motion.div key="tab-dashboard" initial={{opacity:0,y:6}} animate={{opacity:1,y:0}} exit={{opacity:0,y:-6}} className="space-y-6"><RiskAlertsPanel alerts={activeAlerts} unreadCount={unreadCount} onView={alert => void markViewed(alert.id)} onDismiss={id => void dismiss(id)} onOpenTrade={id => setSelectedTrade(safeTrades.find(t => t.id === id) || null)} />{safeTrades.length > 0 && <EquityCurveChart trades={safeTrades} initialBalance={settings.initialAccountBalance || 10000} currency={settings.currency || 'USD'} />}<MonthlyTradingBreakdownCard trades={safeTrades} currency={settings.currency || 'USD'} onSelectTrade={setSelectedTrade} onNavigateToCalendar={(year, month) => { setCalendarJumpMonth({year,month}); setActiveTab('calendar'); }}/>{safeTrades.length > 0 && <CalculationVerificationPanel trades={safeTrades} onSelectTrade={setSelectedTrade}/>}<TradeTable trades={safeTrades} onDelete={handleDeleteTrade} onSelect={setSelectedTrade} onSeed={handleSeed} onOpenCreate={() => setIsCreateOpen(true)} onOpenImport={() => setIsImportOpen(true)}/></motion.div>}
+          {activeTab === 'calendar' && <motion.div key="tab-calendar" initial={{opacity:0,y:6}} animate={{opacity:1,y:0}} exit={{opacity:0,y:-6}} className="space-y-6"><CalendarView trades={safeTrades} currency={settings.currency || 'USD'} onSelectTrade={setSelectedTrade} onSeed={handleSeed} initialYear={calendarJumpMonth?.year} initialMonth={calendarJumpMonth?.month}/></motion.div>}
+          {activeTab === 'trades' && <motion.div key="tab-journal" initial={{opacity:0,y:6}} animate={{opacity:1,y:0}} exit={{opacity:0,y:-6}} className="space-y-6"><TradeTable trades={safeTrades} onDelete={handleDeleteTrade} onSelect={setSelectedTrade} onSeed={handleSeed} onOpenCreate={() => setIsCreateOpen(true)} onOpenImport={() => setIsImportOpen(true)}/></motion.div>}
+          {activeTab === 'edge' && <motion.div key="tab-edge"><MyEdgeView trades={safeTrades} setups={safeSetups} onOpenSetupsModal={() => setIsSetupsOpen(true)} onSelectTrade={setSelectedTrade}/></motion.div>}
+          {activeTab === 'analytics' && <motion.div key="tab-analytics"><AnalyticsView trades={safeTrades} currency={settings.currency || 'EUR'} initialBalance={settings.initialAccountBalance || 10000} onSelectTrade={setSelectedTrade}/></motion.div>}
+          {activeTab === 'coach' && <motion.div key="tab-coach"><CoachView trades={safeTrades} setups={safeSetups} currency={settings.currency || 'USD'} initialBalance={settings.initialAccountBalance || 10000}/></motion.div>}
+          {activeTab === 'settings' && <motion.div key="tab-settings"><SettingsView settings={settings} onUpdateSettings={updateSettings} onOpenBackup={() => setIsBackupOpen(true)} onSeed={handleSeed} onClear={handleClear} tradeCount={safeTrades.length}/></motion.div>}
+        </>}</AnimatePresence>
       </main>
     </div>
-    <CreateTradeModal isOpen={isCreateOpen} onClose={() => setIsCreateOpen(false)} onSubmit={handleCreateTrade} />
-    <TradeDetailModal trade={selectedTrade} currency={settings.currency || 'USD'} onClose={() => setSelectedTrade(null)} />
-    <SetupsManagementModal isOpen={isSetupsOpen} onClose={() => setIsSetupsOpen(false)} />
-    <BackupModal isOpen={isBackupOpen} onClose={() => setIsBackupOpen(false)} trades={safeTrades} settings={settings} onRestoreTrades={handleRestoreTrades} />
-    <ImportModal isOpen={isImportOpen} onClose={() => setIsImportOpen(false)} onImportComplete={handleImportComplete} existingTrades={safeTrades} />
+    <CreateTradeModal isOpen={isCreateOpen} onClose={() => setIsCreateOpen(false)} onSubmit={handleCreateTrade}/><TradeDetailModal trade={selectedTrade} currency={settings.currency || 'USD'} onClose={() => setSelectedTrade(null)}/><SetupsManagementModal isOpen={isSetupsOpen} onClose={() => setIsSetupsOpen(false)}/><BackupModal isOpen={isBackupOpen} onClose={() => setIsBackupOpen(false)} trades={safeTrades} settings={settings} onRestoreTrades={handleRestoreTrades}/><ImportModal isOpen={isImportOpen} onClose={() => setIsImportOpen(false)} onImportComplete={handleImportComplete} existingTrades={safeTrades}/>
   </div>;
 }
