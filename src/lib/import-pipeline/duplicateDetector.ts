@@ -15,9 +15,11 @@ function exactTradeKey(trade: Pick<NewTradeInput, 'symbol' | 'closedAt' | 'opene
   return `${String(trade.symbol).toUpperCase()}|${date}|${pnl}`;
 }
 
+type ExistingTrade = Pick<Trade, 'id' | 'symbol' | 'closedAt' | 'openedAt' | 'netPnL'> | NewTradeInput;
+
 export class TradeDuplicateDetector {
-  static analyzeBatch(candidateTrades: NewTradeInput[], existingTrades: Trade[]) {
-    const existingKeys = new Map<string, Trade>();
+  static analyzeBatch(candidateTrades: NewTradeInput[], existingTrades: ExistingTrade[]) {
+    const existingKeys = new Map<string, ExistingTrade>();
     const seenKeys = new Set<string>();
     const previews: ParsedTradePreview[] = [];
     let duplicatesCount = 0;
@@ -51,7 +53,8 @@ export class TradeDuplicateDetector {
       } else if (existingKeys.has(key)) {
         isDuplicate = true;
         duplicateReason = 'EXISTING_IN_DB';
-        existingTradeId = existingKeys.get(key)?.id || null;
+        const existing = existingKeys.get(key);
+        existingTradeId = existing && 'id' in existing ? existing.id : null;
       }
 
       seenKeys.add(key);
