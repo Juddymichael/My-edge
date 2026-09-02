@@ -120,7 +120,7 @@ export const EquityCurveChart: React.FC<EquityCurveChartProps> = ({
       {/* Header Controls */}
       <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
         <div className="flex items-center gap-2.5">
-          <div className="p-2.5 rounded-2xl bg-orange-50 dark:bg-[#181C25] text-[#F97316] border border-orange-200/60 dark:border-[#292E38] shadow-xs">
+          <div className="p-2.5 rounded-2xl bg-orange-50 dark:bg-[#181C25] text-[var(--chart-accent)] border border-orange-200/60 dark:border-[#292E38] shadow-xs">
             <TrendingUp className="w-4 h-4" />
           </div>
           <div>
@@ -139,7 +139,7 @@ export const EquityCurveChart: React.FC<EquityCurveChartProps> = ({
             onClick={() => setMode('pnl')}
             className={`px-3.5 py-1.5 rounded-xl transition-all duration-200 btn-press cursor-pointer ${
               mode === 'pnl'
-                ? 'bg-[#F97316] hover:bg-[#EA580C] text-white shadow-xs font-bold'
+                ? 'bg-[var(--chart-accent)] hover:bg-[#EA580C] text-white shadow-xs font-bold'
                 : 'text-slate-600 dark:text-[#9299A8] hover:text-slate-900 dark:hover:text-[#F5F5F5]'
             }`}
           >
@@ -173,9 +173,9 @@ export const EquityCurveChart: React.FC<EquityCurveChartProps> = ({
           >
             <defs>
               <linearGradient id="curveGradient" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor="#F97316" stopOpacity={isDark ? "0.25" : "0.20"} />
-                <stop offset="85%" stopColor="#EA580C" stopOpacity={isDark ? "0.05" : "0.03"} />
-                <stop offset="100%" stopColor="#9A3412" stopOpacity="0.0" />
+                <stop offset="0%" stopColor="var(--chart-accent)" stopOpacity={isDark ? "0.25" : "0.20"} />
+                <stop offset="85%" stopColor="var(--chart-accent)" stopOpacity={isDark ? "0.05" : "0.03"} />
+                <stop offset="100%" stopColor="var(--chart-accent)" stopOpacity="0.0" />
               </linearGradient>
               <clipPath id="equityCurveClip">
                 <motion.rect
@@ -237,7 +237,7 @@ export const EquityCurveChart: React.FC<EquityCurveChartProps> = ({
                   key={`path-${mode}-${dataPoints.length}`}
                   d={linePath}
                   fill="none"
-                  stroke="#F97316"
+                  stroke="var(--chart-accent)"
                   strokeWidth="2.5"
                   strokeLinecap="round"
                   strokeLinejoin="round"
@@ -270,7 +270,7 @@ export const EquityCurveChart: React.FC<EquityCurveChartProps> = ({
                     className={`transition-colors duration-150 ${
                       isHovered
                         ? isDark
-                          ? 'fill-[#F97316] stroke-[#0B0D12] stroke-2 shadow-md'
+                          ? 'fill-[var(--chart-accent)] stroke-[#0B0D12] stroke-2 shadow-md'
                           : 'fill-[#F97316] stroke-white stroke-2 shadow-md'
                         : 'fill-[#F97316] hover:fill-[#FDBA74]'
                     }`}
@@ -322,7 +322,7 @@ export const EquityCurveChart: React.FC<EquityCurveChartProps> = ({
                   <span className="text-slate-500 dark:text-[#9299A8]">Multiple R :</span>
                   <span className="tabular-nums font-bold text-slate-900 dark:text-[#F5F5F5]">{formatRMultiple(hoveredPoint.trade.rMultiple)}</span>
                 </div>
-                <div className="flex justify-between border-t border-slate-100 dark:border-[#292E38] pt-1 text-[#EA580C] dark:text-[#FDBA74] font-bold">
+                <div className="flex justify-between border-t border-slate-100 dark:border-[#292E38] pt-1 text-[var(--chart-accent)] dark:text-[var(--chart-accent)] font-bold">
                   <span>Cumul {mode === 'pnl' ? 'PnL' : 'R'} :</span>
                   <span className="tabular-nums">
                     {mode === 'pnl'
