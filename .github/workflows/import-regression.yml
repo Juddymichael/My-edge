@@ -1,4 +1,4 @@
-name: Import regression tests
+name: Import and Coach regression tests
 
 on:
   push:
@@ -15,5 +15,5 @@ jobs:
           node-version: 20
           cache: npm
       - run: npm ci
-      - run: npm test -- --run src/tests/importRobustness.test.ts
+      - run: npm test -- --run src/tests/importRobustness.test.ts src/tests/coachPersistence.test.ts src/tests/coachTools.test.ts
       - run: npm run lint
