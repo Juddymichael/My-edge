@@ -22,24 +22,16 @@ export function useAICoach(
   const [messages, setMessages] = useState<ChatMessage[]>(() => {
     try {
       const stored = localStorage.getItem(STORAGE_KEY);
-      if (stored) {
-        return JSON.parse(stored);
-      }
+      if (stored) return JSON.parse(stored);
     } catch {
       // ignore
     }
+
     return [
       {
         id: 'welcome-msg',
         role: 'model',
-        text: `Bonjour. Je suis votre **AI Trading Coach & Performance Auditor**.
-
-Je suis connecté en temps réel à l'intégralité de vos données de trading :
-- **Vos trades réels** (entrées, sorties, R-multiples, sessions, P&L)
-- **Vos setups & votre Edge** quantifié
-- **Votre discipline & psychologie** (erreurs récurrentes, comportements post-perte)
-
-Posez-moi une question précise pour auditer vos performances.`,
+        text: `Bonjour. Je suis votre **AI Trading Coach & Performance Auditor**.\n\nJe suis connecté en temps réel à l'intégralité de vos données de trading :\n- **Vos trades réels** (entrées, sorties, R-multiples, sessions, P&L)\n- **Vos setups & votre Edge** quantifié\n- **Votre discipline & psychologie** (erreurs récurrentes, comportements post-perte)\n\nPosez-moi une question précise pour auditer vos performances.`,
         timestamp: new Date().toISOString(),
       },
     ];
@@ -48,7 +40,6 @@ Posez-moi une question précise pour auditer vos performances.`,
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Sync to local storage
   useEffect(() => {
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(messages));
@@ -84,24 +75,18 @@ Posez-moi une question précise pour auditer vos performances.`,
       setIsLoading(true);
       setError(null);
 
-      // Build real trading context
       const context: CoachContextPayload = buildCoachContext(trades, setups, initialBalance);
-
-      // Build history payload for contextual memory (excluding welcome message if long)
       const historyPayload = messages
         .filter((m) => m.id !== 'welcome-msg' && !m.isError)
         .slice(-10)
-        .map((m) => ({
-          role: m.role,
-          text: m.text,
-        }));
+        .map((m) => ({ role: m.role, text: m.text }));
 
       try {
-        const response = await fetch('/api/coach/chat', {
+        // The browser talks only to our internal serverless endpoint.
+        // GEMINI_API_KEY never belongs in client-side code.
+        const response = await fetch('/api/coach', {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
+          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             message: trimmed,
             history: historyPayload,
@@ -112,37 +97,41 @@ Posez-moi une question précise pour auditer vos performances.`,
         if (!response.ok) {
           const errData = await response.json().catch(() => ({}));
           console.warn('[AI Coach API response not ok, switching to local analysis]:', errData);
-          // If the server cannot answer (e.g. missing API key in dev or error), perform deterministic synthesis
           const localReply = generateLocalCoachAnalysis(trimmed, context, historyPayload);
-          const modelMsg: ChatMessage = {
-            id: `model-${Date.now()}`,
-            role: 'model',
-            text: localReply,
-            timestamp: new Date().toISOString(),
-          };
-          setMessages((prev) => [...prev, modelMsg]);
+          setMessages((prev) => [
+            ...prev,
+            {
+              id: `model-${Date.now()}`,
+              role: 'model',
+              text: localReply,
+              timestamp: new Date().toISOString(),
+            },
+          ]);
           return;
         }
 
         const data = await response.json();
-        const modelMsg: ChatMessage = {
-          id: `model-${Date.now()}`,
-          role: 'model',
-          text: data.reply || 'Aucune réponse reçue.',
-          timestamp: new Date().toISOString(),
-        };
-
-        setMessages((prev) => [...prev, modelMsg]);
+        setMessages((prev) => [
+          ...prev,
+          {
+            id: `model-${Date.now()}`,
+            role: 'model',
+            text: data.reply || 'Aucune réponse reçue.',
+            timestamp: new Date().toISOString(),
+          },
+        ]);
       } catch (err: any) {
         console.warn('[AI Coach fetch failed, falling back to local engine]:', err);
         const localReply = generateLocalCoachAnalysis(trimmed, context, historyPayload);
-        const modelMsg: ChatMessage = {
-          id: `model-${Date.now()}`,
-          role: 'model',
-          text: localReply,
-          timestamp: new Date().toISOString(),
-        };
-        setMessages((prev) => [...prev, modelMsg]);
+        setMessages((prev) => [
+          ...prev,
+          {
+            id: `model-${Date.now()}`,
+            role: 'model',
+            text: localReply,
+            timestamp: new Date().toISOString(),
+          },
+        ]);
       } finally {
         setIsLoading(false);
       }
@@ -150,11 +139,5 @@ Posez-moi une question précise pour auditer vos performances.`,
     [messages, isLoading, trades, setups, initialBalance]
   );
 
-  return {
-    messages,
-    isLoading,
-    error,
-    sendMessage,
-    clearHistory,
-  };
+  return { messages, isLoading, error, sendMessage, clearHistory };
 }
