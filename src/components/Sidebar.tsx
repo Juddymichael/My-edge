@@ -112,7 +112,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   const sidebarContent = (
     <aside
       id="thunder-edge-sidebar"
-      className={`flex flex-col h-full ${collapsed ? "sidebar-collapsed" : ""} bg-white dark:bg-[#12151D] border-r border-[#ECE7FC] dark:border-[#292E38] text-[#0F0E26] dark:text-[#F5F5F5] select-none transition-colors duration-200"
+      className={`relative flex flex-col h-full ${collapsed ? "sidebar-collapsed" : ""} bg-white dark:bg-[#12151D] border-r border-[#ECE7FC] dark:border-[#292E38] text-[#0F0E26] dark:text-[#F5F5F5] select-none`}
     >
       {/* Brand Header */}
       <div className="p-5 border-b border-[#ECE7FC]/80 dark:border-[#292E38] flex items-center justify-between">
