@@ -66,6 +66,7 @@ export const MyEdgeView: React.FC<MyEdgeViewProps> = ({
   const [selectedSession, setSelectedSession] = useState<string>('ALL');
   const [selectedDirection, setSelectedDirection] = useState<string>('ALL');
   const [selectedResult, setSelectedResult] = useState<string>('ALL');
+  const [openFilter, setOpenFilter] = useState<'period'|'symbol'|'setup'|'session'|'direction'|'result'|null>(null);
 
   // Navigation tab
   const [activeTab, setActiveTab] = useState<EdgeTab>('verdict');
@@ -190,9 +191,9 @@ export const MyEdgeView: React.FC<MyEdgeViewProps> = ({
 
   const getScoreColor = (score: number) => {
     if (score >= 80) return 'text-emerald-400 bg-emerald-500/10 border-emerald-500/30';
-    if (score >= 65) return 'text-[#FDBA74] bg-[#F97316]/10 border-[#F97316]/30';
+    if (score >= 65) return 'text-[#FDBA74] bg-[var(--edge-accent)]/10 border-[var(--edge-accent-border)]';
     if (score >= 45) return 'text-[#F59E0B] bg-[#F59E0B]/10 border-[#F59E0B]/30';
-    if (score >= 25) return 'text-[#EA580C] bg-[#EA580C]/10 border-[#EA580C]/30';
+    if (score >= 25) return 'text-[var(--edge-accent-hover)] bg-[var(--edge-accent-hover)]/10 border-[#EA580C]/30';
     return 'text-rose-400 bg-rose-500/10 border-rose-500/30';
   };
 
@@ -203,13 +204,13 @@ export const MyEdgeView: React.FC<MyEdgeViewProps> = ({
         <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
           <div className="space-y-2">
             <div className="flex items-center gap-3">
-              <div className="p-2.5 rounded-2xl bg-slate-50 dark:bg-[#181C25] text-[#F97316] border border-slate-200 dark:border-[#292E38] shadow-xs">
+              <div className="p-2.5 rounded-2xl bg-slate-50 dark:bg-[#181C25] text-[var(--edge-accent)] border border-slate-200 dark:border-[#292E38] shadow-xs">
                 <Compass className="w-5 h-5" />
               </div>
               <div>
                 <h1 className="text-xl font-bold tracking-tight text-slate-900 dark:text-[#F5F5F5] flex items-center gap-2">
                   <span>My Edge</span>
-                  <span className="text-xs px-2.5 py-0.5 rounded-full bg-slate-50 dark:bg-[#181C25] text-[#F97316] dark:text-[#FDBA74] border border-slate-200 dark:border-[#292E38] font-bold">
+                  <span className="text-xs px-2.5 py-0.5 rounded-full bg-slate-50 dark:bg-[#181C25] text-[var(--edge-accent)] dark:text-[#FDBA74] border border-slate-200 dark:border-[#292E38] font-bold">
                     Basé sur vos {filteredTrades.length} trades réels
                   </span>
                 </h1>
@@ -225,12 +226,12 @@ export const MyEdgeView: React.FC<MyEdgeViewProps> = ({
               onClick={() => setShowFormulaModal(true)}
               className="inline-flex items-center gap-2 px-3.5 py-2 rounded-2xl bg-slate-50 dark:bg-[#181C25] hover:bg-slate-100 dark:hover:bg-[#292E38] text-slate-700 dark:text-[#F5F5F5] border border-slate-200 dark:border-[#292E38] text-xs font-semibold shadow-xs transition cursor-pointer"
             >
-              <Calculator className="w-4 h-4 text-[#F97316]" />
+              <Calculator className="w-4 h-4 text-[var(--edge-accent)]" />
               <span>Transparence Edge Score</span>
             </button>
             <button
               onClick={handleOpenSetups}
-              className="inline-flex items-center gap-2 px-4 py-2 rounded-2xl bg-[#F97316] hover:bg-[#EA580C] text-white text-xs font-bold shadow-xs transition cursor-pointer"
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-2xl bg-[var(--edge-accent)] hover:bg-[var(--edge-accent-hover)] text-white text-xs font-bold shadow-xs transition cursor-pointer"
             >
               <Sliders className="w-4 h-4" />
               <span>Gérer les Setups</span>
@@ -241,9 +242,9 @@ export const MyEdgeView: React.FC<MyEdgeViewProps> = ({
         {/* Central Core Question & Key Takeaway Banner */}
         <div className="mt-5 p-4 rounded-2xl bg-slate-50 dark:bg-[#181C25] border border-slate-200 dark:border-[#292E38] flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
           <div className="flex items-start gap-3">
-            <Award className="w-5 h-5 text-[#F97316] shrink-0 mt-0.5" />
+            <Award className="w-5 h-5 text-[var(--edge-accent)] shrink-0 mt-0.5" />
             <div>
-              <span className="text-[11px] uppercase font-bold tracking-wider text-[#EA580C] dark:text-[#FDBA74] block">
+              <span className="text-[11px] uppercase font-bold tracking-wider text-[var(--edge-accent-hover)] dark:text-[#FDBA74] block">
                 Verdict Stratégique — Dans quelles conditions votre stratégie fonctionne-t-elle le mieux ?
               </span>
               <p className="text-sm font-medium text-slate-900 dark:text-[#F5F5F5] mt-1">
@@ -255,13 +256,13 @@ export const MyEdgeView: React.FC<MyEdgeViewProps> = ({
           <div className="flex items-center gap-3 shrink-0">
             <div className="px-3 py-1.5 rounded-xl bg-white dark:bg-[#12151D] border border-slate-200 dark:border-[#292E38] text-center">
               <span className="text-[10px] text-slate-500 dark:text-[#9299A8] block font-normal">Meilleure Paire</span>
-              <span className="text-xs font-bold text-[#F97316]">
+              <span className="text-xs font-bold text-[var(--edge-accent)]">
                 {verdict.bestPair ? verdict.bestPair.label : 'N/A'}
               </span>
             </div>
             <div className="px-3 py-1.5 rounded-xl bg-white dark:bg-[#12151D] border border-slate-200 dark:border-[#292E38] text-center">
               <span className="text-[10px] text-slate-500 dark:text-[#9299A8] block font-normal">Meilleure Session</span>
-              <span className="text-xs font-bold text-[#EA580C] dark:text-[#FDBA74]">
+              <span className="text-xs font-bold text-[var(--edge-accent-hover)] dark:text-[#FDBA74]">
                 {verdict.bestSession ? verdict.bestSession.label : 'N/A'}
               </span>
             </div>
@@ -269,115 +270,40 @@ export const MyEdgeView: React.FC<MyEdgeViewProps> = ({
         </div>
       </div>
 
-      {/* 2. DYNAMIC MULTI-DIMENSIONAL FILTERS BAR (6 FILTRES SYNCHRONISÉS) */}
-      <div className="p-4 rounded-3xl border border-slate-200 dark:border-[#292E38] bg-white dark:bg-[#12151D] shadow-xs flex flex-wrap items-center gap-3">
-        <div className="flex items-center gap-1.5 text-xs font-medium text-slate-500 dark:text-[#9299A8] mr-1">
-          <Filter className="w-3.5 h-3.5 text-[#F97316]" />
-          <span>Filtres Edge :</span>
+      {/* 2. DYNAMIC MULTI-DIMENSIONAL FILTERS — collapsible control rail */}
+      <div className="edge-filter-shell p-4 rounded-3xl border border-slate-200 dark:border-[#292E38] bg-white dark:bg-[#12151D] shadow-xs">
+        <div className="flex flex-col lg:flex-row gap-3">
+          <div className="lg:w-[245px] shrink-0 space-y-1.5">
+            <div className="flex items-center gap-2 px-2 pb-1 text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-[#9299A8]"><Filter className="w-3.5 h-3.5 text-[var(--edge-accent)]"/><span>Filtres Edge</span></div>
+            {([
+              ['period','Période',Calendar],['symbol','Paire',Globe],['setup','Setup / PD Array',Target],['session','Session',Flame],['direction','Direction',ArrowUpRight],['result','Résultat',BarChart2],
+            ] as const).map(([key,label,Icon])=>{
+              const active = openFilter === key;
+              const hasValue = ({period:selectedPeriod,symbol:selectedSymbol,setup:selectedSetup,session:selectedSession,direction:selectedDirection,result:selectedResult} as Record<string,string>)[key] !== 'ALL';
+              return <button key={key} type="button" onClick={()=>setOpenFilter(active?null:key)} className={\`w-full flex items-center justify-between gap-3 px-3 py-2.5 rounded-2xl border text-left btn-press transition-all duration-200 \${active ? 'bg-[var(--edge-accent-soft)] border-[var(--edge-accent-border)] text-[var(--edge-accent)]' : 'bg-slate-50 dark:bg-[#181C25] border-slate-200 dark:border-[#292E38] text-slate-700 dark:text-slate-200 hover:border-[var(--edge-accent-border)]'}\`}>
+                <span className="flex items-center gap-2.5 min-w-0"><Icon className="w-4 h-4 shrink-0"/><span className="text-xs font-bold truncate">{label}</span>{hasValue&&<span className="w-1.5 h-1.5 rounded-full bg-[var(--edge-accent)] animate-pulse shrink-0" />}</span><ChevronDown className={\`w-3.5 h-3.5 shrink-0 transition-transform duration-250 \${active?'rotate-180':''}\`}/>
+              </button>;
+            })}
+            {(selectedPeriod !== 'ALL' || selectedSession !== 'ALL' || selectedDirection !== 'ALL' || selectedSymbol !== 'ALL' || selectedSetup !== 'ALL' || selectedResult !== 'ALL') && <button onClick={()=>{setSelectedPeriod('ALL');setSelectedSession('ALL');setSelectedDirection('ALL');setSelectedSymbol('ALL');setSelectedSetup('ALL');setSelectedResult('ALL');setOpenFilter(null);}} className="w-full mt-2 px-3 py-2 text-xs text-[var(--edge-accent)] hover:text-[var(--edge-accent-hover)] font-bold text-left rounded-xl hover:bg-[var(--edge-accent-soft)] transition-colors duration-200 btn-press">Réinitialiser les filtres</button>}
+          </div>
+          <div className="flex-1 min-w-0 min-h-[70px]">
+            <div className={\`edge-filter-panel h-full rounded-2xl border border-slate-200 dark:border-[#292E38] bg-slate-50 dark:bg-[#0B0D12] overflow-hidden \${openFilter ? 'is-open' : ''}\`}>
+              {!openFilter ? <div className="h-full min-h-[70px] flex items-center justify-center text-xs text-slate-400 dark:text-slate-500">Sélectionnez un filtre à gauche pour afficher ses options</div> : <div className="p-4 animate-filter-panel">
+                {openFilter==='period'&&<div><p className="text-[10px] font-bold uppercase tracking-wider text-[var(--edge-accent)] mb-2">Période</p><div className="flex flex-wrap gap-2">{[['ALL','Toute la période'],['7D','7 derniers jours'],['30D','30 derniers jours'],['MONTH','Ce mois-ci'],['YEAR','Cette année']].map(([v,l])=><button key={v} onClick={()=>setSelectedPeriod(v)} className={\`px-3 py-2 rounded-xl border text-xs font-bold btn-press \${selectedPeriod===v?'bg-[var(--edge-accent)] text-white border-[var(--edge-accent)]':'bg-white dark:bg-[#181C25] border-slate-200 dark:border-[#292E38] text-slate-700 dark:text-slate-200'}\`}>{l}</button>)}</div></div>}
+                {openFilter==='symbol'&&<div><p className="text-[10px] font-bold uppercase tracking-wider text-[var(--edge-accent)] mb-2">Paire</p><div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-2">{[['ALL',\`Toutes les paires (\${availableSymbols.length})\`],...availableSymbols.map(s=>[s,s])].map(([v,l])=><button key={v} onClick={()=>setSelectedSymbol(v)} className={\`px-3 py-2 rounded-xl border text-xs font-bold text-left truncate btn-press \${selectedSymbol===v?'bg-[var(--edge-accent)] text-white border-[var(--edge-accent)]':'bg-white dark:bg-[#181C25] border-slate-200 dark:border-[#292E38] text-slate-700 dark:text-slate-200'}\`}>{l}</button>)}</div></div>}
+                {openFilter==='setup'&&<div><p className="text-[10px] font-bold uppercase tracking-wider text-[var(--edge-accent)] mb-2">Setup / PD Array</p><div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-2">{[['ALL',\`Tous les setups (\${availableSetupsList.length})\`],...availableSetupsList.map(s=>[s,s])].map(([v,l])=><button key={v} onClick={()=>setSelectedSetup(v)} className={\`px-3 py-2 rounded-xl border text-xs font-bold text-left truncate btn-press \${selectedSetup===v?'bg-[var(--edge-accent)] text-white border-[var(--edge-accent)]':'bg-white dark:bg-[#181C25] border-slate-200 dark:border-[#292E38] text-slate-700 dark:text-slate-200'}\`}>{l}</button>)}</div></div>}
+                {openFilter==='session'&&<div><p className="text-[10px] font-bold uppercase tracking-wider text-[var(--edge-accent)] mb-2">Session</p><div className="flex flex-wrap gap-2">{[['ALL','Toutes les sessions'],['LONDON','Londres (London)'],['NEW_YORK','New York'],['TOKYO','Tokyo / Asie'],['SYDNEY','Sydney']].map(([v,l])=><button key={v} onClick={()=>setSelectedSession(v)} className={\`px-3 py-2 rounded-xl border text-xs font-bold btn-press \${selectedSession===v?'bg-[var(--edge-accent)] text-white border-[var(--edge-accent)]':'bg-white dark:bg-[#181C25] border-slate-200 dark:border-[#292E38] text-slate-700 dark:text-slate-200'}\`}>{l}</button>)}</div></div>}
+                {openFilter==='direction'&&<div><p className="text-[10px] font-bold uppercase tracking-wider text-[var(--edge-accent)] mb-2">Direction</p><div className="flex flex-wrap gap-2">{[['ALL','Toutes directions (BUY & SELL)'],['BUY','Achats uniquement (BUY)'],['SELL','Ventes uniquement (SELL)']].map(([v,l])=><button key={v} onClick={()=>setSelectedDirection(v)} className={\`px-3 py-2 rounded-xl border text-xs font-bold btn-press \${selectedDirection===v?'bg-[var(--edge-accent)] text-white border-[var(--edge-accent)]':'bg-white dark:bg-[#181C25] border-slate-200 dark:border-[#292E38] text-slate-700 dark:text-slate-200'}\`}>{l}</button>)}</div></div>}
+                {openFilter==='result'&&<div><p className="text-[10px] font-bold uppercase tracking-wider text-[var(--edge-accent)] mb-2">Résultat</p><div className="flex flex-wrap gap-2">{[['ALL','Tous résultats'],['WIN','Gagnants uniquement'],['LOSS','Perdants uniquement'],['BREAKEVEN','Breakeven uniquement']].map(([v,l])=><button key={v} onClick={()=>setSelectedResult(v)} className={\`px-3 py-2 rounded-xl border text-xs font-bold btn-press \${selectedResult===v?'bg-[var(--edge-accent)] text-white border-[var(--edge-accent)]':'bg-white dark:bg-[#181C25] border-slate-200 dark:border-[#292E38] text-slate-700 dark:text-slate-200'}\`}>{l}</button>)}</div></div>}
+              </div>}
+            </div>
+          </div>
         </div>
-
-        {/* 1. Period */}
-        <select
-          value={selectedPeriod}
-          onChange={(e) => setSelectedPeriod(e.target.value)}
-          className="px-3 py-1.5 text-xs font-medium rounded-xl border border-slate-200 dark:border-[#292E38] bg-slate-50 dark:bg-[#181C25] text-slate-900 dark:text-[#F5F5F5] focus:ring-2 focus:ring-[#F97316] outline-none cursor-pointer"
-        >
-          <option value="ALL">Période : Toute</option>
-          <option value="7D">7 derniers jours</option>
-          <option value="30D">30 derniers jours</option>
-          <option value="MONTH">Ce mois-ci</option>
-          <option value="YEAR">Cette année</option>
-        </select>
-
-        {/* 2. Pair / Symbol */}
-        <select
-          value={selectedSymbol}
-          onChange={(e) => setSelectedSymbol(e.target.value)}
-          className="px-3 py-1.5 text-xs font-medium rounded-xl border border-slate-200 dark:border-[#292E38] bg-slate-50 dark:bg-[#181C25] text-slate-900 dark:text-[#F5F5F5] focus:ring-2 focus:ring-[#F97316] outline-none cursor-pointer"
-        >
-          <option value="ALL">Toutes les paires ({availableSymbols.length})</option>
-          {availableSymbols.map((sym) => (
-            <option key={sym} value={sym}>
-              {sym}
-            </option>
-          ))}
-        </select>
-
-        {/* 3. Setup */}
-        <select
-          value={selectedSetup}
-          onChange={(e) => setSelectedSetup(e.target.value)}
-          className="px-3 py-1.5 text-xs font-medium rounded-xl border border-slate-200 dark:border-[#292E38] bg-slate-50 dark:bg-[#181C25] text-slate-900 dark:text-[#F5F5F5] focus:ring-2 focus:ring-[#F97316] outline-none cursor-pointer"
-        >
-          <option value="ALL">Tous les setups ({availableSetupsList.length})</option>
-          {availableSetupsList.map((st) => (
-            <option key={st} value={st}>
-              {st}
-            </option>
-          ))}
-        </select>
-
-        {/* 4. Session */}
-        <select
-          value={selectedSession}
-          onChange={(e) => setSelectedSession(e.target.value)}
-          className="px-3 py-1.5 text-xs font-medium rounded-xl border border-slate-200 dark:border-[#292E38] bg-slate-50 dark:bg-[#181C25] text-slate-900 dark:text-[#F5F5F5] focus:ring-2 focus:ring-[#F97316] outline-none cursor-pointer"
-        >
-          <option value="ALL">Toutes les sessions</option>
-          <option value="LONDON">Londres (London)</option>
-          <option value="NEW_YORK">New York</option>
-          <option value="TOKYO">Tokyo / Asie</option>
-          <option value="SYDNEY">Sydney</option>
-        </select>
-
-        {/* 5. Direction */}
-        <select
-          value={selectedDirection}
-          onChange={(e) => setSelectedDirection(e.target.value)}
-          className="px-3 py-1.5 text-xs font-medium rounded-xl border border-slate-200 dark:border-[#292E38] bg-slate-50 dark:bg-[#181C25] text-slate-900 dark:text-[#F5F5F5] focus:ring-2 focus:ring-[#F97316] outline-none cursor-pointer"
-        >
-          <option value="ALL">Toutes directions (BUY &amp; SELL)</option>
-          <option value="BUY">Achats uniquement (BUY)</option>
-          <option value="SELL">Ventes uniquement (SELL)</option>
-        </select>
-
-        {/* 6. Result (WIN / LOSS / BE) */}
-        <select
-          value={selectedResult}
-          onChange={(e) => setSelectedResult(e.target.value)}
-          className="px-3 py-1.5 text-xs font-medium rounded-xl border border-slate-200 dark:border-[#292E38] bg-slate-50 dark:bg-[#181C25] text-slate-900 dark:text-[#F5F5F5] focus:ring-2 focus:ring-[#F97316] outline-none cursor-pointer"
-        >
-          <option value="ALL">Tous résultats (Gains, Pertes, BE)</option>
-          <option value="WIN">Gagnants uniquement</option>
-          <option value="LOSS">Perdants uniquement</option>
-          <option value="BREAKEVEN">Breakeven uniquement</option>
-        </select>
-
-        {(selectedPeriod !== 'ALL' ||
-          selectedSession !== 'ALL' ||
-          selectedDirection !== 'ALL' ||
-          selectedSymbol !== 'ALL' ||
-          selectedSetup !== 'ALL' ||
-          selectedResult !== 'ALL') && (
-          <button
-            onClick={() => {
-              setSelectedPeriod('ALL');
-              setSelectedSession('ALL');
-              setSelectedDirection('ALL');
-              setSelectedSymbol('ALL');
-              setSelectedSetup('ALL');
-              setSelectedResult('ALL');
-            }}
-            className="text-xs text-[#F97316] hover:text-[#EA580C] dark:hover:text-[#FDBA74] hover:underline ml-auto font-semibold cursor-pointer"
-          >
-            Réinitialiser les filtres
-          </button>
-        )}
       </div>
 
       {/* 3. SAMPLE SIZE WARNING & STATISTICAL METHODOLOGY BANNER */}
       <div className="p-4 rounded-2xl bg-slate-50 dark:bg-[#181C25] border border-slate-200 dark:border-[#292E38] flex items-start gap-3">
-        <Info className="w-4 h-4 text-[#F97316] shrink-0 mt-0.5" />
+        <Info className="w-4 h-4 text-[var(--edge-accent)] shrink-0 mt-0.5" />
         <div className="text-xs text-slate-600 dark:text-[#9299A8] leading-relaxed">
           <strong className="text-slate-900 dark:text-[#F5F5F5] font-semibold">Méthodologie Statistique &amp; Edge Score : </strong>
           L&apos;Edge Score (sur 100) est calculé selon 4 piliers mathématiques stricts : <strong>Espérance R</strong> (30 pts), <strong>Profit Factor</strong> (25 pts), <strong>Efficience Win Rate / RR</strong> (25 pts) et <strong>Robustesse de l&apos;échantillon</strong> (20 pts). Un échantillon inférieur à 5 trades est pénalisé pour éviter tout faux positif.
@@ -390,7 +316,7 @@ export const MyEdgeView: React.FC<MyEdgeViewProps> = ({
           onClick={() => setActiveTab('verdict')}
           className={`px-4 py-2 rounded-2xl text-xs font-bold transition cursor-pointer flex items-center gap-1.5 ${
             activeTab === 'verdict'
-              ? 'bg-slate-100 dark:bg-[#181C25] text-[#F97316] border border-[#F97316]/40 shadow-xs'
+              ? 'bg-slate-100 dark:bg-[#181C25] text-[var(--edge-accent)] border border-[var(--edge-accent-border)] shadow-xs'
               : 'text-slate-500 dark:text-[#9299A8] hover:text-slate-900 dark:hover:text-[#F5F5F5]'
           }`}
         >
@@ -402,7 +328,7 @@ export const MyEdgeView: React.FC<MyEdgeViewProps> = ({
           onClick={() => setActiveTab('combos')}
           className={`px-4 py-2 rounded-2xl text-xs font-bold transition cursor-pointer flex items-center gap-1.5 ${
             activeTab === 'combos'
-              ? 'bg-slate-100 dark:bg-[#181C25] text-[#F97316] border border-[#F97316]/40 shadow-xs'
+              ? 'bg-slate-100 dark:bg-[#181C25] text-[var(--edge-accent)] border border-[var(--edge-accent-border)] shadow-xs'
               : 'text-slate-500 dark:text-[#9299A8] hover:text-slate-900 dark:hover:text-[#F5F5F5]'
           }`}
         >
@@ -414,7 +340,7 @@ export const MyEdgeView: React.FC<MyEdgeViewProps> = ({
           onClick={() => setActiveTab('setups')}
           className={`px-4 py-2 rounded-2xl text-xs font-bold transition cursor-pointer flex items-center gap-1.5 ${
             activeTab === 'setups'
-              ? 'bg-slate-100 dark:bg-[#181C25] text-[#F97316] border border-[#F97316]/40 shadow-xs'
+              ? 'bg-slate-100 dark:bg-[#181C25] text-[var(--edge-accent)] border border-[var(--edge-accent-border)] shadow-xs'
               : 'text-slate-500 dark:text-[#9299A8] hover:text-slate-900 dark:hover:text-[#F5F5F5]'
           }`}
         >
@@ -426,7 +352,7 @@ export const MyEdgeView: React.FC<MyEdgeViewProps> = ({
           onClick={() => setActiveTab('pairs')}
           className={`px-4 py-2 rounded-2xl text-xs font-bold transition cursor-pointer flex items-center gap-1.5 ${
             activeTab === 'pairs'
-              ? 'bg-slate-100 dark:bg-[#181C25] text-[#F97316] border border-[#F97316]/40 shadow-xs'
+              ? 'bg-slate-100 dark:bg-[#181C25] text-[var(--edge-accent)] border border-[var(--edge-accent-border)] shadow-xs'
               : 'text-slate-500 dark:text-[#9299A8] hover:text-slate-900 dark:hover:text-[#F5F5F5]'
           }`}
         >
@@ -438,7 +364,7 @@ export const MyEdgeView: React.FC<MyEdgeViewProps> = ({
           onClick={() => setActiveTab('sessions')}
           className={`px-4 py-2 rounded-2xl text-xs font-bold transition cursor-pointer flex items-center gap-1.5 ${
             activeTab === 'sessions'
-              ? 'bg-slate-100 dark:bg-[#181C25] text-[#F97316] border border-[#F97316]/40 shadow-xs'
+              ? 'bg-slate-100 dark:bg-[#181C25] text-[var(--edge-accent)] border border-[var(--edge-accent-border)] shadow-xs'
               : 'text-slate-500 dark:text-[#9299A8] hover:text-slate-900 dark:hover:text-[#F5F5F5]'
           }`}
         >
@@ -450,7 +376,7 @@ export const MyEdgeView: React.FC<MyEdgeViewProps> = ({
           onClick={() => setActiveTab('directions')}
           className={`px-4 py-2 rounded-2xl text-xs font-bold transition cursor-pointer flex items-center gap-1.5 ${
             activeTab === 'directions'
-              ? 'bg-slate-100 dark:bg-[#181C25] text-[#F97316] border border-[#F97316]/40 shadow-xs'
+              ? 'bg-slate-100 dark:bg-[#181C25] text-[var(--edge-accent)] border border-[var(--edge-accent-border)] shadow-xs'
               : 'text-slate-500 dark:text-[#9299A8] hover:text-slate-900 dark:hover:text-[#F5F5F5]'
           }`}
         >
@@ -494,11 +420,11 @@ export const MyEdgeView: React.FC<MyEdgeViewProps> = ({
                 <div className="mt-4 pt-3 border-t border-slate-100 dark:border-[#292E38] space-y-1 text-xs">
                   <div className="flex justify-between">
                     <span className="text-slate-500 dark:text-[#9299A8]">Win Rate :</span>
-                    <span className="font-bold text-[#F97316]">{verdict.bestSetup.winRate}%</span>
+                    <span className="font-bold text-[var(--edge-accent)]">{verdict.bestSetup.winRate}%</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-slate-500 dark:text-[#9299A8]">P&amp;L Net :</span>
-                    <span className="font-bold text-[#EA580C] dark:text-[#FDBA74]">
+                    <span className="font-bold text-[var(--edge-accent-hover)] dark:text-[#FDBA74]">
                       +{formatCurrency(verdict.bestSetup.totalNetPnL, currency)}
                     </span>
                   </div>
@@ -518,7 +444,7 @@ export const MyEdgeView: React.FC<MyEdgeViewProps> = ({
                 <div className="flex items-center justify-between text-xs mb-1.5">
                   <span className="text-slate-500 dark:text-[#9299A8] font-medium">Meilleure Paire</span>
                   {verdict.bestPair && (
-                    <span className="px-2 py-0.5 rounded-lg text-[10px] font-bold bg-slate-100 dark:bg-[#181C25] text-[#F97316] border border-slate-200 dark:border-[#292E38]">
+                    <span className="px-2 py-0.5 rounded-lg text-[10px] font-bold bg-slate-100 dark:bg-[#181C25] text-[var(--edge-accent)] border border-slate-200 dark:border-[#292E38]">
                       n = {verdict.bestPair.sampleSize}
                     </span>
                   )}
@@ -532,11 +458,11 @@ export const MyEdgeView: React.FC<MyEdgeViewProps> = ({
                 <div className="mt-4 pt-3 border-t border-slate-100 dark:border-[#292E38] space-y-1 text-xs">
                   <div className="flex justify-between">
                     <span className="text-slate-500 dark:text-[#9299A8]">Win Rate :</span>
-                    <span className="font-bold text-[#F97316]">{verdict.bestPair.winRate}%</span>
+                    <span className="font-bold text-[var(--edge-accent)]">{verdict.bestPair.winRate}%</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-slate-500 dark:text-[#9299A8]">P&amp;L Net :</span>
-                    <span className="font-bold text-[#EA580C] dark:text-[#FDBA74]">
+                    <span className="font-bold text-[var(--edge-accent-hover)] dark:text-[#FDBA74]">
                       +{formatCurrency(verdict.bestPair.totalNetPnL, currency)}
                     </span>
                   </div>
@@ -556,7 +482,7 @@ export const MyEdgeView: React.FC<MyEdgeViewProps> = ({
                 <div className="flex items-center justify-between text-xs mb-1.5">
                   <span className="text-slate-500 dark:text-[#9299A8] font-medium">Meilleure Session</span>
                   {verdict.bestSession && (
-                    <span className="px-2 py-0.5 rounded-lg text-[10px] font-bold bg-slate-100 dark:bg-[#181C25] text-[#EA580C] dark:text-[#FDBA74] border border-slate-200 dark:border-[#292E38]">
+                    <span className="px-2 py-0.5 rounded-lg text-[10px] font-bold bg-slate-100 dark:bg-[#181C25] text-[var(--edge-accent-hover)] dark:text-[#FDBA74] border border-slate-200 dark:border-[#292E38]">
                       n = {verdict.bestSession.sampleSize}
                     </span>
                   )}
@@ -570,11 +496,11 @@ export const MyEdgeView: React.FC<MyEdgeViewProps> = ({
                 <div className="mt-4 pt-3 border-t border-slate-100 dark:border-[#292E38] space-y-1 text-xs">
                   <div className="flex justify-between">
                     <span className="text-slate-500 dark:text-[#9299A8]">Win Rate :</span>
-                    <span className="font-bold text-[#F97316]">{verdict.bestSession.winRate}%</span>
+                    <span className="font-bold text-[var(--edge-accent)]">{verdict.bestSession.winRate}%</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-slate-500 dark:text-[#9299A8]">P&amp;L Net :</span>
-                    <span className="font-bold text-[#EA580C] dark:text-[#FDBA74]">
+                    <span className="font-bold text-[var(--edge-accent-hover)] dark:text-[#FDBA74]">
                       +{formatCurrency(verdict.bestSession.totalNetPnL, currency)}
                     </span>
                   </div>
@@ -616,7 +542,7 @@ export const MyEdgeView: React.FC<MyEdgeViewProps> = ({
                 </div>
                 <div className="flex justify-between">
                   <span className="text-slate-500 dark:text-[#9299A8]">P&amp;L Diff :</span>
-                  <span className="font-bold text-[#EA580C] dark:text-[#FDBA74]">
+                  <span className="font-bold text-[var(--edge-accent-hover)] dark:text-[#FDBA74]">
                     {formatCurrency(
                       (verdict.buyPerformance?.totalNetPnL || 0) -
                         (verdict.sellPerformance?.totalNetPnL || 0),
@@ -631,7 +557,7 @@ export const MyEdgeView: React.FC<MyEdgeViewProps> = ({
           {/* Recurring Conditions of Performance Section */}
           <div className="p-6 rounded-3xl bg-white dark:bg-[#12151D] border border-slate-200 dark:border-[#292E38] shadow-sm dark:shadow-md space-y-4">
             <h2 className="text-base font-bold text-slate-900 dark:text-[#F5F5F5] tracking-tight flex items-center gap-2">
-              <Sparkles className="w-4 h-4 text-[#F97316]" />
+              <Sparkles className="w-4 h-4 text-[var(--edge-accent)]" />
               <span>Conditions Récurrentes de Performance</span>
             </h2>
 
@@ -641,7 +567,7 @@ export const MyEdgeView: React.FC<MyEdgeViewProps> = ({
                   key={idx}
                   className="p-4 rounded-2xl bg-slate-50 dark:bg-[#181C25] border border-slate-200 dark:border-[#292E38] flex items-start gap-3"
                 >
-                  <CheckCircle2 className="w-4 h-4 text-[#F97316] shrink-0 mt-0.5" />
+                  <CheckCircle2 className="w-4 h-4 text-[var(--edge-accent)] shrink-0 mt-0.5" />
                   <p className="text-xs text-slate-900 dark:text-[#F5F5F5] font-medium leading-relaxed">{cond}</p>
                 </div>
               ))}
@@ -661,7 +587,7 @@ export const MyEdgeView: React.FC<MyEdgeViewProps> = ({
               </div>
               <button
                 onClick={() => setActiveTab('combos')}
-                className="text-xs font-bold text-[#F97316] hover:text-[#EA580C] dark:hover:text-[#FDBA74] hover:underline cursor-pointer"
+                className="text-xs font-bold text-[var(--edge-accent)] hover:text-[var(--edge-accent-hover)] dark:hover:text-[#FDBA74] hover:underline cursor-pointer"
               >
                 Voir toutes les combinaisons →
               </button>
@@ -686,19 +612,19 @@ export const MyEdgeView: React.FC<MyEdgeViewProps> = ({
                     <tr key={idx} className="hover:bg-slate-50 dark:hover:bg-[#181C25]/60 transition">
                       <td className="py-3 font-semibold text-slate-900 dark:text-[#F5F5F5]">
                         <div className="flex items-center gap-2">
-                          <span className="px-2 py-0.5 rounded-lg bg-slate-100 dark:bg-[#181C25] text-[#F97316] border border-slate-200 dark:border-[#292E38] font-bold">
+                          <span className="px-2 py-0.5 rounded-lg bg-slate-100 dark:bg-[#181C25] text-[var(--edge-accent)] border border-slate-200 dark:border-[#292E38] font-bold">
                             {combo.pair}
                           </span>
                           <span className="text-slate-400 dark:text-[#9299A8]">+</span>
                           <span className="text-slate-900 dark:text-[#F5F5F5]">{combo.session}</span>
                           <span className="text-slate-400 dark:text-[#9299A8]">+</span>
-                          <span className="text-[#EA580C] dark:text-[#FDBA74]">{combo.setup}</span>
+                          <span className="text-[var(--edge-accent-hover)] dark:text-[#FDBA74]">{combo.setup}</span>
                         </div>
                       </td>
                       <td className="py-3 text-center font-bold tabular-nums text-slate-900 dark:text-[#F5F5F5]">
                         {combo.sampleSize} trades
                       </td>
-                      <td className="py-3 text-center font-bold tabular-nums text-[#F97316]">
+                      <td className="py-3 text-center font-bold tabular-nums text-[var(--edge-accent)]">
                         {combo.winRate}%
                       </td>
                       <td
@@ -755,7 +681,7 @@ export const MyEdgeView: React.FC<MyEdgeViewProps> = ({
                                 (t.setup?.trim() || t.setupId || 'Général') === combo.setup
                             )
                           }
-                          className="text-xs text-[#F97316] hover:text-[#EA580C] dark:hover:text-[#FDBA74] hover:underline font-bold cursor-pointer"
+                          className="text-xs text-[var(--edge-accent)] hover:text-[var(--edge-accent-hover)] dark:hover:text-[#FDBA74] hover:underline font-bold cursor-pointer"
                         >
                           Inspecter
                         </button>
@@ -802,13 +728,13 @@ export const MyEdgeView: React.FC<MyEdgeViewProps> = ({
               <tbody className="divide-y divide-slate-100 dark:divide-[#292E38]/60">
                 {comboStats.map((combo, idx) => (
                   <tr key={idx} className="hover:bg-slate-50 dark:hover:bg-[#181C25]/60 transition">
-                    <td className="py-3 font-bold text-[#F97316]">{combo.pair}</td>
+                    <td className="py-3 font-bold text-[var(--edge-accent)]">{combo.pair}</td>
                     <td className="py-3 font-medium text-slate-900 dark:text-[#F5F5F5]">{combo.session}</td>
-                    <td className="py-3 font-semibold text-[#EA580C] dark:text-[#FDBA74]">{combo.setup}</td>
+                    <td className="py-3 font-semibold text-[var(--edge-accent-hover)] dark:text-[#FDBA74]">{combo.setup}</td>
                     <td className="py-3 text-center font-bold tabular-nums text-slate-900 dark:text-[#F5F5F5]">
                       {combo.sampleSize}
                     </td>
-                    <td className="py-3 text-center font-bold tabular-nums text-[#F97316]">
+                    <td className="py-3 text-center font-bold tabular-nums text-[var(--edge-accent)]">
                       {combo.winRate}%
                     </td>
                     <td
@@ -865,7 +791,7 @@ export const MyEdgeView: React.FC<MyEdgeViewProps> = ({
                               (t.setup?.trim() || t.setupId || 'Général') === combo.setup
                           )
                         }
-                        className="text-xs text-[#F97316] hover:text-[#EA580C] dark:hover:text-[#FDBA74] hover:underline font-bold cursor-pointer"
+                        className="text-xs text-[var(--edge-accent)] hover:text-[var(--edge-accent-hover)] dark:hover:text-[#FDBA74] hover:underline font-bold cursor-pointer"
                       >
                         Détails
                       </button>
@@ -924,7 +850,7 @@ export const MyEdgeView: React.FC<MyEdgeViewProps> = ({
               <div className="grid grid-cols-3 gap-2 py-3 border-y border-slate-100 dark:border-[#292E38] text-center">
                 <div>
                   <span className="text-[10px] text-slate-500 dark:text-[#9299A8] block font-normal">Win Rate</span>
-                  <span className="text-sm font-bold text-[#F97316]">{st.winRate}%</span>
+                  <span className="text-sm font-bold text-[var(--edge-accent)]">{st.winRate}%</span>
                 </div>
                 <div>
                   <span className="text-[10px] text-slate-500 dark:text-[#9299A8] block font-normal">Profit Factor</span>
@@ -934,7 +860,7 @@ export const MyEdgeView: React.FC<MyEdgeViewProps> = ({
                 </div>
                 <div>
                   <span className="text-[10px] text-slate-500 dark:text-[#9299A8] block font-normal">Expectancy</span>
-                  <span className="text-sm font-bold text-[#EA580C] dark:text-[#FDBA74]">
+                  <span className="text-sm font-bold text-[var(--edge-accent-hover)] dark:text-[#FDBA74]">
                     {st.rExpectancy !== null
                       ? `${st.rExpectancy > 0 ? '+' : ''}${st.rExpectancy}R`
                       : formatCurrency(st.monetaryExpectancy, currency)}
@@ -976,7 +902,7 @@ export const MyEdgeView: React.FC<MyEdgeViewProps> = ({
                       breakdown: st.edgeScore,
                     })
                   }
-                  className="text-[11px] text-slate-500 dark:text-[#9299A8] hover:text-[#F97316] font-medium cursor-pointer"
+                  className="text-[11px] text-slate-500 dark:text-[#9299A8] hover:text-[var(--edge-accent)] font-medium cursor-pointer"
                 >
                   Pourquoi ce score ? →
                 </button>
@@ -987,7 +913,7 @@ export const MyEdgeView: React.FC<MyEdgeViewProps> = ({
                       return s === st.key || s === st.label;
                     })
                   }
-                  className="text-xs font-bold text-[#F97316] hover:text-[#EA580C] dark:hover:text-[#FDBA74] hover:underline cursor-pointer"
+                  className="text-xs font-bold text-[var(--edge-accent)] hover:text-[var(--edge-accent-hover)] dark:hover:text-[#FDBA74] hover:underline cursor-pointer"
                 >
                   Voir trades
                 </button>
@@ -1024,14 +950,14 @@ export const MyEdgeView: React.FC<MyEdgeViewProps> = ({
                 {pairStats.map((p) => (
                   <tr key={p.key} className="hover:bg-slate-50 dark:hover:bg-[#181C25]/60 transition">
                     <td className="py-3 font-bold text-slate-900 dark:text-[#F5F5F5] flex items-center gap-2">
-                      <span className="px-2 py-0.5 rounded-lg bg-slate-100 dark:bg-[#181C25] text-[#F97316] border border-slate-200 dark:border-[#292E38] font-bold">
+                      <span className="px-2 py-0.5 rounded-lg bg-slate-100 dark:bg-[#181C25] text-[var(--edge-accent)] border border-slate-200 dark:border-[#292E38] font-bold">
                         {p.label}
                       </span>
                     </td>
                     <td className="py-3 text-center font-bold tabular-nums text-slate-900 dark:text-[#F5F5F5]">
                       {p.sampleSize}
                     </td>
-                    <td className="py-3 text-center font-bold tabular-nums text-[#F97316]">
+                    <td className="py-3 text-center font-bold tabular-nums text-[var(--edge-accent)]">
                       {p.winRate}%
                     </td>
                     <td
@@ -1065,7 +991,7 @@ export const MyEdgeView: React.FC<MyEdgeViewProps> = ({
                             (t) => (t.symbol || '').toUpperCase().trim() === p.key
                           )
                         }
-                        className="text-xs text-[#F97316] hover:text-[#EA580C] dark:hover:text-[#FDBA74] hover:underline font-bold cursor-pointer"
+                        className="text-xs text-[var(--edge-accent)] hover:text-[var(--edge-accent-hover)] dark:hover:text-[#FDBA74] hover:underline font-bold cursor-pointer"
                       >
                         Inspecter
                       </button>
@@ -1094,7 +1020,7 @@ export const MyEdgeView: React.FC<MyEdgeViewProps> = ({
                 <div>
                   <div className="flex items-center justify-between text-xs mb-1.5">
                     <span className="text-slate-500 dark:text-[#9299A8] font-medium">Session</span>
-                    <span className="px-2 py-0.5 rounded-lg text-[10px] font-bold bg-white dark:bg-[#12151D] text-[#EA580C] dark:text-[#FDBA74] border border-slate-200 dark:border-[#292E38]">
+                    <span className="px-2 py-0.5 rounded-lg text-[10px] font-bold bg-white dark:bg-[#12151D] text-[var(--edge-accent-hover)] dark:text-[#FDBA74] border border-slate-200 dark:border-[#292E38]">
                       n = {s.sampleSize}
                     </span>
                   </div>
@@ -1104,7 +1030,7 @@ export const MyEdgeView: React.FC<MyEdgeViewProps> = ({
                 <div className="space-y-1.5 text-xs">
                   <div className="flex justify-between">
                     <span className="text-slate-500 dark:text-[#9299A8]">Win Rate :</span>
-                    <span className="font-bold text-[#F97316]">{s.winRate}%</span>
+                    <span className="font-bold text-[var(--edge-accent)]">{s.winRate}%</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-slate-500 dark:text-[#9299A8]">P&amp;L Net :</span>
@@ -1146,7 +1072,7 @@ export const MyEdgeView: React.FC<MyEdgeViewProps> = ({
                         return sess === s.key;
                       })
                     }
-                    className="text-xs font-bold text-[#F97316] hover:text-[#EA580C] dark:hover:text-[#FDBA74] hover:underline cursor-pointer"
+                    className="text-xs font-bold text-[var(--edge-accent)] hover:text-[var(--edge-accent-hover)] dark:hover:text-[#FDBA74] hover:underline cursor-pointer"
                   >
                     Voir trades
                   </button>
@@ -1186,7 +1112,7 @@ export const MyEdgeView: React.FC<MyEdgeViewProps> = ({
               <div className="grid grid-cols-3 gap-2 py-4 border-y border-slate-100 dark:border-[#292E38] text-center">
                 <div>
                   <span className="text-[10px] text-slate-500 dark:text-[#9299A8] block font-normal">Win Rate</span>
-                  <span className="text-lg font-bold text-[#F97316]">{d.winRate}%</span>
+                  <span className="text-lg font-bold text-[var(--edge-accent)]">{d.winRate}%</span>
                 </div>
                 <div>
                   <span className="text-[10px] text-slate-500 dark:text-[#9299A8] block font-normal">Profit Factor</span>
@@ -1236,7 +1162,7 @@ export const MyEdgeView: React.FC<MyEdgeViewProps> = ({
                       (t) => (t.direction === 'SELL' ? 'SELL' : 'BUY') === d.key
                     )
                   }
-                  className="text-xs font-bold text-[#F97316] hover:text-[#EA580C] dark:hover:text-[#FDBA74] hover:underline cursor-pointer"
+                  className="text-xs font-bold text-[var(--edge-accent)] hover:text-[var(--edge-accent-hover)] dark:hover:text-[#FDBA74] hover:underline cursor-pointer"
                 >
                   Inspecter les trades {d.key}
                 </button>
@@ -1252,7 +1178,7 @@ export const MyEdgeView: React.FC<MyEdgeViewProps> = ({
           <div className="bg-white dark:bg-[#12151D] border border-slate-200 dark:border-[#292E38] rounded-3xl max-w-2xl w-full p-6 space-y-5 shadow-2xl">
             <div className="flex items-center justify-between border-b border-slate-200 dark:border-[#292E38] pb-4">
               <div className="flex items-center gap-3">
-                <div className="p-2.5 rounded-2xl bg-[#F97316]/10 text-[#F97316] border border-[#F97316]/20">
+                <div className="p-2.5 rounded-2xl bg-[var(--edge-accent)]/10 text-[var(--edge-accent)] border border-[#F97316]/20">
                   <Calculator className="w-5 h-5" />
                 </div>
                 <div>
@@ -1279,7 +1205,7 @@ export const MyEdgeView: React.FC<MyEdgeViewProps> = ({
                 <div className="p-4 rounded-2xl bg-slate-50 dark:bg-[#181C25] border border-slate-200 dark:border-[#292E38] space-y-1">
                   <div className="flex justify-between items-center">
                     <span className="font-bold text-slate-900 dark:text-[#F5F5F5]">1. Espérance Mathématique (Expectancy)</span>
-                    <span className="px-2 py-0.5 rounded-lg bg-[#F97316]/10 text-[#EA580C] dark:text-[#FDBA74] border border-[#F97316]/30 font-bold">30 pts</span>
+                    <span className="px-2 py-0.5 rounded-lg bg-[var(--edge-accent)]/10 text-[var(--edge-accent-hover)] dark:text-[#FDBA74] border border-[var(--edge-accent-border)] font-bold">30 pts</span>
                   </div>
                   <p className="text-slate-500 dark:text-[#9299A8] text-[11px]">
                     Mesure le gain net moyen par unité de risque (R) ou en devise sur le long terme (E &gt; 0.5R pour le score maximal).
@@ -1289,7 +1215,7 @@ export const MyEdgeView: React.FC<MyEdgeViewProps> = ({
                 <div className="p-4 rounded-2xl bg-slate-50 dark:bg-[#181C25] border border-slate-200 dark:border-[#292E38] space-y-1">
                   <div className="flex justify-between items-center">
                     <span className="font-bold text-slate-900 dark:text-[#F5F5F5]">2. Facteur de Profit (Profit Factor)</span>
-                    <span className="px-2 py-0.5 rounded-lg bg-[#F97316]/10 text-[#EA580C] dark:text-[#FDBA74] border border-[#F97316]/30 font-bold">25 pts</span>
+                    <span className="px-2 py-0.5 rounded-lg bg-[var(--edge-accent)]/10 text-[var(--edge-accent-hover)] dark:text-[#FDBA74] border border-[var(--edge-accent-border)] font-bold">25 pts</span>
                   </div>
                   <p className="text-slate-500 dark:text-[#9299A8] text-[11px]">
                     Ratio exact Gains bruts / Pertes brutes. Score maximal si PF &ge; 2.50, nul si PF &lt; 1.0.
@@ -1299,7 +1225,7 @@ export const MyEdgeView: React.FC<MyEdgeViewProps> = ({
                 <div className="p-4 rounded-2xl bg-slate-50 dark:bg-[#181C25] border border-slate-200 dark:border-[#292E38] space-y-1">
                   <div className="flex justify-between items-center">
                     <span className="font-bold text-slate-900 dark:text-[#F5F5F5]">3. Efficience Win Rate × R/R</span>
-                    <span className="px-2 py-0.5 rounded-lg bg-[#F97316]/10 text-[#EA580C] dark:text-[#FDBA74] border border-[#F97316]/30 font-bold">25 pts</span>
+                    <span className="px-2 py-0.5 rounded-lg bg-[var(--edge-accent)]/10 text-[var(--edge-accent-hover)] dark:text-[#FDBA74] border border-[var(--edge-accent-border)] font-bold">25 pts</span>
                   </div>
                   <p className="text-slate-500 dark:text-[#9299A8] text-[11px]">
                     Compare le Win Rate effectif au seuil neutre de rentabilité (100 / (1 + RR)).
@@ -1309,7 +1235,7 @@ export const MyEdgeView: React.FC<MyEdgeViewProps> = ({
                 <div className="p-4 rounded-2xl bg-slate-50 dark:bg-[#181C25] border border-slate-200 dark:border-[#292E38] space-y-1">
                   <div className="flex justify-between items-center">
                     <span className="font-bold text-slate-900 dark:text-[#F5F5F5]">4. Robustesse Statistique (Sample Size)</span>
-                    <span className="px-2 py-0.5 rounded-lg bg-[#F97316]/10 text-[#EA580C] dark:text-[#FDBA74] border border-[#F97316]/30 font-bold">20 pts</span>
+                    <span className="px-2 py-0.5 rounded-lg bg-[var(--edge-accent)]/10 text-[var(--edge-accent-hover)] dark:text-[#FDBA74] border border-[var(--edge-accent-border)] font-bold">20 pts</span>
                   </div>
                   <p className="text-slate-500 dark:text-[#9299A8] text-[11px]">
                     Pénalise les séries courtes (n &lt; 5 trades = max 3 pts) pour éviter de confondre chance ponctuelle et réel avantage.
@@ -1321,7 +1247,7 @@ export const MyEdgeView: React.FC<MyEdgeViewProps> = ({
             <div className="pt-4 border-t border-slate-200 dark:border-[#292E38] flex justify-end">
               <button
                 onClick={() => setShowFormulaModal(false)}
-                className="px-5 py-2.5 bg-[#F97316] hover:bg-[#EA580C] text-white rounded-2xl text-xs font-bold transition shadow-md cursor-pointer"
+                className="px-5 py-2.5 bg-[var(--edge-accent)] hover:bg-[var(--edge-accent-hover)] text-white rounded-2xl text-xs font-bold transition shadow-md cursor-pointer"
               >
                 Compris
               </button>
@@ -1356,13 +1282,13 @@ export const MyEdgeView: React.FC<MyEdgeViewProps> = ({
               <div className="p-4 rounded-2xl bg-slate-50 dark:bg-[#181C25] border border-slate-200 dark:border-[#292E38] space-y-2">
                 <div className="flex justify-between items-center text-xs">
                   <span className="text-slate-900 dark:text-[#F5F5F5] font-semibold">1. Espérance Mathématique (Expectancy) :</span>
-                  <span className="font-bold text-[#F97316]">
+                  <span className="font-bold text-[var(--edge-accent)]">
                     {selectedScoreBreakdown.breakdown.expectancyPoints} / 30 pts
                   </span>
                 </div>
                 <div className="w-full bg-slate-200 dark:bg-[#12151D] h-1.5 rounded-full overflow-hidden border border-slate-300 dark:border-[#292E38]">
                   <div
-                    className="bg-[#F97316] h-full rounded-full"
+                    className="bg-[var(--edge-accent)] h-full rounded-full"
                     style={{ width: `${(selectedScoreBreakdown.breakdown.expectancyPoints / 30) * 100}%` }}
                   />
                 </div>
@@ -1371,13 +1297,13 @@ export const MyEdgeView: React.FC<MyEdgeViewProps> = ({
               <div className="p-4 rounded-2xl bg-slate-50 dark:bg-[#181C25] border border-slate-200 dark:border-[#292E38] space-y-2">
                 <div className="flex justify-between items-center text-xs">
                   <span className="text-slate-900 dark:text-[#F5F5F5] font-semibold">2. Facteur de Profit (Profit Factor) :</span>
-                  <span className="font-bold text-[#EA580C] dark:text-[#FDBA74]">
+                  <span className="font-bold text-[var(--edge-accent-hover)] dark:text-[#FDBA74]">
                     {selectedScoreBreakdown.breakdown.profitFactorPoints} / 25 pts
                   </span>
                 </div>
                 <div className="w-full bg-slate-200 dark:bg-[#12151D] h-1.5 rounded-full overflow-hidden border border-slate-300 dark:border-[#292E38]">
                   <div
-                    className="bg-[#EA580C] dark:bg-[#FDBA74] h-full rounded-full"
+                    className="bg-[var(--edge-accent-hover)] dark:bg-[#FDBA74] h-full rounded-full"
                     style={{ width: `${(selectedScoreBreakdown.breakdown.profitFactorPoints / 25) * 100}%` }}
                   />
                 </div>
@@ -1420,7 +1346,7 @@ export const MyEdgeView: React.FC<MyEdgeViewProps> = ({
               <ul className="space-y-1 text-xs text-slate-800 dark:text-[#F5F5F5]">
                 {selectedScoreBreakdown.breakdown.explanations.map((exp, idx) => (
                   <li key={idx} className="flex items-start gap-2">
-                    <span className="text-[#F97316] font-bold">•</span>
+                    <span className="text-[var(--edge-accent)] font-bold">•</span>
                     <span>{exp}</span>
                   </li>
                 ))}
@@ -1515,7 +1441,7 @@ export const MyEdgeView: React.FC<MyEdgeViewProps> = ({
                             if (onSelectTrade) onSelectTrade(t);
                             setActiveTradeDetail(t);
                           }}
-                          className="text-xs text-[#F97316] hover:text-[#EA580C] dark:hover:text-[#FDBA74] hover:underline font-bold cursor-pointer"
+                          className="text-xs text-[var(--edge-accent)] hover:text-[var(--edge-accent-hover)] dark:hover:text-[#FDBA74] hover:underline font-bold cursor-pointer"
                         >
                           Détails
                         </button>
