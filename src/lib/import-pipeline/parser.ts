@@ -12,6 +12,7 @@ export interface ParseResult {
   brokerDetected?: string;
   totalRawRows: number;
   rows: RawParsedRow[];
+  sourceTotalPnl?: number | null;
   metadata?: Record<string, unknown>;
 }
 
