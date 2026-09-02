@@ -33,7 +33,7 @@ function renderText(text: string) {
 }
 
 export const CoachView: React.FC<CoachViewProps> = () => {
-  const { messages, isLoading, sendMessage, clearHistory } = useAICoach();
+  const { messages, isLoading, isReady, sendMessage, clearHistory, dailyCount, dailyLimit } = useAICoach();
   const [input, setInput] = useState('');
   const bottomRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
@@ -44,7 +44,7 @@ export const CoachView: React.FC<CoachViewProps> = () => {
 
   const submit = async () => {
     const value = input.trim();
-    if (!value || isLoading) return;
+    if (!value || isLoading || !isReady) return;
     setInput('');
     await sendMessage(value);
     inputRef.current?.focus();
@@ -73,8 +73,8 @@ export const CoachView: React.FC<CoachViewProps> = () => {
               <p className="text-xs text-[#6B668D] dark:text-[#9299A8] font-medium mt-1">Conversation générale avec votre coach IA. L’accès aux données de trading sera ajouté dans une prochaine étape.</p>
             </div>
           </div>
-          <button type="button" onClick={clearHistory} disabled={isLoading} className="flex items-center justify-center gap-1.5 px-3.5 py-2 text-xs font-bold text-[#6B668D] dark:text-[#9299A8] bg-[#FAF8FF] dark:bg-[#181C25] hover:bg-[#F3EEFF] dark:hover:bg-[#202531] border border-[#ECE7FC] dark:border-[#292E38] rounded-2xl transition disabled:opacity-50 disabled:cursor-not-allowed">
-            <Trash2 className="w-3.5 h-3.5" /> Effacer l’historique
+          <button type="button" onClick={() => void clearHistory()} disabled={isLoading || !isReady} className="flex items-center justify-center gap-1.5 px-3.5 py-2 text-xs font-bold text-[#6B668D] dark:text-[#9299A8] bg-[#FAF8FF] dark:bg-[#181C25] hover:bg-[#F3EEFF] dark:hover:bg-[#202531] border border-[#ECE7FC] dark:border-[#292E38] rounded-2xl transition disabled:opacity-50 disabled:cursor-not-allowed">
+            <Trash2 className="w-3.5 h-3.5" /> Effacer la conversation
           </button>
         </div>
       </div>
@@ -82,7 +82,7 @@ export const CoachView: React.FC<CoachViewProps> = () => {
       <div className="rounded-3xl border border-[#ECE7FC] dark:border-[#292E38] bg-white dark:bg-[#12151D] shadow-sm overflow-hidden flex flex-col h-[min(700px,calc(100vh-250px))] min-h-[560px]">
         <div className="px-5 py-3.5 border-b border-[#ECE7FC] dark:border-[#292E38] bg-[#FAF8FF] dark:bg-[#181C25] flex items-center justify-between shrink-0">
           <div className="flex items-center gap-2"><span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" /><span className="text-xs font-bold text-[#0F0E26] dark:text-[#F5F5F5]">Conversation active</span></div>
-          <span className="hidden sm:block text-[11px] text-[#8E89AF] dark:text-[#9299A8] font-medium">Chat texte • Session uniquement</span>
+          <span className="text-[11px] text-[#8E89AF] dark:text-[#9299A8] font-medium">{dailyCount}/{dailyLimit} messages aujourd’hui</span>
         </div>
 
         <div className="flex-1 overflow-y-auto px-4 sm:px-6 py-6 space-y-5 scroll-smooth">
@@ -119,8 +119,8 @@ export const CoachView: React.FC<CoachViewProps> = () => {
 
           <form onSubmit={(event) => { event.preventDefault(); void submit(); }} className="p-4 sm:p-5">
             <div className="flex items-end gap-2 p-2 rounded-2xl border border-[#DDD5FA] dark:border-[#343946] bg-[#FAF8FF] dark:bg-[#181C25] focus-within:border-[#6D19E8] dark:focus-within:border-[#FF8A00]/70 focus-within:ring-2 focus-within:ring-[#6D19E8]/10 transition">
-              <textarea ref={inputRef} value={input} onChange={(event) => setInput(event.target.value)} onKeyDown={onKeyDown} disabled={isLoading} rows={1} placeholder="Écrivez votre message au coach…" aria-label="Message au Trading Coach" className="flex-1 resize-none max-h-32 min-h-10 px-2 py-2.5 bg-transparent outline-none text-sm text-[#29263D] dark:text-[#F5F5F5] placeholder:text-[#9A95B2] disabled:opacity-50" />
-              <button type="submit" disabled={!input.trim() || isLoading} aria-label="Envoyer le message" className="w-10 h-10 shrink-0 rounded-xl flex items-center justify-center bg-[#6D19E8] hover:bg-[#5D13C9] dark:bg-[#FF8A00] dark:hover:bg-[#E97800] text-white transition disabled:opacity-40 disabled:cursor-not-allowed"><Send className="w-4 h-4" /></button>
+              <textarea ref={inputRef} value={input} onChange={(event) => setInput(event.target.value)} onKeyDown={onKeyDown} disabled={isLoading || !isReady} rows={1} placeholder="Écrivez votre message au coach…" aria-label="Message au Trading Coach" className="flex-1 resize-none max-h-32 min-h-10 px-2 py-2.5 bg-transparent outline-none text-sm text-[#29263D] dark:text-[#F5F5F5] placeholder:text-[#9A95B2] disabled:opacity-50" />
+              <button type="submit" disabled={!input.trim() || isLoading || !isReady} aria-label="Envoyer le message" className="w-10 h-10 shrink-0 rounded-xl flex items-center justify-center bg-[#6D19E8] hover:bg-[#5D13C9] dark:bg-[#FF8A00] dark:hover:bg-[#E97800] text-white transition disabled:opacity-40 disabled:cursor-not-allowed"><Send className="w-4 h-4" /></button>
             </div>
             <p className="mt-2 text-[10px] text-center text-[#9A95B2] dark:text-[#6F7685]">Entrée pour envoyer • Maj + Entrée pour aller à la ligne</p>
           </form>
