@@ -21,6 +21,11 @@ function incrementDailyUsage() { const usage = readDailyUsage(); const next = { 
 
 interface CoachContext { [key: string]: unknown }
 
+function getToolCallId(toolCall: CoachToolCall): string | undefined {
+  const candidate = (toolCall as CoachToolCall & { id?: unknown }).id;
+  return typeof candidate === 'string' ? candidate : undefined;
+}
+
 function parseSseEvents(buffer: string, onEvent: (data: Record<string, unknown>) => void) {
   let remaining = buffer.replace(/\r\n/g, '\n');
   let separatorIndex = remaining.indexOf('\n\n');
@@ -116,7 +121,7 @@ export function useAICoach(context: CoachContext | null = null) {
 
         if (!continuation) {
           let streamedReply = '';
-          let assistantMessageId = `model-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+          const assistantMessageId = `model-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
           const updateAssistant = (text: string) => {
             streamedReply += text;
             const message: ChatMessage = { id: assistantMessageId, role: 'model', text: streamedReply, timestamp: new Date().toISOString() };
@@ -129,19 +134,19 @@ export function useAICoach(context: CoachContext | null = null) {
           setIsUsingTool(false);
           setToolName(null);
           let streamFunctionCall: CoachToolCall | null = null;
-          const streamResult = await readCoachStream(response, updateAssistant, (toolCall) => { streamFunctionCall = toolCall; }, (error) => { streamFunctionCall = null; if (!streamedReply) updateAssistant(`⚠️ **Impossible d'obtenir une réponse du coach.**\n\n${error}`); });
+          const streamResult = await readCoachStream(response, updateAssistant, (toolCall) => { streamFunctionCall = toolCall; }, (error) => { streamFunctionCall = null; updateAssistant(`⚠️ **Impossible d'obtenir une réponse du coach.**\n\n${error}`); });
 
           if (streamFunctionCall) {
             const toolCall = streamFunctionCall;
+            const toolCallId = getToolCallId(toolCall);
             setIsUsingTool(true); setToolName(toolCall.name);
-            // Remove the temporary assistant bubble if Gemini selected a tool.
             setMessages((previous) => previous.filter((item) => item.id !== assistantMessageId));
             try {
               const result = await executeCoachTool(toolCall.name, toolCall.args || {});
-              requestHistory = [...requestHistory, { role: 'model', functionCall: toolCall }, { role: 'user', functionResponse: { id: toolCall.id, name: toolCall.name, response: { result } } }];
+              requestHistory = [...requestHistory, { role: 'model', functionCall: toolCall }, { role: 'user', functionResponse: { id: toolCallId, name: toolCall.name, response: { result } } }];
             } catch (error) {
               const errorText = error instanceof Error ? error.message : 'La consultation locale des données a échoué.';
-              requestHistory = [...requestHistory, { role: 'model', functionCall: toolCall }, { role: 'user', functionResponse: { id: toolCall.id, name: toolCall.name, response: { error: errorText } } }];
+              requestHistory = [...requestHistory, { role: 'model', functionCall: toolCall }, { role: 'user', functionResponse: { id: toolCallId, name: toolCall.name, response: { error: errorText } } }];
             }
             continuation = true;
             continue;
@@ -155,13 +160,14 @@ export function useAICoach(context: CoachContext | null = null) {
         const data = await response.json().catch(() => ({}));
         if (data?.type === 'function_call' && data?.toolCall?.name) {
           const toolCall = data.toolCall as CoachToolCall;
+          const toolCallId = getToolCallId(toolCall);
           setIsUsingTool(true); setToolName(toolCall.name);
           try {
             const result = await executeCoachTool(toolCall.name, toolCall.args || {});
-            requestHistory = [...requestHistory, { role: 'model', functionCall: toolCall }, { role: 'user', functionResponse: { id: toolCall.id, name: toolCall.name, response: { result } } }];
+            requestHistory = [...requestHistory, { role: 'model', functionCall: toolCall }, { role: 'user', functionResponse: { id: toolCallId, name: toolCall.name, response: { result } } }];
           } catch (error) {
             const errorText = error instanceof Error ? error.message : 'La consultation locale des données a échoué.';
-            requestHistory = [...requestHistory, { role: 'model', functionCall: toolCall }, { role: 'user', functionResponse: { id: toolCall.id, name: toolCall.name, response: { error: errorText } } }];
+            requestHistory = [...requestHistory, { role: 'model', functionCall: toolCall }, { role: 'user', functionResponse: { id: toolCallId, name: toolCall.name, response: { error: errorText } } }];
           }
           continue;
         }
