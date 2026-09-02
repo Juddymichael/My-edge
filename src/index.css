@@ -54,3 +54,8 @@ html:not(.dark) #view-analytics .text-slate-500{color:#475569}html:not(.dark) #v
 
 /* Theme switching: freeze visual transitions for one frame to prevent a repaint cascade / lag. */
 html.theme-switching *,html.theme-switching *::before,html.theme-switching *::after{transition:none!important;animation:none!important}
+
+/* My Edge light/dark semantic accent */
+#view-my-edge{--edge-accent:#6D19E8;--edge-accent-hover:#5513B8;--edge-accent-soft:rgba(109,25,232,.08);--edge-accent-border:rgba(109,25,232,.26)}
+html.dark #view-my-edge,body.dark #view-my-edge{--edge-accent:#FF8A00;--edge-accent-hover:#EA580C;--edge-accent-soft:rgba(255,138,0,.10);--edge-accent-border:rgba(255,138,0,.30)}
+.edge-filter-panel{transition:opacity .22s ease-out,transform .22s ease-out;transform:translateX(4px);opacity:.86}.edge-filter-panel.is-open{transform:translateX(0);opacity:1}.animate-filter-panel{animation:edge-filter-reveal 220ms ease-out both}@keyframes edge-filter-reveal{from{opacity:0;transform:translateX(8px)}to{opacity:1;transform:translateX(0)}}
