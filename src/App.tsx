@@ -37,7 +37,7 @@ export default function App() {
   const { trades = [], isLoading, error, addTrade, removeTrade, clearAllTrades, seedDatabase, selectedTrade, setSelectedTrade, loadTrades } = useTrades();
   const { settings, updateSettings } = useSettings();
   const { setups = [] } = useSetups();
-  const { activeAlerts, unreadCount, markViewed, dismiss } = useRiskAlerts(trades || [], settings);
+  const { alerts, activeAlerts, unreadCount, markViewed, dismiss, dismissAll } = useRiskAlerts(trades || [], settings);
   const [activeTab, setActiveTab] = useState<ActiveTab>('dashboard');
   const [calendarJumpMonth, setCalendarJumpMonth] = useState<{year:number;month:number}|null>(null);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -60,7 +60,7 @@ export default function App() {
     <div className="fixed inset-0 pointer-events-none bg-gradient-to-tr from-indigo-500/5 dark:from-[#F97316]/5 via-transparent to-purple-500/5 dark:to-[#EA580C]/5 -z-10 blur-3xl"/>
     <Sidebar activeTab={activeTab} onTabChange={setActiveTab} onOpenCreate={()=>setIsCreateOpen(true)} onOpenImport={()=>setIsImportOpen(true)} onOpenSetupsModal={()=>setIsSetupsOpen(true)} onOpenBackup={()=>setIsBackupOpen(true)} onSeed={handleSeed} isLoading={isLoading} tradeCount={safeTrades.length} isMobileOpen={isMobileMenuOpen} onCloseMobile={()=>setIsMobileMenuOpen(false)}/>
     <div className="flex-1 flex flex-col min-w-0 h-screen overflow-y-auto">
-      <TopBar activeTab={activeTab} onOpenMobileMenu={()=>setIsMobileMenuOpen(true)} onOpenCreate={()=>setIsCreateOpen(true)} onOpenImport={()=>setIsImportOpen(true)} onOpenSetupsModal={()=>setIsSetupsOpen(true)} onOpenBackup={()=>setIsBackupOpen(true)} onSeed={handleSeed} isLoading={isLoading} tradeCount={safeTrades.length}/>
+      <TopBar unreadCount={unreadCount} onDismissAllNotifications={()=>{ if(window.confirm('Retirer toutes les notifications actives ? Elles resteront consultables dans l’historique des paramètres.')) void dismissAll(); }} activeTab={activeTab} onOpenMobileMenu={()=>setIsMobileMenuOpen(true)} onOpenCreate={()=>setIsCreateOpen(true)} onOpenImport={()=>setIsImportOpen(true)} onOpenSetupsModal={()=>setIsSetupsOpen(true)} onOpenBackup={()=>setIsBackupOpen(true)} onSeed={handleSeed} isLoading={isLoading} tradeCount={safeTrades.length}/>
       <ToastNotification notification={notification} onClose={()=>setNotification(null)}/>
       <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
         {error && <div className="p-4 rounded-2xl bg-[#12151D] border border-rose-500/30 text-rose-400 text-xs flex items-center gap-2"><AlertCircle className="w-4 h-4"/><span>Erreur Base de Données : {error}</span></div>}
@@ -72,7 +72,7 @@ export default function App() {
             {activeTab === 'edge' && <motion.div key="edge" {...viewMotion}><MyEdgeAnalyzerView trades={safeTrades} setups={safeSetups} currency={settings.currency||'EUR'} onOpenSetupsModal={()=>setIsSetupsOpen(true)} onSelectTrade={setSelectedTrade}/></motion.div>}
             {activeTab === 'analytics' && <motion.div key="analytics" {...viewMotion}><AnalyticsView trades={safeTrades} currency={settings.currency||'EUR'} initialBalance={settings.initialAccountBalance||10000} onSelectTrade={setSelectedTrade}/></motion.div>}
             {activeTab === 'coach' && <motion.div key="coach" {...viewMotion}><CoachView trades={safeTrades} setups={safeSetups} currency={settings.currency||'USD'} initialBalance={settings.initialAccountBalance||10000}/></motion.div>}
-            {activeTab === 'settings' && <motion.div key="settings" {...viewMotion}><SettingsView settings={settings} onUpdateSettings={updateSettings} onOpenBackup={()=>setIsBackupOpen(true)} onSeed={handleSeed} onClear={handleClear} tradeCount={safeTrades.length}/></motion.div>}
+            {activeTab === 'settings' && <motion.div key="settings" {...viewMotion}><SettingsView settings={settings} alerts={alerts} onUpdateSettings={updateSettings} onOpenBackup={()=>setIsBackupOpen(true)} onSeed={handleSeed} onClear={handleClear} tradeCount={safeTrades.length}/></motion.div>}
           </>}
         </AnimatePresence>
       </main>
