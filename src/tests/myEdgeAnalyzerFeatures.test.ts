@@ -12,39 +12,17 @@ const trade = (overrides: Partial<Trade>): Trade => ({
 
 describe('My Edge Analyzer feature data', () => {
   it('keeps only real screenshots for a setup and naturally excludes missing captures', () => {
-    const trades = [
-      trade({ id: 'win', netPnL: 150, screenshotBefore: 'before-win', screenshotAfter: 'after-win' }),
-      trade({ id: 'loss', netPnL: -80, screenshotBefore: null, screenshotAfter: 'after-loss' }),
-      trade({ id: 'none', netPnL: 20, screenshotBefore: null, screenshotAfter: null }),
-    ];
-    const galleryItems = trades
-      .filter((t) => (t.setup?.trim() || t.setupId || 'Non défini') === 'OB (IRL)')
-      .flatMap((t) => [
-        ...(t.screenshotBefore ? [{ tradeId: t.id, screenshot: t.screenshotBefore }] : []),
-        ...(t.screenshotAfter ? [{ tradeId: t.id, screenshot: t.screenshotAfter }] : []),
-      ])
-      .sort((a, b) => (trades.find((t) => t.id === b.tradeId)?.netPnL ?? 0) - (trades.find((t) => t.id === a.tradeId)?.netPnL ?? 0));
-    expect(galleryItems).toHaveLength(3);
-    expect(galleryItems.map((item) => item.tradeId)).toEqual(['win', 'win', 'loss']);
-    expect(galleryItems.some((item) => item.tradeId === 'none')).toBe(false);
+    const trades = [trade({ id: 'win', netPnL: 150, screenshotBefore: 'before-win', screenshotAfter: 'after-win' }), trade({ id: 'loss', netPnL: -80, screenshotBefore: null, screenshotAfter: 'after-loss' }), trade({ id: 'none', netPnL: 20, screenshotBefore: null, screenshotAfter: null })];
+    const galleryItems = trades.filter(t => (t.setup?.trim() || t.setupId || 'Non défini') === 'OB (IRL)').flatMap(t => [...(t.screenshotBefore ? [{ tradeId: t.id, screenshot: t.screenshotBefore }] : []), ...(t.screenshotAfter ? [{ tradeId: t.id, screenshot: t.screenshotAfter }] : [])]).sort((a,b) => (trades.find(t=>t.id===b.tradeId)?.netPnL??0)-(trades.find(t=>t.id===a.tradeId)?.netPnL??0));
+    expect(galleryItems).toHaveLength(3); expect(galleryItems.map(x=>x.tradeId)).toEqual(['win','win','loss']); expect(galleryItems.some(x=>x.tradeId==='none')).toBe(false);
   });
 
   it('computes comparison metrics independently from real setup clusters', () => {
-    const setupA = [
-      trade({ id: 'a1', setup: 'OB (IRL)', netPnL: 100, rMultiple: 2 }),
-      trade({ id: 'a2', setup: 'OB (IRL)', netPnL: -80, rMultiple: -0.8 }),
-      trade({ id: 'a3', setup: 'OB (IRL)', netPnL: 80, rMultiple: 1.6 }),
-    ];
-    const setupB = [
-      trade({ id: 'b1', setup: 'FVG', netPnL: 120, rMultiple: 2.4 }),
-      trade({ id: 'b2', setup: 'FVG', netPnL: 100, rMultiple: 2 }),
-      trade({ id: 'b3', setup: 'FVG', netPnL: -100, rMultiple: -2 }),
-    ];
+    const setupA = [trade({ id: 'a1', setup: 'OB (IRL)', netPnL: 100, rMultiple: 2 }), trade({ id: 'a2', setup: 'OB (IRL)', netPnL: -80, rMultiple: -0.8 }), trade({ id: 'a3', setup: 'OB (IRL)', netPnL: -30, rMultiple: -0.6 })];
+    const setupB = [trade({ id: 'b1', setup: 'FVG', netPnL: 120, rMultiple: 2.4 }), trade({ id: 'b2', setup: 'FVG', netPnL: 100, rMultiple: 2 }), trade({ id: 'b3', setup: 'FVG', netPnL: -100, rMultiple: -2 })];
     const statsA = analyzeCluster(setupA, 'OB (IRL)', 'OB (IRL)', 'Setup');
     const statsB = analyzeCluster(setupB, 'FVG', 'FVG', 'Setup');
-    expect(statsA.sampleSize).toBe(3);
-    expect(statsB.sampleSize).toBe(3);
-    expect(statsA.winRate).toBeGreaterThan(statsB.winRate);
-    expect(statsB.monetaryExpectancy).toBeGreaterThan(statsA.monetaryExpectancy);
+    expect(statsA.sampleSize).toBe(3); expect(statsB.sampleSize).toBe(3);
+    expect(statsB.winRate).toBeGreaterThan(statsA.winRate); expect(statsB.monetaryExpectancy).toBeGreaterThan(statsA.monetaryExpectancy);
   });
 });
