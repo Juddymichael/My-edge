@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   LayoutDashboard,
   CalendarDays,
@@ -15,6 +15,8 @@ import {
   Database,
   ShieldCheck,
   ChevronRight,
+  PanelLeftClose,
+  PanelLeftOpen,
   Zap,
   Upload,
 } from 'lucide-react';
@@ -52,6 +54,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   onCloseMobile,
 }) => {
   const { isDark, toggleTheme } = useTheme();
+  const [collapsed, setCollapsed] = useState(false);
 
   const navItems = [
     {
@@ -109,7 +112,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   const sidebarContent = (
     <aside
       id="thunder-edge-sidebar"
-      className="flex flex-col h-full bg-white dark:bg-[#12151D] border-r border-[#ECE7FC] dark:border-[#292E38] text-[#0F0E26] dark:text-[#F5F5F5] select-none transition-colors duration-200"
+      className={`flex flex-col h-full ${collapsed ? "sidebar-collapsed" : ""} bg-white dark:bg-[#12151D] border-r border-[#ECE7FC] dark:border-[#292E38] text-[#0F0E26] dark:text-[#F5F5F5] select-none transition-colors duration-200"
     >
       {/* Brand Header */}
       <div className="p-5 border-b border-[#ECE7FC]/80 dark:border-[#292E38] flex items-center justify-between">
@@ -123,7 +126,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
             </div>
             <span className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 bg-emerald-500 border-2 border-white dark:border-[#12151D] rounded-full" />
           </div>
-          <div>
+          <div className="sidebar-brand-copy">
             <div className="flex items-center gap-1.5">
               <span className="text-sm font-bold tracking-tight text-[#0F0E26] dark:text-[#F5F5F5] font-sans">
                 THUNDER<span className="text-[#6D19E8] dark:text-[#FF8A00] ml-0.5">EDGE</span>
@@ -137,10 +140,11 @@ export const Sidebar: React.FC<SidebarProps> = ({
             </span>
           </div>
         </button>
+        <button type="button" onClick={() => setCollapsed((value) => !value)} className="hidden md:flex absolute top-5 -right-3 z-40 w-7 h-7 items-center justify-center rounded-full border border-[#DDD5FA] dark:border-[#292E38] bg-white dark:bg-[#181C25] text-[#6D19E8] dark:text-[#FF8A00] shadow-md hover:scale-105 transition-transform duration-200 btn-press" aria-label={collapsed ? "Déplier le menu" : "Réduire le menu"} title={collapsed ? "Déplier le menu" : "Réduire le menu"}>{collapsed ? <PanelLeftOpen className="w-3.5 h-3.5" /> : <PanelLeftClose className="w-3.5 h-3.5" />}</button>
       </div>
 
       {/* Primary Action Button */}
-      <div className="p-4 pb-2">
+      <div className="p-4 pb-2 sidebar-action">
         <motion.button
           whileHover={{ scale: 1.01 }}
           whileTap={{ scale: 0.98 }}
@@ -153,13 +157,13 @@ export const Sidebar: React.FC<SidebarProps> = ({
           className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-2xl bg-gradient-to-r from-[#6D19E8] to-[#4B27B8] dark:from-[#FF8A00] dark:to-[#FF6B00] hover:from-[#5A14C4] hover:to-[#3E1D9E] dark:hover:from-[#E67600] dark:hover:to-[#E65C00] text-white text-xs font-bold shadow-md shadow-[#6D19E8]/20 dark:shadow-[#FF8A00]/25 transition-all duration-200 cursor-pointer disabled:opacity-50"
         >
           <Plus className="w-4 h-4 stroke-[2.5]" />
-          <span>Log New Trade</span>
+          <span className="sidebar-copy">Log New Trade</span>
         </motion.button>
       </div>
 
       {/* Vertical Navigation List */}
       <div className="flex-1 px-3 py-2 space-y-1 overflow-y-auto" aria-label="Main navigation menu">
-        <div className="px-3 pt-2 pb-1 text-[11px] font-bold uppercase tracking-wider text-[#8E89AF] dark:text-[#9299A8]">
+        <div className="sidebar-section-label px-3 pt-2 pb-1 text-[11px] font-bold uppercase tracking-wider text-[#8E89AF] dark:text-[#9299A8]">
           Navigation
         </div>
 
@@ -187,7 +191,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 >
                   <Icon className="w-4 h-4 transition-transform duration-200 group-hover:rotate-6" />
                 </div>
-                <div className="text-left truncate">
+                <div className="text-left truncate sidebar-copy">
                   <div className="flex items-center gap-1.5">
                     <span className="truncate">{item.label}</span>
                     {item.highlight && (
@@ -209,7 +213,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
           );
         })}
 
-        <div className="pt-4 px-3 pb-1 text-[11px] font-bold uppercase tracking-wider text-[#8E89AF] dark:text-[#9299A8]">
+        <div className="sidebar-section-label pt-4 px-3 pb-1 text-[11px] font-bold uppercase tracking-wider text-[#8E89AF] dark:text-[#9299A8]">
           Tools &amp; SMC
         </div>
 
@@ -226,7 +230,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
             <div className="p-1.5 rounded-xl bg-[#F5F2FE] dark:bg-[#181C25] text-[#6B668D] dark:text-[#9299A8] group-hover:text-[#6D19E8] dark:group-hover:text-[#FF8A00] transition-all duration-200 group-hover:scale-110">
               <Sliders className="w-4 h-4 transition-transform duration-200 group-hover:rotate-12" />
             </div>
-            <div className="text-left">
+            <div className="text-left sidebar-copy">
               <span className="font-bold text-[#0F0E26] dark:text-[#F5F5F5]">Setups Manager</span>
               <div className="text-[10px] font-medium text-[#8E89AF] dark:text-[#9299A8]/80">
                 FVG, CISD, MSS models
@@ -284,7 +288,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
       </div>
 
       {/* Footer / Status & Theme Switcher */}
-      <div className="p-4 border-t border-[#ECE7FC] dark:border-[#292E38] space-y-3 bg-[#FAF8FF] dark:bg-[#0B0D12]">
+      <div className="p-4 border-t sidebar-footer border-[#ECE7FC] dark:border-[#292E38] space-y-3 bg-[#FAF8FF] dark:bg-[#0B0D12]">
         {/* Seed Data button if exploring */}
         <button
           id="sidebar-btn-seed"
@@ -296,18 +300,18 @@ export const Sidebar: React.FC<SidebarProps> = ({
           className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-xl text-xs font-bold text-amber-800 dark:text-[#FF8A00] bg-amber-50 dark:bg-[#FF8A00]/10 hover:bg-amber-100 dark:hover:bg-[#FF8A00]/20 border border-amber-300/80 dark:border-[#FF8A00]/30 shadow-xs transition-all duration-200 cursor-pointer disabled:opacity-50 btn-press"
         >
           <Sparkles className="w-3.5 h-3.5 text-amber-500 fill-amber-500 dark:text-[#FF8A00] dark:fill-[#FF8A00]" />
-          <span>Load Seed Dataset</span>
+          <span className="sidebar-copy">Load Seed Dataset</span>
         </button>
 
         {/* Theme Switcher Card */}
-        <div className="p-2 rounded-2xl bg-white dark:bg-[#181C25] border border-[#ECE7FC] dark:border-[#292E38] flex items-center justify-between shadow-xs">
-          <div className="flex items-center gap-2 text-xs font-bold text-[#0F0E26] dark:text-[#F5F5F5]">
+        <div className="p-2 rounded-2xl bg-white dark:bg-[#181C25] sidebar-theme-card border border-[#ECE7FC] dark:border-[#292E38] flex items-center justify-between shadow-xs">
+          <div className="flex items-center gap-2 text-xs font-bold sidebar-theme-label text-[#0F0E26] dark:text-[#F5F5F5]">
             {isDark ? (
               <Moon className="w-4 h-4 text-[#FF8A00] fill-[#FF8A00]/20" />
             ) : (
               <Sun className="w-4 h-4 text-[#F59E0B] fill-[#F59E0B]/20" />
             )}
-            <span>{isDark ? 'Dark Mode' : 'Light Mode'}</span>
+            <span className="sidebar-copy">{isDark ? 'Dark Mode' : 'Light Mode'}</span>
           </div>
 
           <button
@@ -331,10 +335,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
         </div>
 
         {/* Storage status indicator */}
-        <div className="flex items-center justify-between text-[11px] text-[#8E89AF] dark:text-[#9299A8] px-1 font-mono">
+        <div className="flex items-center justify-between text-[11px] sidebar-status text-[#8E89AF] dark:text-[#9299A8] px-1 font-mono">
           <div className="flex items-center gap-1.5">
             <ShieldCheck className="w-3.5 h-3.5 text-emerald-500" />
-            <span>IndexedDB Secured</span>
+            <span className="sidebar-copy">IndexedDB Secured</span>
           </div>
           <span className="font-bold text-[#6D19E8] dark:text-[#FF8A00]">v2.5</span>
         </div>
@@ -345,7 +349,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   return (
     <>
       {/* Desktop Persistent Left Sidebar */}
-      <div className="hidden md:block w-72 shrink-0 h-screen sticky top-0 z-30">
+      <div className={`hidden md:block shrink-0 h-screen sticky top-0 z-30 transition-[width] duration-300 ease-out ${collapsed ? "w-20" : "w-72"}`}>
         {sidebarContent}
       </div>
 
