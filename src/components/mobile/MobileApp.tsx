@@ -7,7 +7,7 @@ import { AIAnalysisMobile } from './AIAnalysisMobile';
 import { MyEdgeAnalyzerMobile } from './MyEdgeAnalyzerMobile';
 import { CalendarMobile } from './CalendarMobile';
 
-interface MobileAppProps { activeTab: ActiveTab; onTabChange: (tab: ActiveTab) => void; data: MobileSharedData; onLogTrade: () => void; }
+interface MobileAppProps { activeTab: ActiveTab; onTabChange: (tab: ActiveTab) => void; data: MobileSharedData; onLogTrade: () => void; onDeleteTrade: (id: string) => Promise<void>; onOpenImport: () => void; }
 
 const mobilePages = [
   { id: 'dashboard' as const, label: 'Accueil', icon: LayoutDashboard },
@@ -17,8 +17,8 @@ const mobilePages = [
   { id: 'calendar' as const, label: 'Calendrier', icon: CalendarDays },
 ];
 
-export function MobileApp({ activeTab, onTabChange, data, onLogTrade }: MobileAppProps) {
-  const page = activeTab === 'trades' ? <TradeJournalMobile data={data} /> : activeTab === 'ai-analysis' ? <AIAnalysisMobile data={data} /> : activeTab === 'edge' ? <MyEdgeAnalyzerMobile data={data} /> : activeTab === 'calendar' ? <CalendarMobile data={data} /> : <DashboardMobile data={data} onLogTrade={onLogTrade} />;
+export function MobileApp({ activeTab, onTabChange, data, onLogTrade, onDeleteTrade, onOpenImport }: MobileAppProps) {
+  const page = activeTab === 'trades' ? <TradeJournalMobile data={data} onDeleteTrade={onDeleteTrade} onOpenImport={onOpenImport} /> : activeTab === 'ai-analysis' ? <AIAnalysisMobile data={data} /> : activeTab === 'edge' ? <MyEdgeAnalyzerMobile data={data} /> : activeTab === 'calendar' ? <CalendarMobile data={data} /> : <DashboardMobile data={data} onLogTrade={onLogTrade} />;
   return <div data-mobile-ui className="mobile-app-shell min-h-screen bg-[#F8FAFC] dark:bg-[#0B0D12] text-[#0F172A] dark:text-[#F5F5F5]">
     <main className="mobile-app-content">{page}</main>
     <nav className="mobile-bottom-nav" aria-label="Navigation mobile">
