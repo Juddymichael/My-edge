@@ -3,7 +3,18 @@ import { z } from 'zod';
 export const TradeDirectionSchema = z.enum(['BUY', 'SELL']);
 export const TradeStatusSchema = z.enum(['OPEN', 'CLOSED', 'CANCELLED']);
 export const DataQualitySchema = z.enum(['VERIFIED', 'PARTIAL', 'NEEDS_REVIEW']);
-export const TradingSessionSchema = z.enum(['SYDNEY', 'TOKYO', 'LONDON', 'NEW_YORK', 'CUSTOM']).nullable();
+export const TradingSessionSchema = z.enum([
+  'SYDNEY',
+  'TOKYO',
+  'LONDON',
+  'NEW_YORK',
+  'CUSTOM',
+  'Killzone London',
+  'Killzone New York',
+  'Killzone London Close',
+  'Hors Killzone',
+  'NO_SESSION',
+]).nullable();
 
 export const TradeSchema = z.object({
   id: z.string().min(1, 'Trade ID is required'),
@@ -27,7 +38,6 @@ export const TradeSchema = z.object({
   lotSize: z.number().positive().nullable(),
   contractSize: z.number().positive().nullable(),
 
-  // Financials: null allowed, never forced to 0
   grossPnL: z.number().nullable(),
   commission: z.number().nullable(),
   swap: z.number().nullable(),
@@ -45,7 +55,6 @@ export const TradeSchema = z.object({
   setup: z.string().nullable(),
   setupId: z.string().nullable().optional(),
 
-  // Extended Setup Context
   htfBias: z.enum(['BULLISH', 'BEARISH', 'NEUTRAL']).nullable().optional(),
   liquidityTaken: z.string().nullable().optional(),
   irlErl: z.enum(['IRL_TO_ERL', 'ERL_TO_IRL', 'CONSOLIDATION']).nullable().optional(),
@@ -64,15 +73,11 @@ export const TradeSchema = z.object({
   notes: z.string().nullable(),
   emotion: z.string().nullable(),
   mistake: z.string().nullable(),
-
   tags: z.array(z.string()),
-
   screenshotBefore: z.string().nullable(),
   screenshotAfter: z.string().nullable(),
-
   status: TradeStatusSchema,
   dataQuality: DataQualitySchema,
-
   createdAt: z.string().datetime(),
   updatedAt: z.string().datetime(),
 });
