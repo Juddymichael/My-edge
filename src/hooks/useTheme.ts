@@ -1,22 +1,22 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useSettingsStore } from '../stores/useSettingsStore';
 import { AppTheme } from '../types/settings';
 
 const THEME_STORAGE_KEY = 'thunder_edge_theme';
 
-function getStoredTheme(): AppTheme {
+type ResolvedTheme = 'dark' | 'light';
+
+function readStoredTheme(): AppTheme | null {
   try {
     const saved = localStorage.getItem(THEME_STORAGE_KEY);
-    if (saved === 'light' || saved === 'dark' || saved === 'system') {
-      return saved;
-    }
+    if (saved === 'light' || saved === 'dark' || saved === 'system') return saved;
   } catch {
-    // ignore
+    // localStorage may be unavailable (private mode, restricted context, SSR).
   }
-  return 'dark';
+  return null;
 }
 
-function resolveTheme(theme: AppTheme): 'dark' | 'light' {
+function resolveTheme(theme: AppTheme): ResolvedTheme {
   if (theme === 'system') {
     if (typeof window !== 'undefined' && window.matchMedia) {
       return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
@@ -26,70 +26,80 @@ function resolveTheme(theme: AppTheme): 'dark' | 'light' {
   return theme;
 }
 
-function applyThemeToDOM(theme: AppTheme, animate = true) {
+function applyThemeToDOM(theme: AppTheme) {
   if (typeof document === 'undefined') return;
+
   const root = document.documentElement;
-  const body = document.body;
   const resolved = resolveTheme(theme);
 
-  if (animate) root.classList.add('theme-switching');
-  root.classList.remove('dark', 'light');
-  root.classList.add(resolved);
+  // Theme is a visual-only update. Do not trigger a React/data refresh here.
+  root.classList.toggle('dark', resolved === 'dark');
+  root.classList.toggle('light', resolved === 'light');
   root.setAttribute('data-theme', resolved);
   root.style.colorScheme = resolved;
 
-  if (body) {
-    body.classList.remove('dark', 'light');
-    body.classList.add(resolved);
-    body.setAttribute('data-theme', resolved);
+  if (document.body) {
+    document.body.classList.toggle('dark', resolved === 'dark');
+    document.body.classList.toggle('light', resolved === 'light');
+    document.body.setAttribute('data-theme', resolved);
   }
+}
 
+function persistThemeLocally(theme: AppTheme) {
   try {
     localStorage.setItem(THEME_STORAGE_KEY, theme);
   } catch {
     // ignore
   }
-
-  window.dispatchEvent(new CustomEvent('themechange', { detail: { theme: resolved } }));
-  if (animate) window.setTimeout(() => root.classList.remove('theme-switching'), 90);
 }
 
 export function useTheme() {
   const { settings, updateSettings } = useSettingsStore();
-  const [localTheme, setLocalTheme] = useState<AppTheme>(() => {
-    return settings.theme || getStoredTheme();
-  });
+  const storedTheme = readStoredTheme();
+  const [localTheme, setLocalTheme] = useState<AppTheme>(() => storedTheme || settings.theme || 'dark');
+  const userChangedThemeRef = useRef(Boolean(storedTheme));
 
-  const activeTheme = settings.theme || localTheme;
+  // Settings can load asynchronously. Sync the initial persisted DB preference once,
+  // but never let a background settings load overwrite a user's active toggle.
+  useEffect(() => {
+    if (!userChangedThemeRef.current && settings.theme) {
+      setLocalTheme(settings.theme);
+      applyThemeToDOM(settings.theme);
+    }
+  }, [settings.theme]);
+
+  const activeTheme = localTheme;
 
   useEffect(() => {
-    applyThemeToDOM(activeTheme, false);
+    applyThemeToDOM(activeTheme);
 
-    if (activeTheme === 'system' && typeof window !== 'undefined') {
+    if (activeTheme === 'system' && typeof window !== 'undefined' && window.matchMedia) {
       const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
-      const handleChange = () => applyThemeToDOM('system', false);
+      const handleChange = () => applyThemeToDOM('system');
       mediaQuery.addEventListener('change', handleChange);
       return () => mediaQuery.removeEventListener('change', handleChange);
     }
   }, [activeTheme]);
 
   const setTheme = useCallback(
-    async (newTheme: AppTheme) => {
+    (newTheme: AppTheme) => {
+      // Update the UI immediately; persistence happens in the background.
+      userChangedThemeRef.current = true;
       setLocalTheme(newTheme);
+      applyThemeToDOM(newTheme);
+      persistThemeLocally(newTheme);
 
-      try {
-        await updateSettings({ theme: newTheme });
-      } catch {
-        // Fallback already applied to DOM and localStorage
-      }
+      // Do not await this. A theme click must never block the UI thread or navigation.
+      void updateSettings({ theme: newTheme }).catch(() => {
+        // Local theme state/localStorage remain the responsive fallback.
+      });
     },
     [updateSettings]
   );
 
-  const toggleTheme = useCallback(async () => {
+  const toggleTheme = useCallback(() => {
     const currentResolved = resolveTheme(activeTheme);
-    const nextTheme: AppTheme = currentResolved === 'dark' ? 'light' : 'dark';
-    await setTheme(nextTheme);
+    setTheme(currentResolved === 'dark' ? 'light' : 'dark');
   }, [activeTheme, setTheme]);
 
   const isDark = resolveTheme(activeTheme) === 'dark';
