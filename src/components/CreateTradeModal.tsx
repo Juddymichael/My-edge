@@ -40,7 +40,7 @@ export const CreateTradeModal: React.FC<CreateTradeModalProps> = ({
   const [balanceBefore, setBalanceBefore] = useState('10000.00');
 
   // Metas & Setup Context
-  const [session, setSession] = useState<TradingKillzone>('LONDON');
+  const [killzoneSessionValue, setKillzoneSessionValue] = useState<TradingKillzone>('LONDON');
   const [timeframe, setTimeframe] = useState('M15');
   const [setupName, setSetupName] = useState('Golden FVG');
   const [setupId, setSetupId] = useState('setup-golden-fvg');
@@ -117,7 +117,7 @@ export const CreateTradeModal: React.FC<CreateTradeModalProps> = ({
         balanceBefore: normalizeNumber(balanceBefore),
         balanceAfter: null,
 
-        session,
+        session: killzoneSessionValue,
         timeframe: timeframe || null,
         setup: setupName.trim() || null,
         setupId: setupId || null,

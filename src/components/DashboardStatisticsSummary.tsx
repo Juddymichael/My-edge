@@ -27,12 +27,12 @@ export const DashboardStatisticsSummary: React.FC<Props> = ({ trades = [], setti
     const killzone = bestDimension(closed, t => getTradeKillzone(t));
     const weekdays = ['Dimanche', 'Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi'];
     const day = bestDimension(closed, t => { const d = new Date(t.closedAt || t.openedAt); return Number.isNaN(d.getTime()) ? '' : weekdays[d.getUTCDay()]; });
-    return { pair, session, day };
+    return { pair, killzone, day };
   }, [safeTrades]);
 
   const items = [
     { label: 'Meilleure paire', value: data.pair ? `${data.pair[0]} · ${formatCurrency(data.pair[1].pnl, currency)}` : '—', icon: Trophy },
-    { label: 'Meilleure session', value: data.session ? `${data.session[0]} · ${formatCurrency(data.session[1].pnl, currency)}` : '—', icon: Clock3 },
+    { label: 'Meilleure Killzone', value: data.killzone ? `${data.killzone[0]} · ${formatCurrency(data.killzone[1].pnl, currency)}` : '—', icon: Clock3 },
     { label: 'Meilleur jour', value: data.day ? `${data.day[0]} · ${formatCurrency(data.day[1].pnl, currency)}` : '—', icon: CalendarDays },
     { label: 'Série actuelle', value: metrics.streaks.currentStreakCount > 0 ? `${metrics.streaks.currentStreakCount} ${metrics.streaks.currentStreakType === 'WIN' ? 'gagnante' : metrics.streaks.currentStreakType === 'LOSS' ? 'perdante' : 'neutre'}` : 'Aucune', icon: Flame },
     { label: 'Drawdown actuel', value: `${formatCurrency(metrics.drawdown.currentDrawdown, currency, { showSign: false })} · ${metrics.drawdown.currentDrawdownPercent.toFixed(1)}%`, icon: TrendingDown },

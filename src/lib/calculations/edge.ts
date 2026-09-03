@@ -354,7 +354,7 @@ export function analyzeCluster(
 }
 
 /**
- * Generates an exhaustive breakdown across Setups, Pairs, Sessions, Directions,
+ * Generates an exhaustive breakdown across Setups, Pairs, Killzones, Directions,
  * and Combo matrices (Setup × Pair × Killzone) strictly from real logged trade data.
  */
 export function calculateMyEdgeDeepAudit(
@@ -452,7 +452,7 @@ export function calculateMyEdgeDeepAudit(
   for (const t of safeTrades) {
     const setup = t.setup?.trim() || t.setupId || 'Général';
     const pair = (t.symbol || 'AUTRE').toUpperCase().trim();
-    const session = t.session || 'Toutes';
+    const killzone = t.session || 'Toutes les Killzones';
     const comboKey = `${setup}___${pair}___${killzone}`;
     const group = comboMap.get(comboKey) || [];
     group.push(t);
@@ -461,7 +461,7 @@ export function calculateMyEdgeDeepAudit(
 
   const combinations: SetupPairKillzoneCombo[] = [];
   for (const [comboKey, cluster] of comboMap.entries()) {
-    const [setup, pair, session] = comboKey.split('___');
+    const [setup, pair, killzone] = comboKey.split('___');
     const clusterStats = analyzeCluster(cluster, comboKey, comboKey);
     combinations.push({
       setup,
@@ -544,7 +544,7 @@ export function calculateMyEdgeDeepAudit(
 
   let keyTakeaway = 'Données en cours de constitution.';
   if (topCombo && topCombo.sampleSize >= 2) {
-    keyTakeaway = `Votre rentabilité maximale est concentrée sur ${topCombo.pair} pendant la session ${topCombo.killzone} (${topCombo.setup}), générant ${topCombo.winRate}% de win rate sur ${topCombo.sampleSize} trades.`;
+    keyTakeaway = `Votre rentabilité maximale est concentrée sur ${topCombo.pair} pendant la Killzone ${topCombo.killzone} (${topCombo.setup}), générant ${topCombo.winRate}% de win rate sur ${topCombo.sampleSize} trades.`;
   } else if (bestPair) {
     keyTakeaway = `Votre meilleur actif de trading est ${bestPair.label} avec un taux de réussite de ${bestPair.winRate}%.`;
   }

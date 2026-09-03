@@ -182,11 +182,11 @@ const bestKillzoneForSetup = (setupKey: string, trades: Trade[]) => {
   const byKillzone = new Map<string, Trade[]>();
   setupTrades.forEach((trade) => {
     const killzone = trade.session || 'Non spécifiée';
-    const bucket = byKillzone.get(session) || [];
+    const bucket = byKillzone.get(killzone) || [];
     bucket.push(trade);
-    byKillzone.set(session, bucket);
+    byKillzone.set(killzone, bucket);
   });
-  const candidates = Array.from(byKillzone.entries()).map(([session, cluster]) => analyzeCluster(cluster, session, session, 'Killzone'));
+  const candidates = Array.from(byKillzone.entries()).map(([killzone, cluster]) => analyzeCluster(cluster, killzone, killzone, 'Killzone'));
   return candidates.sort((a, b) => b.monetaryExpectancy - a.monetaryExpectancy || b.winRate - a.winRate || b.sampleSize - a.sampleSize)[0] || null;
 };
 
