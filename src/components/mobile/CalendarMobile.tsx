@@ -1,10 +1,5 @@
 import { useMemo, useState } from 'react';
-import {
-  Calendar as CalendarIcon,
-  ChevronLeft,
-  ChevronRight,
-  X,
-} from 'lucide-react';
+import { ChevronLeft, ChevronRight, X } from 'lucide-react';
 import {
   buildMonthCalendar,
   getAllTradingMonths,
@@ -76,9 +71,7 @@ export function CalendarMobile({ data }: MobilePageProps) {
   );
 
   const moveMonth = (delta: number) => {
-    const next = new Date(
-      Date.UTC(year, monthIndex + delta, 1),
-    );
+    const next = new Date(Date.UTC(year, monthIndex + delta, 1));
     setYear(next.getUTCFullYear());
     setMonthIndex(next.getUTCMonth());
   };
