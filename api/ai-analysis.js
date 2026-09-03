@@ -1,6 +1,7 @@
 const GEMINI_MODEL = 'gemini-3.6-flash';
 const GEMINI_URL = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent`;
 const REQUEST_TIMEOUT_MS = 60000;
+const OVERLOAD_RETRY_DELAY_MS = 2000;
 
 function json(res, status, payload) { res.status(status).json(payload); }
 
@@ -8,6 +9,11 @@ function sanitizeJsonText(text) {
   if (typeof text !== 'string') return '';
   const fenced = text.match(/```(?:json)?\s*([\s\S]*?)```/i);
   return (fenced ? fenced[1] : text).trim();
+}
+
+function isHighDemand(response, data) {
+  const message = typeof data?.error?.message === 'string' ? data.error.message.toLowerCase() : '';
+  return response.status === 429 || response.status === 503 || /high demand|overload|overloaded|temporarily unavailable|resource exhausted|rate limit/.test(message);
 }
 
 const SCHEMAS = {
@@ -44,7 +50,7 @@ const SCHEMAS = {
   }
 };
 
-async function callGemini(apiKey, prompt, schema) {
+async function callGeminiOnce(apiKey, prompt, schema) {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
   try {
@@ -66,13 +72,31 @@ async function callGemini(apiKey, prompt, schema) {
     const data = await response.json().catch(() => null);
     if (!response.ok) {
       const message = typeof data?.error?.message === 'string' ? data.error.message : 'Gemini n’a pas pu générer l’analyse.';
-      throw new Error(message.slice(0, 1000));
+      const error = new Error(message.slice(0, 1000));
+      error.code = isHighDemand(response, data) ? 'GEMINI_HIGH_DEMAND' : 'GEMINI_API_ERROR';
+      error.retryable = error.code === 'GEMINI_HIGH_DEMAND';
+      throw error;
     }
     const text = data?.candidates?.[0]?.content?.parts?.map((p) => p?.text || '').join('') || '';
     if (!text) throw new Error('Gemini a renvoyé une réponse vide.');
     return JSON.parse(sanitizeJsonText(text));
   } finally {
     clearTimeout(timeout);
+  }
+}
+
+async function callGemini(apiKey, prompt, schema) {
+  try {
+    return await callGeminiOnce(apiKey, prompt, schema);
+  } catch (error) {
+    if (error?.retryable !== true) throw error;
+    await new Promise((resolve) => setTimeout(resolve, OVERLOAD_RETRY_DELAY_MS));
+    try {
+      return await callGeminiOnce(apiKey, prompt, schema);
+    } catch (retryError) {
+      if (retryError?.retryable === true) retryError.code = 'GEMINI_HIGH_DEMAND';
+      throw retryError;
+    }
   }
 }
 
@@ -102,6 +126,9 @@ export default async function handler(req, res) {
     return json(res, 200, { mode, data: result });
   } catch (error) {
     console.error('[Gemini AI Analysis Error]', error);
+    if (error?.code === 'GEMINI_HIGH_DEMAND') {
+      return json(res, 503, { error: 'Gemini est temporairement surchargé, réessaie dans quelques instants', code: 'GEMINI_HIGH_DEMAND', retryable: true });
+    }
     const message = error?.name === 'AbortError' ? 'Gemini n’a pas répondu dans le délai de 60 secondes.' : (error?.message || 'Analyse IA indisponible.');
     return json(res, 502, { error: message, code: error?.name === 'AbortError' ? 'GEMINI_TIMEOUT' : 'GEMINI_API_ERROR' });
   }
