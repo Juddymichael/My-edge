@@ -193,7 +193,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 </div>
                 <div className="text-left truncate sidebar-copy">
                   <div className="flex items-center gap-1.5">
-                    <span className="truncate">{item.label}</span>
+                    <span className="nav-label-mask"><span className="nav-label-reveal truncate">{item.label}</span></span>
                     {item.highlight && (
                       <span className="w-1.5 h-1.5 rounded-full bg-[#FF8A00] animate-pulse" />
                     )}
