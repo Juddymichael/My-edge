@@ -5,7 +5,6 @@ import {
   BookOpen,
   Crosshair,
   BarChart3,
-  Bot,
   Settings as SettingsIcon,
   Plus,
   Sun,
@@ -24,7 +23,7 @@ import { Logo } from './Logo';
 import { useTheme } from '../hooks/useTheme';
 import { motion } from 'motion/react';
 
-export type ActiveTab = 'dashboard' | 'calendar' | 'trades' | 'edge' | 'analytics' | 'coach' | 'settings';
+export type ActiveTab = 'dashboard' | 'calendar' | 'trades' | 'edge' | 'analytics' | 'ai-analysis' | 'settings';
 
 interface SidebarProps {
   activeTab: ActiveTab;
@@ -56,52 +55,17 @@ export const Sidebar: React.FC<SidebarProps> = ({
   const { isDark, toggleTheme } = useTheme();
   const [collapsed, setCollapsed] = useState(false);
 
-  const navItems = [
-    {
-      id: 'dashboard' as ActiveTab,
-      label: 'Dashboard',
-      description: 'Monthly activity & equity curve',
-      icon: LayoutDashboard,
-    },
-    {
-      id: 'calendar' as ActiveTab,
-      label: 'Calendrier',
-      description: 'Daily P&L & weekly recap matrix',
-      icon: CalendarDays,
-      badge: 'Visual',
-    },
-    {
-      id: 'trades' as ActiveTab,
-      label: 'Trade Journal',
-      description: `${tradeCount} logged executions`,
-      icon: BookOpen,
-      badge: tradeCount > 0 ? String(tradeCount) : undefined,
-    },
-    {
-      id: 'edge' as ActiveTab,
-      label: 'My Edge Analyzer',
-      description: 'SMC setups & win rate matrix',
-      icon: Crosshair,
-      highlight: true,
-    },
-    {
-      id: 'analytics' as ActiveTab,
-      label: 'Statistiques',
-      description: "Vue d'ensemble & métriques",
-      icon: BarChart3,
-    },
-    {
-      id: 'coach' as ActiveTab,
-      label: 'Trading Coach',
-      description: 'Psychology & mistake tracker',
-      icon: Bot,
-    },
-    {
-      id: 'settings' as ActiveTab,
-      label: 'Settings',
-      description: 'Currency, risk & preferences',
-      icon: SettingsIcon,
-    },
+  const navGroups = [
+    { title: 'Principal', items: [
+      { id: 'dashboard' as ActiveTab, label: 'Dashboard', description: 'Vue globale & equity curve', icon: LayoutDashboard },
+      { id: 'calendar' as ActiveTab, label: 'Calendrier', description: 'Activité quotidienne', icon: CalendarDays },
+      { id: 'trades' as ActiveTab, label: 'Trade Journal', description: `${tradeCount} exécutions enregistrées`, icon: BookOpen, badge: tradeCount > 0 ? String(tradeCount) : undefined },
+    ]},
+    { title: 'Analyser', items: [
+      { id: 'analytics' as ActiveTab, label: 'Statistiques', description: "Vue d'ensemble & métriques", icon: BarChart3 },
+      { id: 'edge' as ActiveTab, label: 'My Edge Analyzer', description: 'SMC setups & win rate matrix', icon: Crosshair, highlight: true },
+      { id: 'ai-analysis' as ActiveTab, label: 'Analyse IA', description: 'Analyse, graphiques & recommandations', icon: Sparkles, highlight: true },
+    ]},
   ];
 
   const handleNav = (tab: ActiveTab) => {
@@ -121,7 +85,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
           className="flex items-center gap-3 text-left focus:outline-none group"
         >
           <div className="relative">
-            <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-[#6D19E8] via-[#5B1FE0] to-[#4B27B8] dark:from-[#FF8A00] dark:via-[#FF7A00] dark:to-[#FF6B00] flex items-center justify-center text-white shadow-md shadow-[#6D19E8]/25 dark:shadow-[#FF8A00]/25 group-hover:scale-105 transition-transform duration-200">
+            <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-[#6D19E8] via-[#5B1FE0] to-[#4B27B8] dark:from-[#7C3AED] dark:via-[#8B5CF6] dark:to-[#EC4899] flex items-center justify-center text-white shadow-md shadow-[#6D19E8]/25 dark:shadow-[#7C3AED]/25 group-hover:scale-105 transition-transform duration-200">
               <Zap className="w-5 h-5 fill-amber-300 dark:fill-white text-amber-300 dark:text-white stroke-[2]" />
             </div>
             <span className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 bg-emerald-500 border-2 border-white dark:border-[#12151D] rounded-full" />
@@ -129,9 +93,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
           <div className="sidebar-brand-copy">
             <div className="flex items-center gap-1.5">
               <span className="text-sm font-bold tracking-tight text-[#0F0E26] dark:text-[#F5F5F5] font-sans">
-                THUNDER<span className="text-[#6D19E8] dark:text-[#FF8A00] ml-0.5">EDGE</span>
+                THUNDER<span className="text-[#6D19E8] dark:text-[#A855F7] ml-0.5">EDGE</span>
               </span>
-              <span className="px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider rounded-lg bg-[#F5F0FF] dark:bg-[#FF8A00]/10 text-[#6D19E8] dark:text-[#FF8A00] border border-[#DDD5FA] dark:border-[#FF8A00]/30">
+              <span className="px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider rounded-lg bg-[#F5F0FF] dark:bg-[#7C3AED]/10 text-[#6D19E8] dark:text-[#FF8A00] border border-[#DDD5FA] dark:border-[#7C3AED]/30">
                 PRO
               </span>
             </div>
@@ -154,7 +118,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
             if (onCloseMobile) onCloseMobile();
           }}
           disabled={isLoading}
-          className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-2xl bg-gradient-to-r from-[#6D19E8] to-[#4B27B8] dark:from-[#FF8A00] dark:to-[#FF6B00] hover:from-[#5A14C4] hover:to-[#3E1D9E] dark:hover:from-[#E67600] dark:hover:to-[#E65C00] text-white text-xs font-bold shadow-md shadow-[#6D19E8]/20 dark:shadow-[#FF8A00]/25 transition-all duration-200 cursor-pointer disabled:opacity-50"
+          className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-2xl bg-gradient-to-r from-[#6D19E8] to-[#4B27B8] dark:from-[#7C3AED] dark:to-[#EC4899] hover:from-[#5A14C4] hover:to-[#3E1D9E] dark:hover:from-[#6D28D9] dark:hover:to-[#DB2777] text-white text-xs font-bold shadow-md shadow-[#6D19E8]/20 dark:shadow-[#FF8A00]/25 transition-all duration-200 cursor-pointer disabled:opacity-50"
         >
           <Plus className="w-4 h-4 stroke-[2.5]" />
           <span className="sidebar-copy">Log New Trade</span>
@@ -167,51 +131,39 @@ export const Sidebar: React.FC<SidebarProps> = ({
           Navigation
         </div>
 
-        {navItems.map((item) => {
-          const Icon = item.icon;
-          const isActive = activeTab === item.id;
-          return (
-            <button
-              key={item.id}
-              id={`sidebar-nav-${item.id}`}
-              onClick={() => handleNav(item.id)}
-              className={`w-full relative flex items-center justify-between px-3 py-2.5 rounded-2xl text-xs cursor-pointer btn-press nav-item-interactive group ${
-                isActive
-                  ? 'active font-bold text-[#6D19E8] dark:text-[#FF8A00] bg-[#F5EEFF] dark:bg-[#FF8A00]/10 border border-[#DDD5FA] dark:border-[#FF8A00]/30 shadow-xs'
-                  : 'font-semibold text-[#6B668D] dark:text-[#9299A8] hover:text-[#0F0E26] dark:hover:text-[#F5F5F5] hover:bg-[#FAF8FF] dark:hover:bg-[#181C25] border border-transparent'
-              }`}
-            >
-              <div className="flex items-center gap-3 min-w-0">
-                <div
-                  className={`nav-icon-motion p-1.5 rounded-xl transition-all duration-200 group-hover:scale-110 ${
-                    isActive
-                      ? 'bg-gradient-to-tr from-[#6D19E8] to-[#4B27B8] dark:from-[#FF8A00] dark:to-[#FF6B00] text-white shadow-xs'
-                      : 'bg-[#F5F2FE] dark:bg-[#181C25] text-[#6B668D] dark:text-[#9299A8] group-hover:text-[#6D19E8] dark:group-hover:text-[#FF8A00]'
-                  }`}
-                >
-                  <Icon className="w-4 h-4 transition-transform duration-200 group-hover:rotate-6" />
-                </div>
-                <div className="text-left truncate sidebar-copy">
-                  <div className="flex items-center gap-1.5">
-                    <span className="nav-label-mask"><span className="nav-label-reveal truncate">{item.label}</span></span>
-                    {item.highlight && (
-                      <span className="w-1.5 h-1.5 rounded-full bg-[#FF8A00] animate-pulse" />
-                    )}
+        {navGroups.map((group) => (
+          <div key={group.title} className="mb-4">
+            <div className="sidebar-section-label px-3 pt-2 pb-1 text-[10px] font-black uppercase tracking-[0.14em] text-[#8E89AF] dark:text-[#9299A8]">{group.title}</div>
+            <div className="space-y-1">
+              {group.items.map((item) => {
+                const Icon = item.icon;
+                const isActive = activeTab === item.id;
+                return <button key={item.id} id={`sidebar-nav-${item.id}`} onClick={() => handleNav(item.id)} className={`w-full relative flex items-center justify-between px-3 py-2.5 rounded-2xl text-xs cursor-pointer btn-press nav-item-interactive group ${isActive ? 'active font-bold text-[#6D19E8] dark:text-[#A855F7] bg-[#F5EEFF] dark:bg-[#7C3AED]/10 border border-[#DDD5FA] dark:border-[#7C3AED]/30 shadow-xs' : 'font-semibold text-[#6B668D] dark:text-[#9299A8] hover:text-[#0F0E26] dark:hover:text-[#F5F5F5] hover:bg-[#FAF8FF] dark:hover:bg-[#181C25] border border-transparent'}`}>
+                  <div className="flex items-center gap-3 min-w-0">
+                    <div className={`nav-icon-motion p-1.5 rounded-xl transition-all duration-200 group-hover:scale-110 ${isActive ? 'bg-gradient-to-tr from-[#7C3AED] to-[#EC4899] text-white shadow-xs' : 'bg-[#F5F2FE] dark:bg-[#181C25] text-[#6B668D] dark:text-[#9299A8] group-hover:text-[#7C3AED] dark:group-hover:text-[#A855F7]'}`}>
+                      <Icon className="w-4 h-4 transition-transform duration-200 group-hover:rotate-6" />
+                    </div>
+                    <div className="text-left truncate sidebar-copy">
+                      <div className="flex items-center gap-1.5"><span className="nav-label-mask"><span className="nav-label-reveal truncate">{item.label}</span></span>{item.highlight&&<span className="w-1.5 h-1.5 rounded-full bg-[#EC4899] animate-pulse"/></div>
+                      <div className="text-[10px] font-medium text-[#8E89AF] dark:text-[#9299A8]/80 truncate">{item.description}</div>
+                    </div>
                   </div>
-                  <div className="text-[10px] font-medium text-[#8E89AF] dark:text-[#9299A8]/80 truncate">
-                    {item.description}
-                  </div>
-                </div>
-              </div>
-
-              {item.badge && (
-                <span className="px-2 py-0.5 text-[10px] font-bold tabular-nums rounded-full bg-[#ECE7FC] dark:bg-[#181C25] text-[#6D19E8] dark:text-[#FF8A00] dark:border dark:border-[#292E38] transition-transform duration-200 group-hover:scale-105">
-                  {item.badge}
-                </span>
-              )}
-            </button>
-          );
-        })}
+                  {item.badge&&<span className="px-2 py-0.5 text-[10px] font-bold tabular-nums rounded-full bg-[#ECE7FC] dark:bg-[#181C25] text-[#6D19E8] dark:text-[#A855F7] dark:border dark:border-[#292E38] transition-transform duration-200 group-hover:scale-105">{item.badge}</span>}
+                </button>;
+              })}
+            </div>
+          </div>
+        ))}
+        <div className="mb-4">
+          <div className="sidebar-section-label px-3 pt-2 pb-1 text-[10px] font-black uppercase tracking-[0.14em] text-[#8E89AF] dark:text-[#9299A8]">Ma méthode</div>
+          <div className="space-y-1">
+            <button id="sidebar-btn-setups-manager" onClick={() => { onOpenSetupsModal(); onCloseMobile?.(); }} className="w-full flex items-center gap-3 px-3 py-2.5 rounded-2xl text-xs font-semibold text-[#6B668D] dark:text-[#9299A8] hover:text-white hover:bg-[#181C25] btn-press nav-item-interactive"><span className="nav-icon-motion p-1.5 rounded-xl bg-[#F5F2FE] dark:bg-[#181C25]"><Sliders className="w-4 h-4"/></span><span className="nav-label-mask"><span className="nav-label-reveal">Setups Manager</span></span></button>
+          </div>
+        </div>
+        <div>
+          <div className="sidebar-section-label px-3 pt-2 pb-1 text-[10px] font-black uppercase tracking-[0.14em] text-[#8E89AF] dark:text-[#9299A8]">Outils</div>
+          <button id="sidebar-btn-import" onClick={() => { onOpenImport(); onCloseMobile?.(); }} className="w-full flex items-center gap-3 px-3 py-2.5 rounded-2xl text-xs font-semibold text-[#6B668D] dark:text-[#9299A8] hover:text-white hover:bg-[#181C25] btn-press nav-item-interactive"><span className="nav-icon-motion p-1.5 rounded-xl bg-[#F5F2FE] dark:bg-[#181C25]"><Upload className="w-4 h-4"/></span><span className="nav-label-mask"><span className="nav-label-reveal">Importer des Trades</span></span></button>
+        </div>
 
       </div>
 
@@ -225,9 +177,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
             if (onCloseMobile) onCloseMobile();
           }}
           disabled={isLoading}
-          className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-xl text-xs font-bold text-amber-800 dark:text-[#FF8A00] bg-amber-50 dark:bg-[#FF8A00]/10 hover:bg-amber-100 dark:hover:bg-[#FF8A00]/20 border border-amber-300/80 dark:border-[#FF8A00]/30 shadow-xs transition-all duration-200 cursor-pointer disabled:opacity-50 btn-press"
+          className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-xl text-xs font-bold text-amber-800 dark:text-[#FF8A00] bg-amber-50 dark:bg-[#7C3AED]/10 hover:bg-amber-100 dark:hover:bg-[#FF8A00]/20 border border-amber-300/80 dark:border-[#FF8A00]/30 shadow-xs transition-all duration-200 cursor-pointer disabled:opacity-50 btn-press"
         >
-          <Sparkles className="w-3.5 h-3.5 text-amber-500 fill-amber-500 dark:text-[#FF8A00] dark:fill-[#FF8A00]" />
+          <Sparkles className="w-3.5 h-3.5 text-amber-500 fill-amber-500 dark:text-[#FF8A00] dark:fill-[#A855F7]" />
           <span className="sidebar-copy">Load Seed Dataset</span>
         </button>
 
@@ -246,7 +198,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
             id="sidebar-theme-toggle"
             type="button"
             onClick={toggleTheme}
-            className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-[#6D19E8] dark:focus:ring-[#FF8A00] focus:ring-offset-2 ${
+            className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-[#6D19E8] dark:focus:ring-[#A855F7] focus:ring-offset-2 ${
               isDark ? 'bg-gradient-to-r from-[#FF8A00] to-[#FF6B00]' : 'bg-[#DDD5FA]'
             }`}
             role="switch"
