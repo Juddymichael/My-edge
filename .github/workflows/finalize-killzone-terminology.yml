@@ -1,0 +1,112 @@
+name: Finalize Killzone terminology
+
+on:
+  push:
+    branches: [main]
+permissions:
+  contents: write
+jobs:
+  finalize:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: oven-sh/setup-bun@v2
+      - name: Apply safe code terminology fixes
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+
+          def replace(path, replacements):
+              p = Path(path)
+              text = p.read_text()
+              original = text
+              for old, new in replacements:
+                  text = text.replace(old, new)
+              if text != original:
+                  p.write_text(text)
+
+          # Analyzer feature map variable bug introduced by the terminology pass.
+          replace('src/components/MyEdgeAnalyzerFeatures.tsx', [
+              ('byKillzone.get(session)', 'byKillzone.get(killzone)'),
+              ('byKillzone.set(session, bucket)', 'byKillzone.set(killzone, bucket)'),
+              ('map(([session, cluster])', 'map(([killzone, cluster])'),
+              ("analyzeCluster(cluster, session, session, 'Killzone')", "analyzeCluster(cluster, killzone, killzone, 'Killzone')"),
+          ])
+
+          # Playbook killzone result must use the renamed combo field/local variable.
+          replace('src/components/MyEdgeAnalyzerView.tsx', [
+              ('map(([session,ts])', 'map(([killzone,ts])'),
+              ('return{session,wr:', 'return{killzone,wr:'),
+              ("bestKillzone(s,trades)?.session||'Killzone non déterminée'", "bestKillzone(s,trades)?.killzone||'Killzone non déterminée'"),
+              ('pendant la session ${session}', 'pendant la Killzone ${killzone}'),
+              ('<b>Killzone :</b> ${esc(session)}', '<b>Killzone :</b> ${esc(killzone)}'),
+          ])
+
+          # Dashboard summary business variable.
+          replace('src/components/DashboardStatisticsSummary.tsx', [
+              ('const session = bestDimension(closed, t => getTradeKillzone(t));', 'const killzone = bestDimension(closed, t => getTradeKillzone(t));'),
+              ('return { pair, session, day };', 'return { pair, killzone, day };'),
+              ('data.session', 'data.killzone'),
+              ('Meilleure session', 'Meilleure Killzone'),
+          ])
+
+          # Create-trade local state uses Killzone terminology; persisted field remains session.
+          replace('src/components/CreateTradeModal.tsx', [
+              ('const [session, setSession]', 'const [killzone, setKillzone]'),
+              ('        session,', '        session: killzone,'),
+              ('value={session}', 'value={killzone}'),
+              ('setSession(', 'setKillzone('),
+          ])
+
+          # My Edge filter state/key is UI business terminology.
+          replace('src/components/MyEdgeView.tsx', [
+              ("'period'|'symbol'|'setup'|'session'|'direction'|'result'", "'period'|'symbol'|'setup'|'killzone'|'direction'|'result'"),
+              ("session:selectedKillzone", "killzone:selectedKillzone"),
+              ("openFilter==='session'", "openFilter==='killzone'"),
+          ])
+
+          # Preserve legacy persisted enum values while adding the canonical Killzone labels.
+          trade = Path('src/types/trade.ts')
+          text = trade.read_text()
+          prefix = 'export type TradingKillzone = '
+          start = text.find(prefix)
+          if start >= 0:
+              end = text.find(';', start)
+              text = text[:start] + prefix + "'SYDNEY' | 'TOKYO' | 'LONDON' | 'NEW_YORK' | 'CUSTOM' | 'Killzone Londres' | 'Killzone New York' | 'Killzone London Close' | 'Killzone Asia' | 'Killzone Sydney' | 'Hors Killzone' | 'NO_SESSION' | null;" + text[end+1:]
+              trade.write_text(text)
+
+          # Fix helper import paths after the file rename.
+          for p in Path('src').rglob('*'):
+              if p.suffix in {'.ts', '.tsx'}:
+                  text = p.read_text()
+                  text2 = text.replace('/lib/tradingSession', '/lib/tradingKillzone')
+                  if text2 != text:
+                      p.write_text(text2)
+
+          # Risk test fixture should exercise the calculated Trade.session killzone, not the separate ICT killzone meta field.
+          replace('src/tests/riskPatterns.test.ts', [
+              ("session:null,timeframe:'M15'", "session:killzone==='LONDON_OPEN'?'Killzone Londres':killzone==='OFF_HOURS'?'Hors Killzone':null,timeframe:'M15'"),
+          ])
+          PY
+
+          echo '--- Legacy persisted storage references (intentional) ---'
+          git grep -n 'NO_SESSION' -- src || true
+          echo '--- Remaining old business identifiers ---'
+          git grep -nE '\bTradingSession\b|\btradingSession\b|getTradeSession|deriveTradingSession|normalizedSessionForAudit|selectedSession|bestSession|worstSession|SetupPairSessionCombo|sessionBreakdown|sessionPerformances|sessionMap' -- src || true
+          echo '--- Remaining Session/session wording requiring review ---'
+          git grep -nE 'Session|session' -- src/components src/lib src/types | grep -vE 'trade\.session|t\.session|input\.session|session:|NO_SESSION|\.stores\(|Asian Session|session liquidity|Killzone session' || true
+
+          bun install --frozen-lockfile
+          bun run test -- --run src/tests/importRobustness.test.ts src/tests/riskPatterns.test.ts src/tests/myEdgeAnalyzerFeatures.test.ts src/tests/tradingSession.test.ts src/tests/dashboardDataIntegrity.test.ts
+          bun run lint
+
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add src
+          git rm -f .github/workflows/finalize-killzone-terminology.yml .github/workflows/validate-killzone-terminology.yml
+          git commit -m 'refactor: finalize killzone terminology'
+          git push origin main
