@@ -78,7 +78,7 @@ export default function App() {
   const handleRestoreTrades = async (restoredTrades:Trade[]) => { for (const t of restoredTrades) { try { await addTrade(t); } catch { /* continue */ } } };
 
   return <div className="min-h-screen bg-[#F8FAFC] dark:bg-[#0B0D12] text-[#0F172A] dark:text-[#F5F5F5] font-sans flex flex-col md:flex-row relative">
-    <div className="fixed inset-0 pointer-events-none bg-gradient-to-tr from-indigo-500/5 dark:from-[#F97316]/5 via-transparent to-purple-500/5 dark:to-[#EA580C]/5 -z-10 blur-3xl"/>
+    <div className="fixed inset-0 pointer-events-none bg-gradient-to-tr from-indigo-500/5 dark:from-[#7C3AED]/5 via-transparent to-purple-500/5 dark:to-[#6D28D9]/5 -z-10 blur-3xl"/>
     <Sidebar activeTab={activeTab} onTabChange={setActiveTab} onOpenCreate={()=>setIsCreateOpen(true)} onOpenImport={()=>setIsImportOpen(true)} onOpenSetupsModal={()=>setIsSetupsOpen(true)} onOpenBackup={()=>setIsBackupOpen(true)} onSeed={handleSeed} isLoading={isLoading} tradeCount={safeTrades.length} isMobileOpen={isMobileMenuOpen} onCloseMobile={()=>setIsMobileMenuOpen(false)}/>
     <div className="flex-1 flex flex-col min-w-0 h-screen overflow-y-auto">
       <TopBar unreadCount={unreadCount} activeNotificationCount={activeAlerts.length} onDismissAllNotifications={()=>{ if(window.confirm('Retirer toutes les notifications actives ? Elles resteront consultables dans l’historique des paramètres.')) void dismissAll(); }} activeTab={activeTab} onOpenMobileMenu={()=>setIsMobileMenuOpen(true)} onOpenCreate={()=>setIsCreateOpen(true)} onOpenImport={()=>setIsImportOpen(true)} onOpenSetupsModal={()=>setIsSetupsOpen(true)} onOpenBackup={()=>setIsBackupOpen(true)} onSeed={handleSeed} isLoading={isLoading} tradeCount={safeTrades.length}/>
