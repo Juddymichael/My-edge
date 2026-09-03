@@ -10,31 +10,38 @@ export const SESSION_LABELS = {
   OFF_SESSION: 'Hors session',
 } as const;
 
-/**
- * Converts an instant to the app's fixed UTC+3 clock (Madagascar time).
- * We deliberately use a fixed offset here because the app currently operates
- * on UTC+3 and the broker CSVs do not reliably carry a session field.
- */
-export function getAppHour(dateString: string): number {
+function getAppMinuteOfDay(dateString: string): number {
   const date = new Date(dateString);
-  if (Number.isNaN(date.getTime())) return 0;
-  const utcHour = date.getUTCHours();
-  const utcMinutes = date.getUTCMinutes();
-  return (utcHour + APP_TIMEZONE_OFFSET_HOURS + utcMinutes / 60) % 24;
+  if (Number.isNaN(date.getTime())) return -1;
+  return ((date.getUTCHours() * 60 + date.getUTCMinutes() + APP_TIMEZONE_OFFSET_HOURS * 60) % 1440 + 1440) % 1440;
+}
+
+export function getAppHour(dateString: string): number {
+  const minute = getAppMinuteOfDay(dateString);
+  return minute < 0 ? 0 : minute / 60;
 }
 
 /**
- * Derive a session only when the trade has no manually recorded session.
- * Boundaries intentionally overlap at 10:00; London Close wins there.
+ * Keep an explicitly recorded session. Otherwise derive it from the opening
+ * timestamp in the app's current fixed UTC+3 clock.
+ *
+ * 20:00–00:01 Asia
+ * 02:00–05:01 London
+ * 07:00–09:59 New York
+ * 10:00–12:01 London Close
+ * remaining times: Hors session
+ *
+ * The requested source ranges overlap at 10:00–10:01; London Close takes
+ * precedence there so each trade belongs to exactly one chart bucket.
  */
 export function deriveTradingSession(trade: Pick<Trade, 'openedAt' | 'session'>): string {
   if (trade.session) return trade.session;
-  const hour = getAppHour(trade.openedAt);
-
-  if (hour >= 20 || hour < 0.0167) return SESSION_LABELS.ASIA; // 20:00–00:00
-  if (hour >= 2 && hour < 5.0167) return SESSION_LABELS.LONDON; // 02:00–05:01
-  if (hour >= 7 && hour < 10.0167) return SESSION_LABELS.NEW_YORK; // 07:00–10:01
-  if (hour >= 10 && hour < 12.0167) return SESSION_LABELS.LONDON_CLOSE; // 10:00–12:01
+  const minute = getAppMinuteOfDay(trade.openedAt);
+  if (minute < 0) return SESSION_LABELS.OFF_SESSION;
+  if (minute >= 1200 || minute <= 1) return SESSION_LABELS.ASIA;
+  if (minute >= 120 && minute <= 301) return SESSION_LABELS.LONDON;
+  if (minute >= 420 && minute <= 599) return SESSION_LABELS.NEW_YORK;
+  if (minute >= 600 && minute <= 721) return SESSION_LABELS.LONDON_CLOSE;
   return SESSION_LABELS.OFF_SESSION;
 }
 
