@@ -58,7 +58,7 @@ export default function App() {
   const handleRestoreTrades = async (restoredTrades:Trade[]) => { for (const t of restoredTrades) { try { await addTrade(t); } catch { /* continue */ } } };
 
   if (isMobile) {
-    return <MobileApp activeTab={activeTab} onTabChange={setActiveTab} data={{ trades: safeTrades, settings, setups: safeSetups }} onLogTrade={() => setIsCreateOpen(true)} />;
+    return <MobileApp activeTab={activeTab} onTabChange={setActiveTab} data={{ trades: safeTrades, settings, setups: safeSetups }} onLogTrade={() => setIsCreateOpen(true)} onDeleteTrade={handleDeleteTrade} onOpenImport={() => setIsImportOpen(true)} />;
   }
 
   return <div className="min-h-screen bg-[#F8FAFC] dark:bg-[#0B0D12] text-[#0F172A] dark:text-[#F5F5F5] font-sans flex flex-col md:flex-row relative">
