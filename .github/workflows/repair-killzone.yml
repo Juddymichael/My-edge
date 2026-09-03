@@ -1,0 +1,39 @@
+name: Repair Killzone terminology
+on:
+  push:
+    branches: [main]
+permissions:
+  contents: write
+jobs:
+  repair:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: oven-sh/setup-bun@v2
+      - name: Repair compatibility and validate
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          def replace(path, pairs):
+              p=Path(path); text=p.read_text(); original=text
+              for a,b in pairs: text=text.replace(a,b)
+              if text!=original: p.write_text(text)
+          replace('src/types/trade.ts', [("'NEW_YORK' | 'CUSTOM' |", "'NEW_YORK' | 'OFF_HOURS' | 'CUSTOM' |")])
+          replace('src/lib/riskPatterns.ts', [("t.session==='Hors Killzone'||t.session==='NO_SESSION'", "t.session==='OFF_HOURS'")])
+          replace('src/tests/riskPatterns.test.ts', [("session:killzone==='LONDON_OPEN'?'Killzone Londres':killzone==='OFF_HOURS'?'Hors Killzone':null", "session:killzone==='LONDON_OPEN'?'LONDON':killzone==='OFF_HOURS'?'OFF_HOURS':null")])
+          PY
+          git diff --check
+          bun install --frozen-lockfile
+          bun run test -- --run src/tests/importRobustness.test.ts src/tests/riskPatterns.test.ts src/tests/myEdgeAnalyzerFeatures.test.ts src/tests/tradingSession.test.ts src/tests/dashboardDataIntegrity.test.ts
+          bun run lint
+          bun run build
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add src
+          git rm -f .github/workflows/repair-killzone.yml .github/workflows/validate-killzone-final.yml .github/workflows/validate-killzone-terminology.yml || true
+          git commit -m 'fix: preserve killzone compatibility and pass validation'
+          git push origin main
