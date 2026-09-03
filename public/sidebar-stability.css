@@ -1,0 +1,29 @@
+/* Stable desktop sidebar collapse control.
+ * Keep the control anchored to the sidebar's left rail so its horizontal position
+ * does not change when the sidebar width switches between expanded/collapsed.
+ */
+@media (min-width: 768px) {
+  #thunder-edge-sidebar > div:first-child > button[type="button"] {
+    left: 12px !important;
+    right: auto !important;
+    top: 20px !important;
+    width: 28px !important;
+    height: 28px !important;
+    transform: none !important;
+    transition: background-color .15s ease-out, border-color .15s ease-out, color .15s ease-out, box-shadow .15s ease-out !important;
+  }
+
+  #thunder-edge-sidebar > div:first-child > button[type="button"]:hover,
+  #thunder-edge-sidebar > div:first-child > button[type="button"]:active {
+    transform: none !important;
+  }
+
+  /* Reserve the left control rail so the expanded brand never sits underneath it. */
+  #thunder-edge-sidebar > div:first-child > button:first-child {
+    margin-left: 32px;
+  }
+
+  #thunder-edge-sidebar.sidebar-collapsed > div:first-child > button:first-child {
+    margin-left: 32px;
+  }
+}
