@@ -1,47 +1,25 @@
 import express from 'express';
 import path from 'path';
 import { createServer as createViteServer } from 'vite';
-import { GoogleGenAI } from '@google/genai';
 
 const app = express();
 const PORT = 3000;
 
 app.use(express.json({ limit: '10mb' }));
 
-// Lazy initializer for Google GenAI client
-let aiClient: GoogleGenAI | null = null;
-function getGenAI(): GoogleGenAI {
-  if (!aiClient) {
-    const apiKey = process.env.GEMINI_API_KEY || '';
-    aiClient = new GoogleGenAI({
-      apiKey,
-      httpOptions: {
-        headers: {
-          'User-Agent': 'aistudio-build',
-        },
-      },
-    });
-  }
-  return aiClient;
-}
-
 // Health check endpoint
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
-// AI Coach endpoint — mirrors the Vercel serverless route for local development.
-app.post('/api/coach', async (req, res) => {
-  // Keep local development on the exact same implementation as the deployed
-  // Vercel route, including Gemini thoughtSignature preservation.
+// Structured AI Analysis endpoint — one-shot Gemini JSON generation.
+app.post('/api/ai-analysis', async (req, res) => {
   try {
-    const { default: coachHandler } = await import('./api/coach.js');
-    return coachHandler(req, res);
+    const { default: handler } = await import('./api/ai-analysis.js');
+    return handler(req, res);
   } catch (error: any) {
-    console.error('[AI Coach Error]:', error);
-    return res.status(500).json({
-      error: error?.message || 'Une erreur est survenue lors de la communication avec le coach IA.',
-    });
+    console.error('[AI Analysis Error]:', error);
+    return res.status(500).json({ error: error?.message || 'Une erreur est survenue lors de la génération de l’analyse IA.' });
   }
 });
 

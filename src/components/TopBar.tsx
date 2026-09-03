@@ -110,7 +110,7 @@ export const TopBar: React.FC<TopBarProps> = ({
         </button>
 
         <div className="flex items-center gap-2.5 min-w-0">
-          <div className="hidden sm:flex p-2 rounded-2xl bg-[#F5EEFF] dark:bg-[#FF8A00]/10 text-[#6D19E8] dark:text-[#FF8A00] border border-[#DDD5FA] dark:border-[#FF8A00]/30 shrink-0 shadow-xs">
+          <div className="hidden sm:flex p-2 rounded-2xl bg-[#F5EEFF] dark:bg-[#A855F7]/10 text-[#6D19E8] dark:text-[#A855F7] border border-[#DDD5FA] dark:border-[#A855F7]/30 shrink-0 shadow-xs">
             <Icon className="w-4 h-4" />
           </div>
           <div className="min-w-0">
@@ -139,17 +139,17 @@ export const TopBar: React.FC<TopBarProps> = ({
           className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold rounded-2xl text-[#0F0E26] dark:text-[#F5F5F5] bg-[#FAF8FF] dark:bg-[#181C25] hover:bg-[#F3EEFF] dark:hover:bg-[#1F2430] border border-[#ECE7FC] dark:border-[#292E38] transition-all duration-200 cursor-pointer shadow-xs btn-press btn-icon-animate group"
           title="Open Setups Manager (Golden FVG, CISD, OB)"
         >
-          <Sliders className="w-3.5 h-3.5 text-[#6D19E8] dark:text-[#FF8A00] btn-icon" />
+          <Sliders className="w-3.5 h-3.5 text-[#6D19E8] dark:text-[#A855F7] btn-icon" />
           <span>Setups</span>
         </button>
 
         {/* Import Trades Button */}
         <button
           onClick={onOpenImport}
-          className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold rounded-2xl text-[#6D19E8] dark:text-[#FF8A00] bg-[#F5EEFF] dark:bg-[#FF8A00]/10 hover:bg-[#ECE2FF] dark:hover:bg-[#FF8A00]/20 border border-[#DDD5FA] dark:border-[#FF8A00]/30 transition-all duration-200 cursor-pointer shadow-xs btn-press btn-icon-animate group"
+          className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold rounded-2xl text-[#6D19E8] dark:text-[#A855F7] bg-[#F5EEFF] dark:bg-[#A855F7]/10 hover:bg-[#ECE2FF] dark:hover:bg-[#A855F7]/20 border border-[#DDD5FA] dark:border-[#A855F7]/30 transition-all duration-200 cursor-pointer shadow-xs btn-press btn-icon-animate group"
           title="Import trades from CSV, Excel, Word, PDF, JSON"
         >
-          <Upload className="w-3.5 h-3.5 text-[#6D19E8] dark:text-[#FF8A00] btn-icon-bounce" />
+          <Upload className="w-3.5 h-3.5 text-[#6D19E8] dark:text-[#A855F7] btn-icon-bounce" />
           <span className="hidden sm:inline">Importer</span>
         </button>
 
@@ -158,10 +158,10 @@ export const TopBar: React.FC<TopBarProps> = ({
           <button
             onClick={onSeed}
             disabled={isLoading}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold rounded-2xl text-amber-800 dark:text-[#FF8A00] bg-amber-50 dark:bg-[#FF8A00]/10 hover:bg-amber-100 dark:hover:bg-[#FF8A00]/20 border border-amber-300 dark:border-[#FF8A00]/30 transition-all duration-200 cursor-pointer disabled:opacity-50 shadow-xs btn-press btn-icon-animate group"
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold rounded-2xl text-amber-800 dark:text-[#A855F7] bg-amber-50 dark:bg-[#A855F7]/10 hover:bg-amber-100 dark:hover:bg-[#A855F7]/20 border border-amber-300 dark:border-[#A855F7]/30 transition-all duration-200 cursor-pointer disabled:opacity-50 shadow-xs btn-press btn-icon-animate group"
             title="Load sample institutional trades"
           >
-            <Sparkles className="w-3.5 h-3.5 text-amber-500 fill-amber-500 dark:text-[#FF8A00] dark:fill-[#FF8A00] btn-icon" />
+            <Sparkles className="w-3.5 h-3.5 text-amber-500 fill-amber-500 dark:text-[#A855F7] dark:fill-[#A855F7] btn-icon" />
             <span className="hidden sm:inline">Seed Data</span>
           </button>
         )}
@@ -185,7 +185,7 @@ export const TopBar: React.FC<TopBarProps> = ({
             aria-label="Effacer les notifications actives"
           >
             <Bell className="w-4 h-4 btn-icon" />
-            {unreadCount > 0 && <span className="absolute -top-0.5 -right-0.5 min-w-4 h-4 px-1 rounded-full bg-[#F97316] text-white text-[9px] font-bold flex items-center justify-center border-2 border-white dark:border-[#0B0D12]">{unreadCount > 99 ? '99+' : unreadCount}</span>}
+            {unreadCount > 0 && <span className="absolute -top-0.5 -right-0.5 min-w-4 h-4 px-1 rounded-full bg-[#7C3AED] text-white text-[9px] font-bold flex items-center justify-center border-2 border-white dark:border-[#0B0D12]">{unreadCount > 99 ? '99+' : unreadCount}</span>}
           </button>
         )}
         {onDismissAllNotifications && (
@@ -209,7 +209,7 @@ export const TopBar: React.FC<TopBarProps> = ({
           aria-label="Toggle Theme"
         >
           {isDark ? (
-            <Sun className="w-4 h-4 text-[#FF8A00] fill-[#FF8A00]/20 btn-icon" />
+            <Sun className="w-4 h-4 text-[#A855F7] fill-[#A855F7]/20 btn-icon" />
           ) : (
             <Moon className="w-4 h-4 text-[#6D19E8] fill-[#6D19E8]/20 btn-icon" />
           )}
@@ -221,7 +221,7 @@ export const TopBar: React.FC<TopBarProps> = ({
           whileTap={{ scale: 0.96 }}
           onClick={onOpenCreate}
           disabled={isLoading}
-          className="inline-flex items-center gap-1.5 px-3.5 py-1.5 sm:px-4 sm:py-2 text-xs font-bold rounded-2xl bg-gradient-to-r from-[#6D19E8] to-[#4B27B8] dark:from-[#FF8A00] dark:to-[#FF6B00] hover:from-[#5A14C4] hover:to-[#3E1D9E] dark:hover:from-[#E67600] dark:hover:to-[#E65C00] text-white shadow-md shadow-[#6D19E8]/20 dark:shadow-[#FF8A00]/25 transition-all duration-200 cursor-pointer disabled:opacity-50 btn-press btn-icon-animate group"
+          className="inline-flex items-center gap-1.5 px-3.5 py-1.5 sm:px-4 sm:py-2 text-xs font-bold rounded-2xl bg-gradient-to-r from-[#6D19E8] to-[#4B27B8] dark:from-[#A855F7] dark:to-[#EC4899] hover:from-[#5A14C4] hover:to-[#3E1D9E] dark:hover:from-[#7C3AED] dark:hover:to-[#DB2777] text-white shadow-md shadow-[#6D19E8]/20 dark:shadow-[#A855F7]/25 transition-all duration-200 cursor-pointer disabled:opacity-50 btn-press btn-icon-animate group"
         >
           <Plus className="w-3.5 h-3.5 stroke-[2.5] btn-icon" />
           <span>New Trade</span>

@@ -12,7 +12,7 @@ import { TradeTable } from './components/TradeTable';
 import { EquityCurveChart } from './components/EquityCurveChart';
 import { MyEdgeAnalyzerView } from './components/MyEdgeAnalyzerView';
 import { AnalyticsView } from './components/AnalyticsView';
-import { CoachView } from './components/CoachView';
+import { AIAnalysisView } from './components/AIAnalysisView';
 import { SettingsView } from './components/SettingsView';
 import { CreateTradeModal } from './components/CreateTradeModal';
 import { TradeDetailModal } from './components/TradeDetailModal';
@@ -78,7 +78,7 @@ export default function App() {
   const handleRestoreTrades = async (restoredTrades:Trade[]) => { for (const t of restoredTrades) { try { await addTrade(t); } catch { /* continue */ } } };
 
   return <div className="min-h-screen bg-[#F8FAFC] dark:bg-[#0B0D12] text-[#0F172A] dark:text-[#F5F5F5] font-sans flex flex-col md:flex-row relative">
-    <div className="fixed inset-0 pointer-events-none bg-gradient-to-tr from-indigo-500/5 dark:from-[#F97316]/5 via-transparent to-purple-500/5 dark:to-[#EA580C]/5 -z-10 blur-3xl"/>
+    <div className="fixed inset-0 pointer-events-none bg-gradient-to-tr from-indigo-500/5 dark:from-[#7C3AED]/5 via-transparent to-purple-500/5 dark:to-[#6D28D9]/5 -z-10 blur-3xl"/>
     <Sidebar activeTab={activeTab} onTabChange={setActiveTab} onOpenCreate={()=>setIsCreateOpen(true)} onOpenImport={()=>setIsImportOpen(true)} onOpenSetupsModal={()=>setIsSetupsOpen(true)} onOpenBackup={()=>setIsBackupOpen(true)} onSeed={handleSeed} isLoading={isLoading} tradeCount={safeTrades.length} isMobileOpen={isMobileMenuOpen} onCloseMobile={()=>setIsMobileMenuOpen(false)}/>
     <div className="flex-1 flex flex-col min-w-0 h-screen overflow-y-auto">
       <TopBar unreadCount={unreadCount} activeNotificationCount={activeAlerts.length} onDismissAllNotifications={()=>{ if(window.confirm('Retirer toutes les notifications actives ? Elles resteront consultables dans l’historique des paramètres.')) void dismissAll(); }} activeTab={activeTab} onOpenMobileMenu={()=>setIsMobileMenuOpen(true)} onOpenCreate={()=>setIsCreateOpen(true)} onOpenImport={()=>setIsImportOpen(true)} onOpenSetupsModal={()=>setIsSetupsOpen(true)} onOpenBackup={()=>setIsBackupOpen(true)} onSeed={handleSeed} isLoading={isLoading} tradeCount={safeTrades.length}/>
@@ -92,7 +92,7 @@ export default function App() {
             {activeTab === 'trades' && <motion.div key="trades" {...viewMotion}><TradeTable trades={safeTrades} onDelete={handleDeleteTrade} onSelect={setSelectedTrade} onSeed={handleSeed} onOpenCreate={()=>setIsCreateOpen(true)} onOpenImport={()=>setIsImportOpen(true)}/></motion.div>}
             {activeTab === 'edge' && <motion.div key="edge" {...viewMotion}><MyEdgeAnalyzerView trades={safeTrades} setups={safeSetups} currency={settings.currency||'EUR'} onOpenSetupsModal={()=>setIsSetupsOpen(true)} onSelectTrade={setSelectedTrade}/></motion.div>}
             {activeTab === 'analytics' && <motion.div key="analytics" {...viewMotion}><AnalyticsView trades={safeTrades} currency={settings.currency||'EUR'} initialBalance={settings.initialAccountBalance||10000} onSelectTrade={setSelectedTrade}/></motion.div>}
-            {activeTab === 'coach' && <motion.div key="coach" {...viewMotion}><CoachView trades={safeTrades} setups={safeSetups} currency={settings.currency||'USD'} initialBalance={settings.initialAccountBalance||10000}/></motion.div>}
+            {activeTab === 'ai-analysis' && <motion.div key="ai-analysis" {...viewMotion}><AIAnalysisView trades={safeTrades} setups={safeSetups} settings={settings} currency={settings.currency||'USD'} onNotify={notify}/></motion.div>}
             {activeTab === 'settings' && <motion.div key="settings" {...viewMotion}><SettingsView settings={settings} alerts={alerts} onUpdateSettings={updateSettings} onOpenBackup={()=>setIsBackupOpen(true)} onOpenSetups={()=>setIsSetupsOpen(true)} onOpenImport={()=>setIsImportOpen(true)} onSeed={handleSeed} onClear={handleClear} tradeCount={safeTrades.length}/></motion.div>}
           </>}
         </AnimatePresence>
