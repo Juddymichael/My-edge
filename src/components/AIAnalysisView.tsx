@@ -35,7 +35,7 @@ function PerformanceChart({ title, data, info }: {title:string;data:{name:string
       {data.map((d,i)=>{const x=padL+(i+0.5)*(plotW/data.length), bw=Math.min(52,plotW/data.length*.52), bh=Math.abs(d.pnl)/maxAbs*(plotH/2-6), y=d.pnl>=0?zeroY-bh:zeroY; return <g key={d.name}><rect x={x-bw/2} y={y} width={bw} height={Math.max(2,bh)} rx="5" fill="url(#pnlGradient)" opacity=".82"/><text x={x} y={height-18} textAnchor="middle" fontSize="9" fill="#CBD5E1">{d.name}</text></g>})}
       <polyline fill="none" stroke="#F472B6" strokeWidth="2.5" points={points.map(p=>`${p.x},${p.y}`).join(' ')}/>
       {points.map(p=><circle key={p.name} cx={p.x} cy={p.y} r="3.5" fill="#F472B6"><title>{p.name}: P&L moyen {currencyValue(p.pnl,'')} · Win rate {pct(p.winRate)}</title></circle>)}
-      <defs><linearGradient id="pnlGradient" x1="0" x2="1"><stop stopColor="#7C3AED"/><stop offset="1" stopColor="#EC4899"/></linearGradient></defs>
+      <defs><linearGradient id="pnlGradient" x1="0" x2="1"><stop stopColor="#7C3AED"/><stop offset="100%" stopColor="#EC4899"/></linearGradient></defs>
       <text x="8" y={padT+5} fontSize="9" fill="#CBD5E1">P&L moyen</text><text x={width-5} y={padT+5} textAnchor="end" fontSize="9" fill="#F472B6">Win rate</text>
     </svg>}
     <div className="flex items-center gap-5 text-[10px] text-slate-400 mt-1"><span className="flex items-center gap-1.5"><i className="w-2.5 h-2.5 rounded-sm bg-gradient-to-r from-violet-600 to-fuchsia-500"/>P&L moyen</span><span className="flex items-center gap-1.5"><i className="w-2.5 h-2.5 rounded-full bg-pink-400"/>Win rate</span></div>
