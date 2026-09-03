@@ -26,4 +26,23 @@
   #thunder-edge-sidebar.sidebar-collapsed > div:first-child > button:first-child {
     margin-left: 32px;
   }
+
+  /* Collapse is a navigation layout change: keep it instantaneous and cheap. */
+  #thunder-edge-sidebar,
+  #thunder-edge-sidebar * {
+    backface-visibility: hidden;
+  }
+
+  #thunder-edge-sidebar.sidebar-collapsed .sidebar-copy,
+  #thunder-edge-sidebar.sidebar-collapsed .sidebar-brand-copy,
+  #thunder-edge-sidebar.sidebar-collapsed .sidebar-section-label {
+    transition: none !important;
+    animation: none !important;
+  }
+
+  #thunder-edge-sidebar.sidebar-collapsed .nav-item-interactive,
+  #thunder-edge-sidebar.sidebar-collapsed .nav-icon-motion,
+  #thunder-edge-sidebar.sidebar-collapsed .btn-press {
+    transition: none !important;
+  }
 }
