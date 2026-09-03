@@ -1,0 +1,31 @@
+name: Validate Killzone terminology
+
+on:
+  push:
+    branches: [main]
+permissions:
+  contents: write
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Align killzone test fixture and validate
+        shell: bash
+        run: |
+          set -euo pipefail
+          perl -pi -e "s/session:null,timeframe:'M15',setup:null,setupId:null,killzone,notes/session:killzone==='LONDON_OPEN'?'Killzone Londres':killzone==='OFF_HOURS'?'Hors Killzone':null,timeframe:'M15',setup:null,setupId:null,killzone,notes/" src/tests/riskPatterns.test.ts
+          git diff -- src/tests/riskPatterns.test.ts
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          bun install --frozen-lockfile
+          bun run test -- --run src/tests/importRobustness.test.ts src/tests/riskPatterns.test.ts src/tests/myEdgeAnalyzerFeatures.test.ts src/tests/tradingSession.test.ts src/tests/dashboardDataIntegrity.test.ts
+          bun run lint
+          git add src/tests/riskPatterns.test.ts
+          git rm -f .github/workflows/validate-killzone-terminology.yml
+          if ! git diff --cached --quiet; then
+            git commit -m 'test: align killzone risk fixture with calculated field'
+            git push origin main
+          fi
