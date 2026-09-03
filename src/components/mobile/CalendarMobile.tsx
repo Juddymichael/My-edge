@@ -1,7 +1,31 @@
-import { MobilePageFrame } from './MobilePageFrame';
-import type { MobilePageProps } from './types';
+import React,{useMemo,useState}from'react';
+import{Calendar as CalendarIcon,ChevronLeft,ChevronRight,X}from'lucide-react';
+import{buildMonthCalendar,getAllTradingMonths}from'../../lib/calendar';
+import{formatCurrency,formatPercent}from'../../lib/formatting';
+import type{MobilePageProps}from'./types';
 
-export function CalendarMobile({ data }: MobilePageProps) {
-  void data;
-  return <MobilePageFrame title="Calendrier" description="Structure mobile dédiée — contenu à construire page par page." />;
+const months=['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'];
+const card='rounded-3xl border border-slate-800 bg-[#111118]';
+const tone=(p:number,c:number)=>c===0?'bg-slate-900/30 border-slate-800':p>0?'bg-emerald-950/30 border-emerald-500/40':p<0?'bg-rose-950/30 border-rose-500/40':'bg-slate-900/50 border-slate-600';
+
+export function CalendarMobile({data}:MobilePageProps){
+ const{trades=[],settings,onSelectTrade}=data as any; const currency=settings?.currency||'EUR';
+ const def=useMemo(()=>{const t=trades.find((x:any)=>x.closedAt||x.openedAt);if(t){const d=new Date(t.closedAt||t.openedAt);if(!isNaN(d.getTime()))return{y:d.getUTCFullYear(),m:d.getUTCMonth()}}const d=new Date();return{y:d.getUTCFullYear(),m:d.getUTCMonth()}},[trades]);
+ const[y,setY]=useState(def.y),[m,setM]=useState(def.m),[day,setDay]=useState<any>(null),[jump,setJump]=useState(false);
+ const month=useMemo(()=>buildMonthCalendar(y,m,trades),[y,m,trades]); const available=useMemo(()=>getAllTradingMonths(trades),[trades]);
+ const move=(n:number)=>{const d=new Date(Date.UTC(y,m+n,1));setY(d.getUTCFullYear());setM(d.getUTCMonth())};
+ const days=month.weeks.flatMap((w:any)=>w.days);
+ return <div className="mobile-page-frame space-y-4 text-slate-100">
+  <header className="mobile-page-header">
+   <div className="flex items-center justify-between gap-2"><button onClick={()=>move(-1)} className="min-w-11 min-h-11 rounded-xl bg-slate-900 border border-slate-700 flex items-center justify-center" aria-label="Mois précédent"><ChevronLeft/></button><button onClick={()=>setJump(true)} className="min-w-0 max-w-[65%] min-h-11 px-4 rounded-xl font-black truncate">{months[m]} {y}</button><button onClick={()=>move(1)} className="min-w-11 min-h-11 rounded-xl bg-slate-900 border border-slate-700 flex items-center justify-center" aria-label="Mois suivant"><ChevronRight/></button></div>
+   <div className="mt-3 grid grid-cols-3 gap-2"><div className={card+' p-3 min-w-0'}><span className="text-[9px] text-slate-500">P&L</span><b className={'block mt-1 truncate '+(month.netPnL>=0?'text-emerald-400':'text-rose-400')}>{formatCurrency(month.netPnL,currency,{showSign:true})}</b></div><div className={card+' p-3'}><span className="text-[9px] text-slate-500">TRADES</span><b className="block mt-1">{month.totalTrades}</b></div><div className={card+' p-3'}><span className="text-[9px] text-slate-500">WIN RATE</span><b className="block mt-1">{formatPercent(month.winRate,1)}</b></div></div>
+  </header>
+  <section className={card+' overflow-hidden'}>
+   <div className="grid grid-cols-7 border-b border-slate-800 bg-slate-950/60">{['L','M','M','J','V','S','D'].map((d,i)=><div key={i} className="min-h-10 flex items-center justify-center text-[10px] font-black text-slate-500">{d}</div>)}</div>
+   <div className="grid grid-cols-7">{days.map((d:any,i:number)=>{const active=d.isCurrentMonth&&d.tradeCount>0;return <button key={d.dateStr+'-'+i} type="button" disabled={!active} onClick={()=>setDay(d)} className={'min-w-0 min-h-[58px] p-1 border-r border-b flex flex-col items-center justify-center gap-1 focus:outline-none focus:ring-2 focus:ring-violet-500 '+tone(d.netPnL,d.tradeCount)+' '+(!d.isCurrentMonth?'opacity-25':'')}><span className="text-xs font-black">{d.dayNumber}</span>{active&&<><span className={'max-w-full truncate text-[9px] font-bold '+(d.netPnL>0?'text-emerald-300':d.netPnL<0?'text-rose-300':'text-slate-300')}>{d.netPnL>0?'+':''}{Math.round(d.netPnL)}</span><span className="text-[8px] text-slate-500">{d.tradeCount} tr.</span></>}</button>})}</div>
+  </section>
+  <div className={card+' p-3 flex justify-center gap-4 text-[10px] text-slate-400'}><span>● Gagnant</span><span>● Perdant</span><span>● Neutre</span></div>
+  {day&&<div className="fixed inset-0 z-[80] bg-black/75 flex items-end" onClick={()=>setDay(null)}><div className={card+' w-full max-h-[82dvh] overflow-y-auto rounded-b-none p-5'} onClick={e=>e.stopPropagation()}><div className="flex items-center justify-between gap-3"><div className="min-w-0"><h2 className="text-lg font-black">Jour {day.dayNumber}</h2><p className="text-xs text-slate-500">{day.dateStr}</p></div><button onClick={()=>setDay(null)} className="min-w-11 min-h-11 rounded-xl bg-slate-800"><X/></button></div><div className="grid grid-cols-2 gap-3 mt-5"><div className="bg-slate-900 rounded-2xl p-4 min-w-0"><span className="text-[9px] text-slate-500">P&L total</span><b className={'block mt-1 text-lg truncate '+(day.netPnL>=0?'text-emerald-400':'text-rose-400')}>{formatCurrency(day.netPnL,currency,{showSign:true})}</b></div><div className="bg-slate-900 rounded-2xl p-4"><span className="text-[9px] text-slate-500">Trades</span><b className="block mt-1 text-lg">{day.tradeCount}</b></div></div><div className="mt-5 space-y-2"><h3 className="text-xs font-black uppercase text-slate-500">Trades du jour</h3>{day.trades.map((t:any)=><button key={t.id} onClick={()=>onSelectTrade?.(t)} className="w-full min-h-12 rounded-xl bg-slate-900 border border-slate-800 px-3 flex items-center justify-between gap-3 text-left"><span className="truncate">{t.symbol||'—'}</span><span className={'shrink-0 font-bold '+((t.netPnL||0)>=0?'text-emerald-400':'text-rose-400')}>{formatCurrency(t.netPnL||0,currency,{showSign:true})}</span></button>)}</div></div></div>}
+  {jump&&<div className="fixed inset-0 z-[90] bg-black/75 flex items-center justify-center p-4" onClick={()=>setJump(false)}><div className={card+' w-full max-w-md p-5'} onClick={e=>e.stopPropagation()}><div className="flex justify-between items-center"><h2 className="font-black">Choisir une période</h2><button onClick={()=>setJump(false)} className="min-w-11 min-h-11 rounded-xl bg-slate-800"><X/></button></div><select value={y+'-'+m} onChange={e=>{const[a,b]=e.target.value.split('-').map(Number);setY(a);setM(b);setJump(false)}} className="w-full min-h-12 mt-4 rounded-xl bg-slate-900 border border-slate-700 px-3">{available.map((x:any)=><option key={x.monthKey} value={x.year+'-'+x.month}>{x.monthLabel} ({x.totalTrades})</option>)}</select></div></div>}
+ </div>
 }
