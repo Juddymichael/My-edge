@@ -3,6 +3,8 @@ import { useTrades } from './hooks/useTrades';
 import { useSettings } from './hooks/useSettings';
 import { useSetups } from './hooks/useSetups';
 import { useRiskAlerts } from './hooks/useRiskAlerts';
+import { useIsMobile } from './hooks/useIsMobile';
+import { MobileApp } from './components/mobile/MobileApp';
 import { Sidebar, ActiveTab } from './components/Sidebar';
 import { MobileBottomNav } from './components/MobileBottomNav';
 import { TopBar } from './components/TopBar';
@@ -26,10 +28,12 @@ import { AlertCircle } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { DashboardSkeleton } from './components/Skeleton';
 import { ToastNotification } from './components/ToastNotification';
+import './styles/mobile-architecture.css';
 
 const viewMotion = { initial: { opacity: 0, y: 6 }, animate: { opacity: 1, y: 0 }, exit: { opacity: 0, y: -4 }, transition: { duration: 0.22, ease: 'easeOut' as const } };
 
 export default function App() {
+  const isMobile = useIsMobile();
   useEffect(() => {
     const handlePointerDown = (event: PointerEvent) => {
       const target = event.target as Element | null; const clickable = target?.closest<HTMLElement>('button:not(:disabled), [role="button"], a[href]');
@@ -52,6 +56,10 @@ export default function App() {
   const handleCreateTrade = async (newTrade:NewTradeInput) => { try { const saved = await addTrade(newTrade); notify('success', `Trade ${saved.symbol} (#${saved.ticket || saved.id.slice(0,8)}) recorded successfully.`); } catch (err) { notify('error', err instanceof Error ? err.message : 'Failed to save trade'); throw err; } };
   const handleDeleteTrade = async (id:string) => { try { await removeTrade(id); notify('success', 'Trade deleted from IndexedDB.'); } catch { notify('error', 'Failed to delete trade'); } };
   const handleRestoreTrades = async (restoredTrades:Trade[]) => { for (const t of restoredTrades) { try { await addTrade(t); } catch { /* continue */ } } };
+
+  if (isMobile) {
+    return <MobileApp activeTab={activeTab} onTabChange={setActiveTab} data={{ trades: safeTrades, settings, setups: safeSetups }} />;
+  }
 
   return <div className="min-h-screen bg-[#F8FAFC] dark:bg-[#0B0D12] text-[#0F172A] dark:text-[#F5F5F5] font-sans flex flex-col md:flex-row relative">
     <div className="fixed inset-0 pointer-events-none bg-gradient-to-tr from-indigo-500/5 dark:from-[#7C3AED]/5 via-transparent to-purple-500/5 dark:to-[#6D28D9]/5 -z-10 blur-3xl"/>
