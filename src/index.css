@@ -53,3 +53,33 @@ html.dark #view-my-edge .text-slate-900,body.dark #view-my-edge .text-slate-900{
 #view-my-edge input,#view-my-edge select,#view-my-edge textarea{color:#0F172A;background-color:#F8FAFC}#view-my-edge input::placeholder,#view-my-edge textarea::placeholder{color:#64748B;opacity:1}
 html.dark #view-my-edge input,html.dark #view-my-edge select,html.dark #view-my-edge textarea,body.dark #view-my-edge input,body.dark #view-my-edge select,body.dark #view-my-edge textarea{color:#F8FAFC;background-color:#181C25}html.dark #view-my-edge input::placeholder,html.dark #view-my-edge textarea::placeholder,body.dark #view-my-edge input::placeholder,body.dark #view-my-edge textarea::placeholder{color:#AAB2C0;opacity:1}
 #view-my-edge option{color:#0F172A;background:#FFFFFF}html.dark #view-my-edge option,body.dark #view-my-edge option{color:#F8FAFC;background:#181C25}
+
+
+/* Motion system: phase 1 — loading, ripple, navigation and icon micro-interactions */
+.ripple-host{position:relative;overflow:hidden;isolation:isolate}
+.ripple-effect{position:absolute;border-radius:9999px;pointer-events:none;z-index:20;background:rgba(255,255,255,.28);transform:scale(0);animation:ripple-expand .48s cubic-bezier(.2,.75,.25,1) forwards;mix-blend-mode:screen}
+@keyframes ripple-expand{to{transform:scale(2.4);opacity:0}}
+
+.nav-item-interactive .nav-icon-motion{transition:transform .24s cubic-bezier(.22,1,.36,1)}
+.nav-item-interactive:hover .nav-icon-motion{transform:translateX(3px)}
+.nav-item-interactive .nav-label-mask{display:block;overflow:hidden;min-width:0}
+.nav-item-interactive .nav-label-reveal{display:block;transform:translateX(-8px);opacity:.72;transition:transform .24s cubic-bezier(.22,1,.36,1),opacity .2s ease-out}
+.nav-item-interactive:hover .nav-label-reveal,.nav-item-interactive.active .nav-label-reveal{transform:translateX(0);opacity:1}
+
+.micro-chevron{transform-origin:50% 50%;transition:transform .28s cubic-bezier(.34,1.56,.64,1)}
+.micro-chevron.rotate-180{transform:rotate(180deg)}
+
+@media (prefers-reduced-motion:reduce){
+  .ripple-effect{animation:none!important}
+  .nav-item-interactive .nav-icon-motion,.nav-item-interactive .nav-label-reveal,.micro-chevron{transition-duration:1ms!important}
+}
+
+
+/* Motion system: phase 2 — scoped halos and spring metric tooltips */
+.edge-killzone-halo,.edge-confirmed-halo{position:relative;isolation:isolate}
+.edge-killzone-halo::after,.edge-confirmed-halo::after{content:"";position:absolute;inset:-2px;border-radius:inherit;padding:1px;pointer-events:none;z-index:-1;background:linear-gradient(110deg,transparent 12%,rgba(52,211,153,.08) 38%,rgba(255,255,255,.72) 50%,rgba(52,211,153,.08) 62%,transparent 88%);background-size:220% 100%;animation:edge-halo-sweep 2.8s ease-in-out infinite;opacity:.9}
+.edge-confirmed-halo::after{background:linear-gradient(110deg,transparent 12%,rgba(16,185,129,.06) 38%,rgba(255,255,255,.7) 50%,rgba(16,185,129,.06) 62%,transparent 88%);background-size:220% 100%}
+@keyframes edge-halo-sweep{0%,100%{background-position:120% 0}50%{background-position:-20% 0}}
+.metric-tooltip-spring{transform:translate(-50%,0);transform-origin:center bottom;animation:metric-tooltip-spring .24s cubic-bezier(.34,1.56,.64,1) both}
+@keyframes metric-tooltip-spring{0%{opacity:0;transform:translate(-50%,4px) scale(.96)}70%{opacity:1;transform:translate(-50%,-1px) scale(1.012)}100%{opacity:1;transform:translate(-50%,0) scale(1)}}
+@media (prefers-reduced-motion:reduce){.edge-killzone-halo::after,.edge-confirmed-halo::after{animation:none}.metric-tooltip-spring{animation:none;transform:translate(-50%,0)}}

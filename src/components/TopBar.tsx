@@ -127,7 +127,7 @@ export const TopBar: React.FC<TopBarProps> = ({
       {/* Right: Market Status & Quick Action Buttons */}
       <div className="flex items-center gap-2 shrink-0">
         {/* Live Session Status Pill */}
-        <div className="hidden xl:flex items-center gap-2 px-2.5 py-1 rounded-full bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800/60 text-emerald-700 dark:text-emerald-300 text-[11px] font-bold">
+        <div className="edge-killzone-halo hidden xl:flex items-center gap-2 px-2.5 py-1 rounded-full bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800/60 text-emerald-700 dark:text-emerald-300 text-[11px] font-bold">
           <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
           <Radio className="w-3 h-3 text-emerald-500" />
           <span>SMC KILLZONE ACTIVE</span>

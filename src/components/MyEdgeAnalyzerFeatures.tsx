@@ -172,7 +172,7 @@ interface SetupComparisonProps {
 }
 
 const getStatus = (stats: DimensionPerformance) => {
-  if (stats.confidenceTier === 'CONFIRMED' && stats.monetaryExpectancy > 0 && (stats.profitFactor ?? 0) >= 1) return { label: 'Edge confirmé', className: 'bg-emerald-500/10 text-emerald-500 border-emerald-500/30' };
+  if (stats.confidenceTier === 'CONFIRMED' && stats.monetaryExpectancy > 0 && (stats.profitFactor ?? 0) >= 1) return { label: 'Edge confirmé', className: 'edge-confirmed-halo bg-emerald-500/10 text-emerald-500 border-emerald-500/30' };
   if (stats.monetaryExpectancy < 0 || ((stats.profitFactor ?? 0) > 0 && (stats.profitFactor ?? 0) < 1)) return { label: 'À éviter', className: 'bg-rose-500/10 text-rose-500 border-rose-500/30' };
   return { label: 'En observation', className: 'bg-amber-500/10 text-amber-500 border-amber-500/30' };
 };

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useTrades } from './hooks/useTrades';
 import { useSettings } from './hooks/useSettings';
 import { useSetups } from './hooks/useSetups';
@@ -34,6 +34,27 @@ const viewMotion = {
 };
 
 export default function App() {
+  useEffect(() => {
+    const handlePointerDown = (event: PointerEvent) => {
+      const target = event.target as Element | null;
+      const clickable = target?.closest<HTMLElement>('button:not(:disabled), [role="button"], a[href]');
+      if (!clickable || clickable.closest('[data-ripple-ignore="true"]')) return;
+
+      clickable.classList.add('ripple-host');
+      const rect = clickable.getBoundingClientRect();
+      const ripple = document.createElement('span');
+      ripple.className = 'ripple-effect';
+      const size = Math.max(rect.width, rect.height);
+      ripple.style.width = ripple.style.height = `${size}px`;
+      ripple.style.left = `${event.clientX - rect.left - size / 2}px`;
+      ripple.style.top = `${event.clientY - rect.top - size / 2}px`;
+      clickable.appendChild(ripple);
+      ripple.addEventListener('animationend', () => ripple.remove(), { once: true });
+    };
+
+    document.addEventListener('pointerdown', handlePointerDown);
+    return () => document.removeEventListener('pointerdown', handlePointerDown);
+  }, []);
   const { trades = [], isLoading, error, addTrade, removeTrade, clearAllTrades, seedDatabase, selectedTrade, setSelectedTrade, loadTrades } = useTrades();
   const { settings, updateSettings } = useSettings();
   const { setups = [] } = useSetups();

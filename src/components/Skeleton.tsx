@@ -16,7 +16,7 @@ export const Skeleton: React.FC<SkeletonProps> = ({ className = '' }) => {
 
 export const DashboardSkeleton: React.FC = () => {
   return (
-    <div className="space-y-6 animate-pulse" id="dashboard-skeleton-loader">
+    <div className="space-y-6" id="dashboard-skeleton-loader">
       {/* Chart Skeleton */}
       <div className="p-6 rounded-3xl border border-slate-200 dark:border-[#292E38] bg-white dark:bg-[#12151D] shadow-sm space-y-4">
         <div className="flex items-center justify-between">

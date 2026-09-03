@@ -36,7 +36,7 @@ export const MetricTooltip: React.FC<MetricTooltipProps> = ({
         <div
           onMouseEnter={() => setIsOpen(true)}
           onMouseLeave={() => setIsOpen(false)}
-          className="absolute left-1/2 -translate-x-1/2 bottom-full mb-2 w-64 p-3 rounded-2xl bg-white dark:bg-[#181C25] border border-slate-200 dark:border-[#292E38] shadow-xl text-left text-xs z-50 pointer-events-auto"
+          className="metric-tooltip-spring absolute left-1/2 bottom-full mb-2 w-64 p-3 rounded-2xl bg-white dark:bg-[#181C25] border border-slate-200 dark:border-[#292E38] shadow-xl text-left text-xs z-50 pointer-events-auto"
         >
           <div className="font-bold text-slate-900 dark:text-[#F5F5F5] mb-1 flex items-center gap-1.5">
             <span className="w-1.5 h-1.5 rounded-full bg-[#6D19E8] dark:bg-[#FF8A00]" />
