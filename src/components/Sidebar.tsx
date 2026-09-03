@@ -148,7 +148,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                       <div className="text-[10px] font-medium text-[#8E89AF] dark:text-[#9299A8]/80 truncate">{item.description}</div>
                     </div>
                   </div>
-                  {item.badge&&<span className="px-2 py-0.5 text-[10px] font-bold tabular-nums rounded-full bg-[#ECE7FC] dark:bg-[#181C25] text-[#6D19E8] dark:text-[#A855F7] dark:border dark:border-[#292E38] transition-transform duration-200 group-hover:scale-105">{item.badge}</span>}
+                  {'badge' in item && item.badge && <span className="px-2 py-0.5 text-[10px] font-bold tabular-nums rounded-full bg-[#ECE7FC] dark:bg-[#181C25] text-[#6D19E8] dark:text-[#A855F7] dark:border dark:border-[#292E38] transition-transform duration-200 group-hover:scale-105">{item.badge}</span>}
                 </button>;
               })}
             </div>
