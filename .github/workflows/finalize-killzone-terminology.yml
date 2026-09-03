@@ -18,7 +18,6 @@ jobs:
           set -euo pipefail
           python3 - <<'PY'
           from pathlib import Path
-          import re
 
           def replace(path, replacements):
               p = Path(path)
@@ -29,13 +28,10 @@ jobs:
               if text != original:
                   p.write_text(text)
 
-          # Fix the final naming collisions without changing persisted Trade.session storage.
           replace('src/lib/calculations/edge.ts', [
               ("    const session = t.session || 'Toutes';\n    const comboKey = `${setup}___${pair}___${killzone}`;", "    const killzone = t.session || 'Toutes les Killzones';\n    const comboKey = `${setup}___${pair}___${killzone}`;"),
               ("    const [setup, pair, session] = comboKey.split('___');", "    const [setup, pair, killzone] = comboKey.split('___');"),
-              ("Generates an exhaustive breakdown across Setups, Pairs, Sessions", "Generates an exhaustive breakdown across Setups, Pairs, Killzones"),
               ("across Setups, Pairs, Sessions, Directions", "across Setups, Pairs, Killzones, Directions"),
-              ("pendant la session ${topCombo.killzone}", "pendant la Killzone ${topCombo.killzone}"),
           ])
 
           replace('src/components/CreateTradeModal.tsx', [
@@ -76,23 +72,13 @@ jobs:
               ("openFilter==='session'", "openFilter==='killzone'"),
           ])
 
-          # Display terminology: preserve raw persisted enum values for compatibility.
-          replace('src/lib/tradingKillzone.ts', [
-              ("'Killzone London'", "'Killzone Londres'"),
-              ("'London'", "'Killzone Londres'"),
-              ("'New York'", "'Killzone New York'"),
-              ("'Tokyo'", "'Killzone Asia'"),
-          ])
-
           replace('src/components/TradeTable.tsx', [
               ("{trade.session || 'NO_SESSION'}", "{trade.session || 'Hors Killzone'}"),
           ])
 
-          # Never rename the persisted DB field `session` or legacy sentinel `NO_SESSION`.
-          print('Killzone finalizer applied.')
+          print('Killzone finalizer applied without touching trading-time calculation logic.')
           PY
 
-          git status --short
           git diff --check
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
