@@ -1,0 +1,66 @@
+name: Validate final Killzone terminology
+
+on:
+  push:
+    branches: [main]
+permissions:
+  contents: write
+jobs:
+  fix:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: oven-sh/setup-bun@v2
+      - name: Final terminology fixes and validation
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          def replace(path, pairs):
+              p=Path(path); text=p.read_text(); original=text
+              for a,b in pairs: text=text.replace(a,b)
+              if text!=original: p.write_text(text)
+          replace('src/components/CreateTradeModal.tsx', [
+              ('const [session, setSession]', 'const [killzoneValue, setKillzoneValue]'),
+              ('        session,', '        session: killzoneValue,'),
+              ('value={session}', 'value={killzoneValue}'),
+              ('setSession(', 'setKillzoneValue('),
+              ('Killzone Killzone', 'Killzone'),
+          ])
+          replace('src/lib/calculations/edge.ts', [
+              ("const [setup, pair, session] = comboKey.split('___');", "const [setup, pair, killzone] = comboKey.split('___');"),
+              ('pendant la session ${topCombo.killzone}', 'pendant la Killzone ${topCombo.killzone}'),
+              ('across Setups, Pairs, Sessions, Directions', 'across Setups, Pairs, Killzones, Directions'),
+              ('const eligibleSessions =', 'const eligibleKillzones ='),
+              ('eligibleSessions', 'eligibleKillzones'),
+          ])
+          replace('src/lib/coachContext.ts', [
+              ('.topCombination.session', '.topCombination.killzone'),
+              ('Sessions Breakdown', 'Killzones Breakdown'),
+              ('en session ${edgeAudit.verdict.topCombination.killzone}', 'pendant la Killzone ${edgeAudit.verdict.topCombination.killzone}'),
+          ])
+          replace('src/lib/riskPatterns.ts', [
+              ("if(!t.session||t.session==='OFF_HOURS'||finite(t.netPnL)===null)continue;", "if(!t.session||t.session==='Hors Killzone'||t.session==='NO_SESSION'||finite(t.netPnL)===null)continue;"),
+          ])
+          replace('src/components/AIAnalysisView.tsx', [('Performance par session', 'Performance par Killzone')])
+          replace('src/components/AnalyticsView.tsx', [('{s.session}', '{s.killzone}')])
+          replace('src/components/MyEdgeAnalyzerFeatures.tsx', [('Meilleure session', 'Meilleure Killzone')])
+          replace('src/lib/validation/quality.ts', [('Trading session unassigned', 'Trading killzone unassigned')])
+          replace('src/types/setup.ts', [('active session killzone', 'active killzone'), ('key session or daily level', 'key killzone or daily level')])
+          replace('src/types/settings.ts', [('export interface SessionConfig', 'export interface KillzoneConfig')])
+          replace('src/lib/validation/settingsSchema.ts', [('SessionHoursSchema', 'KillzoneHoursSchema')])
+          PY
+          git diff --check
+          bun install --frozen-lockfile
+          bun run test -- --run src/tests/importRobustness.test.ts src/tests/riskPatterns.test.ts src/tests/myEdgeAnalyzerFeatures.test.ts src/tests/tradingSession.test.ts src/tests/dashboardDataIntegrity.test.ts
+          bun run lint
+          bun run build
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add src
+          git rm -f .github/workflows/validate-killzone-final.yml .github/workflows/validate-killzone-terminology.yml .github/workflows/finalize-killzone-terminology.yml .github/workflows/finish-killzone-terminology.yml || true
+          git commit -m 'refactor: finalize killzone terminology and validation'
+          git push origin main
