@@ -1,0 +1,21 @@
+@media (max-width: 767px) {
+  [data-mobile-ui] { min-width: 0; }
+  [data-mobile-ui] *, [data-mobile-ui] *::before, [data-mobile-ui] *::after { box-sizing: border-box; min-width: 0; }
+  .mobile-app-shell { min-height: 100dvh; overflow-x: hidden; }
+  .mobile-app-content { min-width: 0; padding-bottom: calc(76px + env(safe-area-inset-bottom)); overflow-x: hidden; }
+  .mobile-page-frame { min-width: 0; overflow: hidden; padding: 20px 16px; }
+  .mobile-page-header { min-width: 0; overflow: hidden; margin-bottom: 20px; }
+  .mobile-page-header h1 { margin: 0; font-size: 1.25rem; line-height: 1.3; font-weight: 800; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .mobile-page-header p { margin: 6px 0 0; font-size: .75rem; line-height: 1.4; overflow: hidden; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; }
+  .mobile-safe-container { min-width: 0; max-width: 100%; overflow: hidden; }
+  .mobile-safe-text { min-width: 0; max-width: 100%; overflow: hidden; text-overflow: ellipsis; overflow-wrap: anywhere; }
+  .mobile-safe-row { min-width: 0; max-width: 100%; overflow: hidden; display: flex; align-items: center; }
+  .mobile-safe-badge { flex: 0 0 auto; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .mobile-bottom-nav { position: fixed; z-index: 50; right: 0; bottom: 0; left: 0; display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 2px; min-height: 64px; padding: 6px 8px calc(6px + env(safe-area-inset-bottom)); background: rgba(255,255,255,.96); border-top: 1px solid #ECE7FC; backdrop-filter: blur(14px); overflow: hidden; }
+  .dark .mobile-bottom-nav { background: rgba(18,21,29,.96); border-top-color: #292E38; }
+  .mobile-nav-item { min-width: 0; min-height: 52px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; border: 0; background: transparent; border-radius: 12px; color: #8E89AF; font-size: 10px; font-weight: 700; overflow: hidden; }
+  .mobile-nav-item span { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .mobile-nav-item.is-active { color: #6D19E8; background: #F5EEFF; }
+}
+
+@media (min-width: 768px) { [data-mobile-ui] { display: none !important; } }
