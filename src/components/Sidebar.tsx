@@ -1,60 +1,15 @@
 import React, { useState } from 'react';
-import {
-  LayoutDashboard,
-  CalendarDays,
-  BookOpen,
-  Crosshair,
-  BarChart3,
-  Settings as SettingsIcon,
-  Plus,
-  Sun,
-  Moon,
-  Sparkles,
-  Sliders,
-  Database,
-  ShieldCheck,
-  ChevronRight,
-  PanelLeftClose,
-  PanelLeftOpen,
-  Zap,
-  Upload,
-} from 'lucide-react';
+import { LayoutDashboard, CalendarDays, BookOpen, Crosshair, BarChart3, Settings as SettingsIcon, Plus, Sun, Moon, Sparkles, Sliders, Database, ShieldCheck, ChevronRight, PanelLeftClose, PanelLeftOpen, Zap, Upload } from 'lucide-react';
 import { Logo } from './Logo';
 import { useTheme } from '../hooks/useTheme';
 import { motion } from 'motion/react';
 
 export type ActiveTab = 'dashboard' | 'calendar' | 'trades' | 'edge' | 'analytics' | 'ai-analysis' | 'settings';
+interface SidebarProps { activeTab: ActiveTab; onTabChange: (tab: ActiveTab) => void; onOpenCreate: () => void; onOpenImport: () => void; onOpenSetupsModal: () => void; onOpenBackup: () => void; onSeed: () => void; isLoading?: boolean; tradeCount: number; isMobileOpen?: boolean; onCloseMobile?: () => void; }
 
-interface SidebarProps {
-  activeTab: ActiveTab;
-  onTabChange: (tab: ActiveTab) => void;
-  onOpenCreate: () => void;
-  onOpenImport: () => void;
-  onOpenSetupsModal: () => void;
-  onOpenBackup: () => void;
-  onSeed: () => void;
-  isLoading?: boolean;
-  tradeCount: number;
-  isMobileOpen?: boolean;
-  onCloseMobile?: () => void;
-}
-
-export const Sidebar: React.FC<SidebarProps> = ({
-  activeTab,
-  onTabChange,
-  onOpenCreate,
-  onOpenImport,
-  onOpenSetupsModal,
-  onOpenBackup,
-  onSeed,
-  isLoading = false,
-  tradeCount,
-  isMobileOpen = false,
-  onCloseMobile,
-}) => {
+export const Sidebar: React.FC<SidebarProps> = ({ activeTab, onTabChange, onOpenCreate, onOpenImport, onOpenSetupsModal, onOpenBackup, onSeed, isLoading = false, tradeCount, isMobileOpen = false, onCloseMobile }) => {
   const { isDark, toggleTheme } = useTheme();
   const [collapsed, setCollapsed] = useState(false);
-
   const navGroups = [
     { title: 'Principal', items: [
       { id: 'dashboard' as ActiveTab, label: 'Dashboard', description: 'Vue globale & equity curve', icon: LayoutDashboard },
@@ -67,186 +22,25 @@ export const Sidebar: React.FC<SidebarProps> = ({
       { id: 'ai-analysis' as ActiveTab, label: 'Analyse IA', description: 'Analyse, graphiques & recommandations', icon: Sparkles, highlight: true },
     ]},
   ];
-
-  const handleNav = (tab: ActiveTab) => {
-    onTabChange(tab);
-    if (onCloseMobile) onCloseMobile();
-  };
-
+  const handleNav = (tab: ActiveTab) => { onTabChange(tab); onCloseMobile?.(); };
   const sidebarContent = (
-    <aside
-      id="thunder-edge-sidebar"
-      className={`relative flex flex-col h-full ${collapsed ? "sidebar-collapsed" : ""} bg-white dark:bg-[#12151D] border-r border-[#ECE7FC] dark:border-[#292E38] text-[#0F0E26] dark:text-[#F5F5F5] select-none`}
-    >
-      {/* Brand Header */}
+    <aside id="thunder-edge-sidebar" className={`relative flex flex-col h-full ${collapsed ? 'sidebar-collapsed' : ''} bg-white dark:bg-[#12151D] border-r border-[#ECE7FC] dark:border-[#292E38] text-[#0F0E26] dark:text-[#F5F5F5] select-none`}>
       <div className="p-5 border-b border-[#ECE7FC]/80 dark:border-[#292E38] flex items-center justify-between">
-        <button
-          onClick={() => handleNav('dashboard')}
-          className="flex items-center gap-3 text-left focus:outline-none group"
-        >
-          <div className="relative">
-            <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-[#6D19E8] via-[#5B1FE0] to-[#4B27B8] dark:from-[#7C3AED] dark:via-[#8B5CF6] dark:to-[#EC4899] flex items-center justify-center text-white shadow-md shadow-[#6D19E8]/25 dark:shadow-[#7C3AED]/25 group-hover:scale-105 transition-transform duration-200">
-              <Zap className="w-5 h-5 fill-amber-300 dark:fill-white text-amber-300 dark:text-white stroke-[2]" />
-            </div>
-            <span className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 bg-emerald-500 border-2 border-white dark:border-[#12151D] rounded-full" />
-          </div>
-          <div className="sidebar-brand-copy">
-            <div className="flex items-center gap-1.5">
-              <span className="text-sm font-bold tracking-tight text-[#0F0E26] dark:text-[#F5F5F5] font-sans">
-                THUNDER<span className="text-[#6D19E8] dark:text-[#A855F7] ml-0.5">EDGE</span>
-              </span>
-              <span className="px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider rounded-lg bg-[#F5F0FF] dark:bg-[#7C3AED]/10 text-[#6D19E8] dark:text-[#FF8A00] border border-[#DDD5FA] dark:border-[#7C3AED]/30">
-                PRO
-              </span>
-            </div>
-            <span className="text-[11px] text-[#6B668D] dark:text-[#9299A8] block font-medium">
-              Institutional Edge Terminal
-            </span>
-          </div>
+        <button onClick={() => handleNav('dashboard')} className="flex items-center gap-3 text-left focus:outline-none group">
+          <div className="relative"><div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-[#6D19E8] via-[#5B1FE0] to-[#4B27B8] dark:from-[#7C3AED] dark:via-[#8B5CF6] dark:to-[#EC4899] flex items-center justify-center text-white shadow-md shadow-[#6D19E8]/25 dark:shadow-[#7C3AED]/25 group-hover:scale-105 transition-transform duration-200"><Zap className="w-5 h-5 fill-white text-white stroke-[2]" /></div><span className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 bg-emerald-500 border-2 border-white dark:border-[#12151D] rounded-full" /></div>
+          <div className="sidebar-brand-copy"><div className="flex items-center gap-1.5"><span className="text-sm font-bold tracking-tight text-[#0F0E26] dark:text-[#F5F5F5] font-sans">THUNDER<span className="text-[#6D19E8] dark:text-[#A855F7] ml-0.5">EDGE</span></span><span className="px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider rounded-lg bg-[#F5F0FF] dark:bg-[#7C3AED]/10 text-[#6D19E8] dark:text-[#A855F7] border border-[#DDD5FA] dark:border-[#7C3AED]/30">PRO</span></div><span className="text-[11px] text-[#6B668D] dark:text-[#9299A8] block font-medium">Institutional Edge Terminal</span></div>
         </button>
-        <button type="button" onClick={() => setCollapsed((value) => !value)} className="hidden md:flex absolute top-5 -right-3 z-40 w-7 h-7 items-center justify-center rounded-full border border-[#DDD5FA] dark:border-[#292E38] bg-white dark:bg-[#181C25] text-[#6D19E8] dark:text-[#FF8A00] shadow-md hover:scale-105 transition-transform duration-200 btn-press" aria-label={collapsed ? "Déplier le menu" : "Réduire le menu"} title={collapsed ? "Déplier le menu" : "Réduire le menu"}>{collapsed ? <PanelLeftOpen className="w-3.5 h-3.5" /> : <PanelLeftClose className="w-3.5 h-3.5" />}</button>
+        <button type="button" onClick={() => setCollapsed(v => !v)} className="hidden md:flex absolute top-5 -right-3 z-40 w-7 h-7 items-center justify-center rounded-full border border-[#DDD5FA] dark:border-[#292E38] bg-white dark:bg-[#181C25] text-[#6D19E8] dark:text-[#A855F7] shadow-md hover:scale-105 transition-transform duration-200 btn-press" aria-label={collapsed ? 'Déplier le menu' : 'Réduire le menu'} title={collapsed ? 'Déplier le menu' : 'Réduire le menu'}>{collapsed ? <PanelLeftOpen className="w-3.5 h-3.5" /> : <PanelLeftClose className="w-3.5 h-3.5" />}</button>
       </div>
-
-      {/* Primary Action Button */}
-      <div className="p-4 pb-2 sidebar-action">
-        <motion.button
-          whileHover={{ scale: 1.01 }}
-          whileTap={{ scale: 0.98 }}
-          id="sidebar-btn-log-trade"
-          onClick={() => {
-            onOpenCreate();
-            if (onCloseMobile) onCloseMobile();
-          }}
-          disabled={isLoading}
-          className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-2xl bg-gradient-to-r from-[#6D19E8] to-[#4B27B8] dark:from-[#7C3AED] dark:to-[#EC4899] hover:from-[#5A14C4] hover:to-[#3E1D9E] dark:hover:from-[#6D28D9] dark:hover:to-[#DB2777] text-white text-xs font-bold shadow-md shadow-[#6D19E8]/20 dark:shadow-[#FF8A00]/25 transition-all duration-200 cursor-pointer disabled:opacity-50"
-        >
-          <Plus className="w-4 h-4 stroke-[2.5]" />
-          <span className="sidebar-copy">Log New Trade</span>
-        </motion.button>
-      </div>
-
-      {/* Vertical Navigation List */}
+      <div className="p-4 pb-2 sidebar-action"><motion.button whileHover={{ scale: 1.01 }} whileTap={{ scale: 0.98 }} id="sidebar-btn-log-trade" onClick={() => { onOpenCreate(); onCloseMobile?.(); }} disabled={isLoading} className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-2xl bg-gradient-to-r from-[#6D19E8] to-[#4B27B8] dark:from-[#7C3AED] dark:to-[#EC4899] hover:from-[#5A14C4] hover:to-[#3E1D9E] dark:hover:from-[#6D28D9] dark:hover:to-[#DB2777] text-white text-xs font-bold shadow-md shadow-[#6D19E8]/20 dark:shadow-[#7C3AED]/25 transition-all duration-200 cursor-pointer disabled:opacity-50"><Plus className="w-4 h-4 stroke-[2.5]" /><span className="sidebar-copy">Log New Trade</span></motion.button></div>
       <div className="flex-1 px-3 py-2 space-y-1 overflow-y-auto" aria-label="Main navigation menu">
-        <div className="sidebar-section-label px-3 pt-2 pb-1 text-[11px] font-bold uppercase tracking-wider text-[#8E89AF] dark:text-[#9299A8]">
-          Navigation
-        </div>
-
-        {navGroups.map((group) => (
-          <div key={group.title} className="mb-4">
-            <div className="sidebar-section-label px-3 pt-2 pb-1 text-[10px] font-black uppercase tracking-[0.14em] text-[#8E89AF] dark:text-[#9299A8]">{group.title}</div>
-            <div className="space-y-1">
-              {group.items.map((item) => {
-                const Icon = item.icon;
-                const isActive = activeTab === item.id;
-                return <button key={item.id} id={`sidebar-nav-${item.id}`} onClick={() => handleNav(item.id)} className={`w-full relative flex items-center justify-between px-3 py-2.5 rounded-2xl text-xs cursor-pointer btn-press nav-item-interactive group ${isActive ? 'active font-bold text-[#6D19E8] dark:text-[#A855F7] bg-[#F5EEFF] dark:bg-[#7C3AED]/10 border border-[#DDD5FA] dark:border-[#7C3AED]/30 shadow-xs' : 'font-semibold text-[#6B668D] dark:text-[#9299A8] hover:text-[#0F0E26] dark:hover:text-[#F5F5F5] hover:bg-[#FAF8FF] dark:hover:bg-[#181C25] border border-transparent'}`}>
-                  <div className="flex items-center gap-3 min-w-0">
-                    <div className={`nav-icon-motion p-1.5 rounded-xl transition-all duration-200 group-hover:scale-110 ${isActive ? 'bg-gradient-to-tr from-[#7C3AED] to-[#EC4899] text-white shadow-xs' : 'bg-[#F5F2FE] dark:bg-[#181C25] text-[#6B668D] dark:text-[#9299A8] group-hover:text-[#7C3AED] dark:group-hover:text-[#A855F7]'}`}>
-                      <Icon className="w-4 h-4 transition-transform duration-200 group-hover:rotate-6" />
-                    </div>
-                    <div className="text-left truncate sidebar-copy">
-                      <div className="flex items-center gap-1.5"><span className="nav-label-mask"><span className="nav-label-reveal truncate">{item.label}</span></span>{item.highlight&&<span className="w-1.5 h-1.5 rounded-full bg-[#EC4899] animate-pulse"></span></div>
-                      <div className="text-[10px] font-medium text-[#8E89AF] dark:text-[#9299A8]/80 truncate">{item.description}</div>
-                    </div>
-                  </div>
-                  {'badge' in item && item.badge && <span className="px-2 py-0.5 text-[10px] font-bold tabular-nums rounded-full bg-[#ECE7FC] dark:bg-[#181C25] text-[#6D19E8] dark:text-[#A855F7] dark:border dark:border-[#292E38] transition-transform duration-200 group-hover:scale-105">{item.badge}</span>}
-                </button>;
-              })}
-            </div>
-          </div>
-        ))}
-        <div className="mb-4">
-          <div className="sidebar-section-label px-3 pt-2 pb-1 text-[10px] font-black uppercase tracking-[0.14em] text-[#8E89AF] dark:text-[#9299A8]">Ma méthode</div>
-          <div className="space-y-1">
-            <button id="sidebar-btn-setups-manager" onClick={() => { onOpenSetupsModal(); onCloseMobile?.(); }} className="w-full flex items-center gap-3 px-3 py-2.5 rounded-2xl text-xs font-semibold text-[#6B668D] dark:text-[#9299A8] hover:text-white hover:bg-[#181C25] btn-press nav-item-interactive"><span className="nav-icon-motion p-1.5 rounded-xl bg-[#F5F2FE] dark:bg-[#181C25]"><Sliders className="w-4 h-4"/></span><span className="nav-label-mask"><span className="nav-label-reveal">Setups Manager</span></span></button>
-          </div>
-        </div>
-        <div>
-          <div className="sidebar-section-label px-3 pt-2 pb-1 text-[10px] font-black uppercase tracking-[0.14em] text-[#8E89AF] dark:text-[#9299A8]">Outils</div>
-          <button id="sidebar-btn-import" onClick={() => { onOpenImport(); onCloseMobile?.(); }} className="w-full flex items-center gap-3 px-3 py-2.5 rounded-2xl text-xs font-semibold text-[#6B668D] dark:text-[#9299A8] hover:text-white hover:bg-[#181C25] btn-press nav-item-interactive"><span className="nav-icon-motion p-1.5 rounded-xl bg-[#F5F2FE] dark:bg-[#181C25]"><Upload className="w-4 h-4"/></span><span className="nav-label-mask"><span className="nav-label-reveal">Importer des Trades</span></span></button>
-        </div>
-
+        <div className="sidebar-section-label px-3 pt-2 pb-1 text-[11px] font-bold uppercase tracking-wider text-[#8E89AF] dark:text-[#9299A8]">Navigation</div>
+        {navGroups.map(group => <div key={group.title} className="mb-4"><div className="sidebar-section-label px-3 pt-2 pb-1 text-[10px] font-black uppercase tracking-[0.14em] text-[#8E89AF] dark:text-[#9299A8]">{group.title}</div><div className="space-y-1">{group.items.map(item => { const Icon = item.icon; const isActive = activeTab === item.id; return <button key={item.id} id={`sidebar-nav-${item.id}`} onClick={() => handleNav(item.id)} className={`w-full relative flex items-center justify-between px-3 py-2.5 rounded-2xl text-xs cursor-pointer btn-press nav-item-interactive group ${isActive ? 'active font-bold text-[#6D19E8] dark:text-[#A855F7] bg-[#F5EEFF] dark:bg-[#7C3AED]/10 border border-[#DDD5FA] dark:border-[#7C3AED]/30 shadow-xs' : 'font-semibold text-[#6B668D] dark:text-[#9299A8] hover:text-[#0F0E26] dark:hover:text-[#F5F5F5] hover:bg-[#FAF8FF] dark:hover:bg-[#181C25] border border-transparent'}`}><div className="flex items-center gap-3 min-w-0"><div className={`nav-icon-motion p-1.5 rounded-xl transition-all duration-200 group-hover:scale-110 ${isActive ? 'bg-gradient-to-tr from-[#7C3AED] to-[#EC4899] text-white shadow-xs' : 'bg-[#F5F2FE] dark:bg-[#181C25] text-[#6B668D] dark:text-[#9299A8] group-hover:text-[#7C3AED] dark:group-hover:text-[#A855F7]'}`}><Icon className="w-4 h-4 transition-transform duration-200 group-hover:rotate-6" /></div><div className="text-left truncate sidebar-copy"><div className="flex items-center gap-1.5"><span className="nav-label-mask"><span className="nav-label-reveal truncate">{item.label}</span></span>{'highlight' in item && item.highlight && <span className="w-1.5 h-1.5 rounded-full bg-[#EC4899] animate-pulse" />}</div><div className="text-[10px] font-medium text-[#8E89AF] dark:text-[#9299A8]/80 truncate">{item.description}</div></div></div>{'badge' in item && item.badge && <span className="px-2 py-0.5 text-[10px] font-bold tabular-nums rounded-full bg-[#ECE7FC] dark:bg-[#181C25] text-[#6D19E8] dark:text-[#A855F7] dark:border dark:border-[#292E38] transition-transform duration-200 group-hover:scale-105">{item.badge}</span>}</button>; })}</div></div>)}
+        <div className="mb-4"><div className="sidebar-section-label px-3 pt-2 pb-1 text-[10px] font-black uppercase tracking-[0.14em] text-[#8E89AF] dark:text-[#9299A8]">Ma méthode</div><div className="space-y-1"><button id="sidebar-btn-setups-manager" onClick={() => { onOpenSetupsModal(); onCloseMobile?.(); }} className="w-full flex items-center gap-3 px-3 py-2.5 rounded-2xl text-xs font-semibold text-[#6B668D] dark:text-[#9299A8] hover:text-white hover:bg-[#181C25] btn-press nav-item-interactive"><span className="nav-icon-motion p-1.5 rounded-xl bg-[#F5F2FE] dark:bg-[#181C25]"><Sliders className="w-4 h-4"/></span><span className="nav-label-mask"><span className="nav-label-reveal">Setups Manager</span></span></button></div></div>
+        <div><div className="sidebar-section-label px-3 pt-2 pb-1 text-[10px] font-black uppercase tracking-[0.14em] text-[#8E89AF] dark:text-[#9299A8]">Outils</div><button id="sidebar-btn-import" onClick={() => { onOpenImport(); onCloseMobile?.(); }} className="w-full flex items-center gap-3 px-3 py-2.5 rounded-2xl text-xs font-semibold text-[#6B668D] dark:text-[#9299A8] hover:text-white hover:bg-[#181C25] btn-press nav-item-interactive"><span className="nav-icon-motion p-1.5 rounded-xl bg-[#F5F2FE] dark:bg-[#181C25]"><Upload className="w-4 h-4"/></span><span className="nav-label-mask"><span className="nav-label-reveal">Importer des Trades</span></span></button></div>
       </div>
-
-      {/* Footer / Status & Theme Switcher */}
-      <div className="p-4 border-t sidebar-footer border-[#ECE7FC] dark:border-[#292E38] space-y-3 bg-[#FAF8FF] dark:bg-[#0B0D12]">
-        {/* Seed Data button if exploring */}
-        <button
-          id="sidebar-btn-seed"
-          onClick={() => {
-            onSeed();
-            if (onCloseMobile) onCloseMobile();
-          }}
-          disabled={isLoading}
-          className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-xl text-xs font-bold text-amber-800 dark:text-[#FF8A00] bg-amber-50 dark:bg-[#7C3AED]/10 hover:bg-amber-100 dark:hover:bg-[#FF8A00]/20 border border-amber-300/80 dark:border-[#FF8A00]/30 shadow-xs transition-all duration-200 cursor-pointer disabled:opacity-50 btn-press"
-        >
-          <Sparkles className="w-3.5 h-3.5 text-amber-500 fill-amber-500 dark:text-[#FF8A00] dark:fill-[#A855F7]" />
-          <span className="sidebar-copy">Load Seed Dataset</span>
-        </button>
-
-        {/* Theme Switcher Card */}
-        <div className="p-2 rounded-2xl bg-white dark:bg-[#181C25] sidebar-theme-card border border-[#ECE7FC] dark:border-[#292E38] flex items-center justify-between shadow-xs">
-          <div className="flex items-center gap-2 text-xs font-bold sidebar-theme-label text-[#0F0E26] dark:text-[#F5F5F5]">
-            {isDark ? (
-              <Moon className="w-4 h-4 text-[#FF8A00] fill-[#FF8A00]/20" />
-            ) : (
-              <Sun className="w-4 h-4 text-[#F59E0B] fill-[#F59E0B]/20" />
-            )}
-            <span className="sidebar-copy">{isDark ? 'Dark Mode' : 'Light Mode'}</span>
-          </div>
-
-          <button
-            id="sidebar-theme-toggle"
-            type="button"
-            onClick={toggleTheme}
-            className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-[#6D19E8] dark:focus:ring-[#A855F7] focus:ring-offset-2 ${
-              isDark ? 'bg-gradient-to-r from-[#FF8A00] to-[#FF6B00]' : 'bg-[#DDD5FA]'
-            }`}
-            role="switch"
-            aria-checked={isDark}
-            aria-label="Toggle Theme Mode"
-          >
-            <span
-              aria-hidden="true"
-              className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-md ring-0 transition duration-200 ease-in-out ${
-                isDark ? 'translate-x-5' : 'translate-x-0'
-              }`}
-            />
-          </button>
-        </div>
-
-        {/* Storage status indicator */}
-        <div className="flex items-center justify-between text-[11px] sidebar-status text-[#8E89AF] dark:text-[#9299A8] px-1 font-mono">
-          <div className="flex items-center gap-1.5">
-            <ShieldCheck className="w-3.5 h-3.5 text-emerald-500" />
-            <span className="sidebar-copy">IndexedDB Secured</span>
-          </div>
-          <span className="font-bold text-[#6D19E8] dark:text-[#FF8A00]">v2.5</span>
-        </div>
-      </div>
+      <div className="p-4 border-t sidebar-footer border-[#ECE7FC] dark:border-[#292E38] space-y-3 bg-[#FAF8FF] dark:bg-[#0B0D12]"><button id="sidebar-btn-seed" onClick={() => { onSeed(); onCloseMobile?.(); }} disabled={isLoading} className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-xl text-xs font-bold text-amber-800 dark:text-[#A855F7] bg-amber-50 dark:bg-[#7C3AED]/10 hover:bg-amber-100 dark:hover:bg-[#7C3AED]/20 border border-amber-300/80 dark:border-[#7C3AED]/30 shadow-xs transition-all duration-200 cursor-pointer disabled:opacity-50 btn-press"><Sparkles className="w-3.5 h-3.5 text-amber-500 fill-amber-500 dark:text-[#A855F7] dark:fill-[#A855F7]" /><span className="sidebar-copy">Load Seed Dataset</span></button><div className="p-2 rounded-2xl bg-white dark:bg-[#181C25] sidebar-theme-card border border-[#ECE7FC] dark:border-[#292E38] flex items-center justify-between shadow-xs"><div className="flex items-center gap-2 text-xs font-bold sidebar-theme-label text-[#0F0E26] dark:text-[#F5F5F5]">{isDark ? <Moon className="w-4 h-4 text-[#A855F7] fill-[#A855F7]/20" /> : <Sun className="w-4 h-4 text-[#F59E0B] fill-[#F59E0B]/20" />}<span className="sidebar-copy">{isDark ? 'Dark Mode' : 'Light Mode'}</span></div><button id="sidebar-theme-toggle" type="button" onClick={toggleTheme} className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-[#6D19E8] dark:focus:ring-[#A855F7] focus:ring-offset-2 ${isDark ? 'bg-gradient-to-r from-[#7C3AED] to-[#EC4899]' : 'bg-[#DDD5FA]'}`} role="switch" aria-checked={isDark} aria-label="Toggle Theme Mode"><span aria-hidden="true" className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-md ring-0 transition duration-200 ease-in-out ${isDark ? 'translate-x-5' : 'translate-x-0'}`} /></button></div><div className="flex items-center justify-between text-[11px] sidebar-status text-[#8E89AF] dark:text-[#9299A8]"><div className="flex items-center gap-2"><span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />Local DB</div><span className="text-[10px] font-mono text-[#B2ACC9] dark:text-[#6B7280]">v1.0.0</span></div></div>
     </aside>
   );
-
-  return (
-    <>
-      {/* Desktop Persistent Left Sidebar */}
-      <div className={`hidden md:block shrink-0 h-screen sticky top-0 z-30 transition-[width] duration-300 ease-out ${collapsed ? "w-20" : "w-72"}`}>
-        {sidebarContent}
-      </div>
-
-      {/* Mobile Drawer Overlay */}
-      {isMobileOpen && (
-        <div className="fixed inset-0 z-50 md:hidden flex">
-          {/* Backdrop */}
-          <div
-            className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs transition-opacity"
-            onClick={onCloseMobile}
-          />
-          {/* Drawer container */}
-          <div className="relative w-72 max-w-[80vw] h-full shadow-2xl z-10 animate-in slide-in-from-left duration-200">
-            {sidebarContent}
-          </div>
-        </div>
-      )}
-    </>
-  );
+  return <><div className="hidden md:block w-64 h-screen sticky top-0 shrink-0">{sidebarContent}</div><div className={`md:hidden fixed inset-0 z-50 transition-opacity duration-300 ${isMobileOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'}`}><div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={onCloseMobile} /><div className={`absolute left-0 top-0 bottom-0 w-72 transform transition-transform duration-300 ${isMobileOpen ? 'translate-x-0' : '-translate-x-full'}`}>{sidebarContent}</div></div></>;
 };
