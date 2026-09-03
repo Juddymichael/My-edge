@@ -8,12 +8,12 @@ import { Trade, TradingSession } from '../types/trade';
  */
 export const KILLZONE_OFFSET_HOURS = -5;
 
-export const SESSION_LABELS = {
+export const SESSION_LABELS: Record<'LONDON' | 'NEW_YORK' | 'LONDON_CLOSE' | 'OFF_SESSION', Exclude<TradingSession, null>> = {
   LONDON: 'Killzone London',
   NEW_YORK: 'Killzone New York',
   LONDON_CLOSE: 'Killzone London Close',
   OFF_SESSION: 'Hors Killzone',
-} as const;
+};
 
 function getGmtMinus5MinuteOfDay(dateString: string): number {
   const date = new Date(dateString);
@@ -27,7 +27,7 @@ export function getGmtMinus5Hour(dateString: string): number {
 }
 
 function isMissingSession(session: Trade['session']): boolean {
-  return session === null || session === undefined || session === '' || session === 'NO_SESSION';
+  return session === null || session === undefined || session === 'NO_SESSION';
 }
 
 /**
@@ -43,8 +43,8 @@ function isMissingSession(session: Trade['session']): boolean {
  * The source ranges overlap at 10:00–10:01; London Close takes precedence
  * so every trade belongs to exactly one bucket.
  */
-export function deriveTradingSession(trade: Pick<Trade, 'openedAt' | 'session'>): string {
-  if (!isMissingSession(trade.session)) return trade.session as string;
+export function deriveTradingSession(trade: Pick<Trade, 'openedAt' | 'session'>): TradingSession {
+  if (!isMissingSession(trade.session)) return trade.session;
 
   const minute = getGmtMinus5MinuteOfDay(trade.openedAt);
   if (minute < 0) return SESSION_LABELS.OFF_SESSION;
@@ -54,7 +54,7 @@ export function deriveTradingSession(trade: Pick<Trade, 'openedAt' | 'session'>)
   return SESSION_LABELS.OFF_SESSION;
 }
 
-export function getTradeSession(trade: Pick<Trade, 'openedAt' | 'session'>): string {
+export function getTradeSession(trade: Pick<Trade, 'openedAt' | 'session'>): TradingSession {
   return deriveTradingSession(trade);
 }
 
