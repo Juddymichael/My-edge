@@ -183,7 +183,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
             >
               <div className="flex items-center gap-3 min-w-0">
                 <div
-                  className={`p-1.5 rounded-xl transition-all duration-200 group-hover:scale-110 ${
+                  className={`nav-icon-motion p-1.5 rounded-xl transition-all duration-200 group-hover:scale-110 ${
                     isActive
                       ? 'bg-gradient-to-tr from-[#6D19E8] to-[#4B27B8] dark:from-[#FF8A00] dark:to-[#FF6B00] text-white shadow-xs'
                       : 'bg-[#F5F2FE] dark:bg-[#181C25] text-[#6B668D] dark:text-[#9299A8] group-hover:text-[#6D19E8] dark:group-hover:text-[#FF8A00]'
