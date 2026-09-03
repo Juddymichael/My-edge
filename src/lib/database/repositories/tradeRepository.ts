@@ -11,6 +11,7 @@ import {
 import { calculateNetPnL } from '../../calculations/pnl';
 import { calculateRMultiple } from '../../calculations/rMultiple';
 import { calculateRiskPercent } from '../../calculations/risk';
+import { getTradeSession } from '../../tradingSession';
 
 export class TradeRepository {
   /**
@@ -38,11 +39,26 @@ export class TradeRepository {
   }
 
   /**
-   * Returns all trades ordered by openedAt desc.
+   * Returns all trades ordered by openedAt desc. Legacy empty/NO_SESSION
+   * values are migrated in-place to the calculated GMT-5 killzone.
    */
   static async getAll(): Promise<Trade[]> {
     try {
-      return await db.trades.orderBy('openedAt').reverse().toArray();
+      const trades = await db.trades.orderBy('openedAt').reverse().toArray();
+      const missingSessions = trades.filter((trade) => !trade.session || trade.session === 'NO_SESSION');
+
+      if (missingSessions.length > 0) {
+        const normalized = missingSessions.map((trade) => ({
+          ...trade,
+          session: getTradeSession({ openedAt: trade.openedAt, session: trade.session }),
+          updatedAt: new Date().toISOString(),
+        }));
+        await db.trades.bulkPut(normalized);
+        const byId = new Map(normalized.map((trade) => [trade.id, trade]));
+        return trades.map((trade) => byId.get(trade.id) || trade);
+      }
+
+      return trades;
     } catch (error) {
       throw new DatabaseError('Failed to fetch trades', error);
     }
@@ -67,7 +83,6 @@ export class TradeRepository {
     const id = input.id || (typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : `trade_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`);
     const now = new Date().toISOString();
 
-    // Compute deterministic fingerprint
     const sourceId = input.sourceId || generateTradeFingerprint({
       brokerSource: input.brokerSource,
       ticket: input.ticket,
@@ -89,7 +104,6 @@ export class TradeRepository {
       }
     }
 
-    // Auto-calculate netPnL, rMultiple, riskPercent if not explicitly provided
     const netPnL = input.netPnL !== null && input.netPnL !== undefined
       ? input.netPnL
       : calculateNetPnL({
@@ -106,7 +120,6 @@ export class TradeRepository {
       ? input.riskPercent
       : calculateRiskPercent(input.initialRiskAmount ?? null, input.balanceBefore ?? null);
 
-    // Evaluate Data Quality
     const candidateTrade: Trade = {
       id,
       sourceId,
@@ -133,7 +146,7 @@ export class TradeRepository {
       rMultiple,
       balanceBefore: input.balanceBefore ?? null,
       balanceAfter: input.balanceAfter ?? null,
-      session: input.session ?? null,
+      session: getTradeSession({ openedAt: input.openedAt, session: input.session ?? null }) as Trade['session'],
       timeframe: input.timeframe ?? null,
       setup: input.setup ?? null,
       setupId: input.setupId ?? null,
@@ -158,7 +171,7 @@ export class TradeRepository {
       screenshotBefore: input.screenshotBefore ?? null,
       screenshotAfter: input.screenshotAfter ?? null,
       status: input.status || 'CLOSED',
-      dataQuality: 'PARTIAL', // temporary, will be assigned below
+      dataQuality: 'PARTIAL',
       createdAt: input.createdAt || now,
       updatedAt: input.updatedAt || now,
     };
@@ -166,7 +179,6 @@ export class TradeRepository {
     const qualityAssessment = evaluateDataQuality(candidateTrade);
     candidateTrade.dataQuality = qualityAssessment.quality;
 
-    // Validate with Zod
     const validation = TradeSchema.safeParse(candidateTrade);
     if (!validation.success) {
       throw new InvalidTradeError(
@@ -183,9 +195,6 @@ export class TradeRepository {
     }
   }
 
-  /**
-   * Bulk insert with duplicate skipping / error classification.
-   */
   static async bulkInsert(
     trades: NewTradeInput[],
     skipDuplicates = true
@@ -215,9 +224,6 @@ export class TradeRepository {
     return { inserted, duplicates, errors };
   }
 
-  /**
-   * Deletes a trade by ID.
-   */
   static async delete(id: string): Promise<boolean> {
     try {
       const exists = await db.trades.get(id);
@@ -229,9 +235,6 @@ export class TradeRepository {
     }
   }
 
-  /**
-   * Clears all trades.
-   */
   static async clearAll(): Promise<void> {
     try {
       await db.trades.clear();
