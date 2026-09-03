@@ -13,5 +13,5 @@ jobs:
       - uses: oven-sh/setup-bun@v2
       - run: bun --version
       - run: bun install --frozen-lockfile
-      - run: bun run test -- --run src/tests/importRobustness.test.ts src/tests/riskPatterns.test.ts src/tests/myEdgeAnalyzerFeatures.test.ts src/tests/tradingSession.test.ts
+      - run: bun run test -- --run src/tests/importRobustness.test.ts src/tests/riskPatterns.test.ts src/tests/myEdgeAnalyzerFeatures.test.ts src/tests/tradingSession.test.ts src/tests/dashboardDataIntegrity.test.ts
       - run: bun run lint
