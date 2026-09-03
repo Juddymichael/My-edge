@@ -2,7 +2,7 @@ const GEMINI_MODEL = 'gemini-3.6-flash';
 const GEMINI_API_URL = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent`;
 const GEMINI_STREAM_URL = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:streamGenerateContent?alt=sse`;
 
-const REQUEST_TIMEOUT_MS = 20000;
+const REQUEST_TIMEOUT_MS = 60000;
 const STREAM_TIMEOUT_MS = 60000;
 const MAX_RETRIES = 1;
 const RETRY_DELAY_MS = 500;
@@ -157,9 +157,14 @@ async function streamGemini(apiKey, payload, res) {
 
     const functionParts = modelParts.filter((part) => part?.functionCall?.name);
     if (functionParts.length) {
-      // Do not emit a function call until the complete streamed response is
-      // assembled. A signature can be attached to a later chunk; emitting
-      // early was the source of the missing-thoughtSignature bug.
+      const missingSignatures = functionParts.filter((part) => typeof part.thoughtSignature !== 'string' || !part.thoughtSignature);
+      if (missingSignatures.length) {
+        console.warn('[Gemini function call without thoughtSignature]', {
+          functions: functionParts.map((part) => part.functionCall?.name),
+          partCount: modelParts.length,
+        });
+      }
+      // Emit the exact Gemini model Parts collected from the full stream.
       writeSse(res, {
         type: 'function_calls',
         toolCalls: functionParts.map((part) => part.functionCall),
@@ -215,7 +220,7 @@ export default async function handler(req, res) {
     if (!reply) { const finishReason = data?.candidates?.[0]?.finishReason || null; console.error('[Gemini empty response]', { finishReason, promptFeedback: data?.promptFeedback || null }); return sendJson(res, 502, { error: 'Gemini a renvoyé une réponse vide.', code: 'EMPTY_GEMINI_RESPONSE', finishReason }); }
     return sendJson(res, 200, { type: 'message', reply });
   } catch (error) {
-    if (error?.name === 'AbortError') return sendJson(res, 504, { error: 'Gemini n’a pas répondu dans le délai de 20 secondes. Réessayez.', code: 'GEMINI_TIMEOUT' });
+    if (error?.name === 'AbortError') return sendJson(res, 504, { error: 'Gemini n’a pas répondu dans le délai de 60 secondes. Réessayez.', code: 'GEMINI_TIMEOUT' });
     console.error('[Coach relay error]', error); return sendJson(res, 500, { error: 'Erreur interne lors de la communication avec Gemini.', code: 'INTERNAL_ERROR', details: String(error?.message || 'Erreur inconnue').slice(0, 500) });
   }
 }
