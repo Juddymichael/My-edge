@@ -1,4 +1,4 @@
-name: Import, Coach and Risk regression tests
+name: Import, AI Analysis and Risk regression tests
 
 on:
   push:
@@ -13,5 +13,5 @@ jobs:
       - uses: oven-sh/setup-bun@v2
       - run: bun --version
       - run: bun install --frozen-lockfile
-      - run: bun run test -- --run src/tests/importRobustness.test.ts src/tests/coachPersistence.test.ts src/tests/coachTools.test.ts src/tests/riskPatterns.test.ts src/tests/myEdgeAnalyzerFeatures.test.ts
+      - run: bun run test -- --run src/tests/importRobustness.test.ts src/tests/riskPatterns.test.ts src/tests/myEdgeAnalyzerFeatures.test.ts
       - run: bun run lint
