@@ -58,7 +58,7 @@ export default function App() {
     <div className="flex-1 flex flex-col min-w-0 h-screen overflow-y-auto">
       <TopBar unreadCount={unreadCount} activeNotificationCount={activeAlerts.length} onDismissAllNotifications={()=>{ if(window.confirm('Retirer toutes les notifications actives ? Elles resteront consultables dans l’historique des paramètres.')) void dismissAll(); }} activeTab={activeTab} onOpenMobileMenu={()=>setIsMobileMenuOpen(true)} onOpenCreate={()=>setIsCreateOpen(true)} onOpenImport={()=>setIsImportOpen(true)} onOpenSetupsModal={()=>setIsSetupsOpen(true)} onOpenBackup={()=>setIsBackupOpen(true)} onSeed={handleSeed} isLoading={isLoading} tradeCount={safeTrades.length}/>
       <ToastNotification notification={notification} onClose={()=>setNotification(null)}/>
-      <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
+      <main className="flex-1 w-[94%] max-w-[1800px] mx-auto px-3 sm:px-5 lg:px-7 py-6 space-y-6">
         {error && <div className="p-4 rounded-2xl bg-[#12151D] border border-rose-500/30 text-rose-400 text-xs flex items-center gap-2"><AlertCircle className="w-4 h-4"/><span>Erreur Base de Données : {error}</span></div>}
         <AnimatePresence mode="wait" initial={false}>
           {isLoading && safeTrades.length === 0 ? <motion.div key="skeleton-view" {...viewMotion}><DashboardSkeleton/></motion.div> : <>
