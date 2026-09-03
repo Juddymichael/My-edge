@@ -139,7 +139,7 @@ export const EquityCurveChart: React.FC<EquityCurveChartProps> = ({
             onClick={() => setMode('pnl')}
             className={`px-3.5 py-1.5 rounded-xl transition-all duration-200 btn-press cursor-pointer ${
               mode === 'pnl'
-                ? 'bg-[var(--chart-accent)] hover:bg-[#EA580C] text-white shadow-xs font-bold'
+                ? 'bg-[var(--chart-accent)] hover:bg-[#6D28D9] text-white shadow-xs font-bold'
                 : 'text-slate-600 dark:text-[#9299A8] hover:text-slate-900 dark:hover:text-[#F5F5F5]'
             }`}
           >
@@ -149,7 +149,7 @@ export const EquityCurveChart: React.FC<EquityCurveChartProps> = ({
             onClick={() => setMode('r')}
             className={`px-3.5 py-1.5 rounded-xl transition-all duration-200 btn-press cursor-pointer ${
               mode === 'r'
-                ? 'bg-[#F97316] hover:bg-[#EA580C] text-white shadow-xs font-bold'
+                ? 'bg-[#7C3AED] hover:bg-[#6D28D9] text-white shadow-xs font-bold'
                 : 'text-slate-600 dark:text-[#9299A8] hover:text-slate-900 dark:hover:text-[#F5F5F5]'
             }`}
           >
@@ -271,8 +271,8 @@ export const EquityCurveChart: React.FC<EquityCurveChartProps> = ({
                       isHovered
                         ? isDark
                           ? 'fill-[var(--chart-accent)] stroke-[#0B0D12] stroke-2 shadow-md'
-                          : 'fill-[#F97316] stroke-white stroke-2 shadow-md'
-                        : 'fill-[#F97316] hover:fill-[#FDBA74]'
+                          : 'fill-[#7C3AED] stroke-white stroke-2 shadow-md'
+                        : 'fill-[#7C3AED] hover:fill-[#FDBA74]'
                     }`}
                   />
                   {/* Invisible broad hitbox */}
