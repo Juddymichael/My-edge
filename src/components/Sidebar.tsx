@@ -144,7 +144,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                       <Icon className="w-4 h-4 transition-transform duration-200 group-hover:rotate-6" />
                     </div>
                     <div className="text-left truncate sidebar-copy">
-                      <div className="flex items-center gap-1.5"><span className="nav-label-mask"><span className="nav-label-reveal truncate">{item.label}</span></span>{item.highlight&&<span className="w-1.5 h-1.5 rounded-full bg-[#EC4899] animate-pulse"/></div>
+                      <div className="flex items-center gap-1.5"><span className="nav-label-mask"><span className="nav-label-reveal truncate">{item.label}</span></span>{item.highlight&&<span className="w-1.5 h-1.5 rounded-full bg-[#EC4899] animate-pulse"></span></div>
                       <div className="text-[10px] font-medium text-[#8E89AF] dark:text-[#9299A8]/80 truncate">{item.description}</div>
                     </div>
                   </div>
