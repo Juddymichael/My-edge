@@ -12,7 +12,7 @@ import { TradeTable } from './components/TradeTable';
 import { EquityCurveChart } from './components/EquityCurveChart';
 import { MyEdgeAnalyzerView } from './components/MyEdgeAnalyzerView';
 import { AnalyticsView } from './components/AnalyticsView';
-import { CoachView } from './components/CoachView';
+import { AIAnalysisView } from './components/AIAnalysisView';
 import { SettingsView } from './components/SettingsView';
 import { CreateTradeModal } from './components/CreateTradeModal';
 import { TradeDetailModal } from './components/TradeDetailModal';
@@ -92,7 +92,7 @@ export default function App() {
             {activeTab === 'trades' && <motion.div key="trades" {...viewMotion}><TradeTable trades={safeTrades} onDelete={handleDeleteTrade} onSelect={setSelectedTrade} onSeed={handleSeed} onOpenCreate={()=>setIsCreateOpen(true)} onOpenImport={()=>setIsImportOpen(true)}/></motion.div>}
             {activeTab === 'edge' && <motion.div key="edge" {...viewMotion}><MyEdgeAnalyzerView trades={safeTrades} setups={safeSetups} currency={settings.currency||'EUR'} onOpenSetupsModal={()=>setIsSetupsOpen(true)} onSelectTrade={setSelectedTrade}/></motion.div>}
             {activeTab === 'analytics' && <motion.div key="analytics" {...viewMotion}><AnalyticsView trades={safeTrades} currency={settings.currency||'EUR'} initialBalance={settings.initialAccountBalance||10000} onSelectTrade={setSelectedTrade}/></motion.div>}
-            {activeTab === 'coach' && <motion.div key="coach" {...viewMotion}><CoachView trades={safeTrades} setups={safeSetups} currency={settings.currency||'USD'} initialBalance={settings.initialAccountBalance||10000}/></motion.div>}
+            {activeTab === 'ai-analysis' && <motion.div key="ai-analysis" {...viewMotion}><AIAnalysisView trades={safeTrades} setups={safeSetups} settings={settings} currency={settings.currency||'USD'} onNotify={notify}/></motion.div>}
             {activeTab === 'settings' && <motion.div key="settings" {...viewMotion}><SettingsView settings={settings} alerts={alerts} onUpdateSettings={updateSettings} onOpenBackup={()=>setIsBackupOpen(true)} onOpenSetups={()=>setIsSetupsOpen(true)} onOpenImport={()=>setIsImportOpen(true)} onSeed={handleSeed} onClear={handleClear} tradeCount={safeTrades.length}/></motion.div>}
           </>}
         </AnimatePresence>
