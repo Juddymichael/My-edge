@@ -14,7 +14,10 @@ function sendJson(res, status, payload) { res.status(status).json(payload); }
 
 const FUNCTION_DECLARATIONS = [
   { name: 'getTradesByPeriod', description: 'Récupère tous les trades de l’utilisateur ouverts dans une plage de dates précise. Utilise cette fonction lorsque la question demande les trades eux-mêmes sur une période.', parameters: { type: 'OBJECT', properties: { dateDebut: { type: 'STRING', description: 'Date de début au format YYYY-MM-DD, incluse.' }, dateFin: { type: 'STRING', description: 'Date de fin au format YYYY-MM-DD, incluse.' } }, required: ['dateDebut', 'dateFin'] } },
+  { name: 'getTradesByPair', description: 'Récupère tous les trades correspondant à une paire/instrument précis.', parameters: { type: 'OBJECT', properties: { paire: { type: 'STRING', description: 'Paire/instrument, par exemple GBPUSD ou XAUUSD.' } }, required: ['paire'] } },
+  { name: 'getTradesBySetup', description: 'Récupère tous les trades correspondant à un setup précis.', parameters: { type: 'OBJECT', properties: { setup: { type: 'STRING', description: 'Nom exact du setup/PD Array.' } }, required: ['setup'] } },
   { name: 'getStatsForFilter', description: 'Calcule les statistiques exactes des trades correspondant à une combinaison de filtres. Utilise cette fonction pour répondre à une question de performance filtrée.', parameters: { type: 'OBJECT', properties: { filtres: { type: 'OBJECT', description: 'Filtres optionnels combinables : paire, dateDebut, dateFin, session, setup.', properties: { paire: { type: 'STRING', description: 'Paire/instrument, par exemple GBPUSD ou XAUUSD.' }, dateDebut: { type: 'STRING', description: 'Date de début YYYY-MM-DD.' }, dateFin: { type: 'STRING', description: 'Date de fin YYYY-MM-DD.' }, session: { type: 'STRING', description: 'Session de trading, par exemple LONDON, NEW_YORK, TOKYO ou SYDNEY.' }, setup: { type: 'STRING', description: 'Nom exact du setup/PD Array.' } } } } } },
+  { name: 'compareTwoPeriods', description: 'Compare les statistiques exactes de deux périodes.', parameters: { type: 'OBJECT', properties: { dateDebut1: { type: 'STRING', description: 'Début période 1 YYYY-MM-DD.' }, dateFin1: { type: 'STRING', description: 'Fin période 1 YYYY-MM-DD.' }, dateDebut2: { type: 'STRING', description: 'Début période 2 YYYY-MM-DD.' }, dateFin2: { type: 'STRING', description: 'Fin période 2 YYYY-MM-DD.' } }, required: ['dateDebut1', 'dateFin1', 'dateDebut2', 'dateFin2'] } },
   { name: 'getBestTrades', description: 'Renvoie les N meilleurs trades selon le PnL net, avec leurs détails. Utilise-la pour les questions sur les meilleurs trades.', parameters: { type: 'OBJECT', properties: { nombre: { type: 'INTEGER', description: 'Nombre de trades à retourner, entre 1 et 50.' } }, required: ['nombre'] } },
   { name: 'getWorstTrades', description: 'Renvoie les N pires trades selon le PnL net, avec leurs détails. Utilise-la pour les questions sur les pertes ou les pires trades.', parameters: { type: 'OBJECT', properties: { nombre: { type: 'INTEGER', description: 'Nombre de trades à retourner, entre 1 et 50.' } }, required: ['nombre'] } },
 ];
@@ -23,17 +26,49 @@ function normalizeHistory(history) {
   if (!Array.isArray(history)) return [];
   return history.slice(-MAX_HISTORY_TURNS).flatMap((turn) => {
     if (!turn || !['user', 'model'].includes(turn.role)) return [];
+
+    // Prefer the exact model content returned by Gemini. This is critical for
+    // Gemini 3: thoughtSignature is positional metadata on the original Part.
+    // Never rebuild a functionCall Part from only name/args.
+    if (turn.role === 'model' && Array.isArray(turn.parts)) {
+      const parts = turn.parts.filter((part) => part && typeof part === 'object').map((part) => {
+        const copy = { ...part };
+        if (copy.thoughtSignature === '') delete copy.thoughtSignature;
+        return copy;
+      });
+      if (parts.length) return [{ role: 'model', parts }];
+    }
+
+    if (turn.role === 'user' && Array.isArray(turn.parts)) {
+      const parts = turn.parts.filter((part) => part && typeof part === 'object');
+      if (parts.length) return [{ role: 'user', parts }];
+    }
+
+    if (turn.role === 'model' && Array.isArray(turn.functionCalls)) {
+      return [{ role: 'model', parts: turn.functionCalls.map((call) => ({
+        functionCall: call.functionCall || call,
+        ...(typeof call.thoughtSignature === 'string' && call.thoughtSignature
+          ? { thoughtSignature: call.thoughtSignature }
+          : {}),
+      })) }];
+    }
+
     if (turn.functionCall && typeof turn.functionCall === 'object') {
       const part = { functionCall: turn.functionCall };
-      if (typeof turn.thoughtSignature === 'string' && turn.thoughtSignature) part.thoughtSignature = turn.thoughtSignature;
+      if (typeof turn.thoughtSignature === 'string' && turn.thoughtSignature) {
+        part.thoughtSignature = turn.thoughtSignature;
+      }
       return [{ role: 'model', parts: [part] }];
     }
-    if (turn.functionResponse && typeof turn.functionResponse === 'object') return [{ role: 'user', parts: [{ functionResponse: turn.functionResponse }] }];
+
+    if (turn.functionResponse && typeof turn.functionResponse === 'object') {
+      return [{ role: 'user', parts: [{ functionResponse: turn.functionResponse }] }];
+    }
+
     if (typeof turn.text !== 'string' || !turn.text.trim()) return [];
     return [{ role: turn.role, parts: [{ text: turn.text.slice(0, MAX_HISTORY_TEXT) }] }];
   });
 }
-
 function extractGeminiError(data) {
   const message = data?.error?.message;
   if (typeof message !== 'string') return 'Réponse invalide du service Gemini.';
@@ -67,7 +102,12 @@ async function streamGemini(apiKey, payload, res) {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), STREAM_TIMEOUT_MS);
   try {
-    const response = await fetch(GEMINI_STREAM_URL, { method: 'POST', headers: { 'Content-Type': 'application/json', 'x-goog-api-key': apiKey }, body: JSON.stringify(payload), signal: controller.signal });
+    const response = await fetch(GEMINI_STREAM_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-goog-api-key': apiKey },
+      body: JSON.stringify(payload),
+      signal: controller.signal
+    });
     if (!response.ok) {
       const data = await response.json().catch(() => null);
       const details = extractGeminiError(data);
@@ -77,43 +117,68 @@ async function streamGemini(apiKey, payload, res) {
       return;
     }
     if (!response.body) throw new Error('Le flux Gemini est indisponible.');
+
     const reader = response.body.getReader();
     const decoder = new TextDecoder();
     let buffer = '';
-    let emittedFunctionCall = false;
+    const modelParts = [];
+
     const processEvent = (rawEvent) => {
       const dataLine = rawEvent.split('\n').find((line) => line.startsWith('data:'));
       if (!dataLine) return;
       const raw = dataLine.slice(5).trim();
       if (!raw || raw === '[DONE]') return;
-      let chunk; try { chunk = JSON.parse(raw); } catch { return; }
+
+      let chunk;
+      try { chunk = JSON.parse(raw); } catch { return; }
+
       const parts = chunk?.candidates?.[0]?.content?.parts || [];
       for (const part of parts) {
-        if (typeof part?.text === 'string' && part.text) writeSse(res, { type: 'delta', text: part.text });
-        if (part?.functionCall?.name) {
-          emittedFunctionCall = true;
-          writeSse(res, { type: 'function_call', toolCall: part.functionCall, thoughtSignature: typeof part.thoughtSignature === 'string' ? part.thoughtSignature : null });
+        if (part && typeof part === 'object') modelParts.push(part);
+        if (typeof part?.text === 'string' && part.text) {
+          writeSse(res, { type: 'delta', text: part.text });
         }
       }
     };
+
     while (true) {
       const { value, done } = await reader.read();
       if (done) break;
-      buffer += decoder.decode(value, { stream: true }).replace(/\r\n/g, '\n');
-      let separatorIndex = buffer.indexOf('\n\n');
+      buffer += decoder.decode(value, { stream: true }).replace(/\\r\\n/g, '\\n');
+      let separatorIndex = buffer.indexOf('\\n\\n');
       while (separatorIndex !== -1) {
-        const event = buffer.slice(0, separatorIndex); buffer = buffer.slice(separatorIndex + 2); processEvent(event); separatorIndex = buffer.indexOf('\n\n');
+        const event = buffer.slice(0, separatorIndex);
+        buffer = buffer.slice(separatorIndex + 2);
+        processEvent(event);
+        separatorIndex = buffer.indexOf('\\n\\n');
       }
     }
     if (buffer.trim()) processEvent(buffer);
-    writeSse(res, { type: 'done', functionCall: emittedFunctionCall });
-  } catch (error) {
-    if (error?.name === 'AbortError') writeSse(res, { type: 'error', error: 'Gemini n’a pas répondu dans le délai de 60 secondes.', code: 'GEMINI_TIMEOUT' });
-    else { console.error('[Coach stream relay error]', error); writeSse(res, { type: 'error', error: 'Connexion au relais Gemini impossible.', code: 'INTERNAL_ERROR', details: String(error?.message || 'Erreur inconnue').slice(0, 500) }); }
-    writeSse(res, { type: 'done' });
-  } finally { clearTimeout(timeout); }
-}
 
+    const functionParts = modelParts.filter((part) => part?.functionCall?.name);
+    if (functionParts.length) {
+      // Do not emit a function call until the complete streamed response is
+      // assembled. A signature can be attached to a later chunk; emitting
+      // early was the source of the missing-thoughtSignature bug.
+      writeSse(res, {
+        type: 'function_calls',
+        toolCalls: functionParts.map((part) => part.functionCall),
+        modelParts,
+      });
+    }
+    writeSse(res, { type: 'done', functionCall: functionParts.length > 0 });
+  } catch (error) {
+    if (error?.name === 'AbortError') {
+      writeSse(res, { type: 'error', error: 'Gemini n’a pas répondu dans le délai de 60 secondes.', code: 'GEMINI_TIMEOUT' });
+    } else {
+      console.error('[Coach stream relay error]', error);
+      writeSse(res, { type: 'error', error: 'Connexion au relais Gemini impossible.', code: 'INTERNAL_ERROR', details: String(error?.message || 'Erreur inconnue').slice(0, 500) });
+    }
+    writeSse(res, { type: 'done' });
+  } finally {
+    clearTimeout(timeout);
+  }
+}
 export default async function handler(req, res) {
   if (req.method !== 'POST') { res.setHeader('Allow', 'POST'); return sendJson(res, 405, { error: 'Méthode non autorisée. Utilisez POST.' }); }
   const apiKey = process.env.GEMINI_API_KEY;
@@ -138,7 +203,14 @@ export default async function handler(req, res) {
     if (!response.ok) { const details = extractGeminiError(data); console.error('[Gemini API error]', response.status, details); return sendJson(res, 502, { error: 'Gemini n’a pas pu traiter la demande.', code: 'GEMINI_API_ERROR', details, providerStatus: response.status }); }
     const parts = data?.candidates?.[0]?.content?.parts || [];
     const functionCallPart = parts.find((part) => part?.functionCall?.name);
-    if (functionCallPart) return sendJson(res, 200, { type: 'function_call', toolCall: functionCallPart.functionCall, thoughtSignature: typeof functionCallPart.thoughtSignature === 'string' ? functionCallPart.thoughtSignature : null });
+    if (functionCallPart) {
+      const functionParts = parts.filter((part) => part?.functionCall?.name);
+      return sendJson(res, 200, {
+        type: 'function_calls',
+        toolCalls: functionParts.map((part) => part.functionCall),
+        modelParts: parts,
+      });
+    }
     const reply = parts.map((part) => part?.text || '').join('').trim();
     if (!reply) { const finishReason = data?.candidates?.[0]?.finishReason || null; console.error('[Gemini empty response]', { finishReason, promptFeedback: data?.promptFeedback || null }); return sendJson(res, 502, { error: 'Gemini a renvoyé une réponse vide.', code: 'EMPTY_GEMINI_RESPONSE', finishReason }); }
     return sendJson(res, 200, { type: 'message', reply });

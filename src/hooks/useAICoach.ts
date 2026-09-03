@@ -33,21 +33,29 @@ function parseSseEvents(buffer: string, onEvent: (data: Record<string, unknown>)
   return remaining;
 }
 
-async function readCoachStream(response: Response, onDelta: (text: string) => void, onFunctionCall: (toolCall: CoachToolCall, thoughtSignature?: string) => void, onError: (error: string) => void) {
+async function readCoachStream(response: Response, onDelta: (text: string) => void, onFunctionCalls: (toolCalls: CoachToolCall[], modelParts: Record<string, unknown>[]) => void, onError: (error: string) => void) {
   if (!response.body) throw new Error('Le flux du coach est indisponible.');
-  const reader = response.body.getReader(); const decoder = new TextDecoder(); let buffer = ''; let functionCall: CoachToolCall | null = null; let thoughtSignature: string | undefined; let streamError: string | null = null;
+  const reader = response.body.getReader(); const decoder = new TextDecoder(); let buffer = '';
+  let functionCalls: CoachToolCall[] = []; let modelParts: Record<string, unknown>[] = []; let streamError: string | null = null;
   const handleEvent = (event: Record<string, unknown>) => {
     if (event.type === 'delta' && typeof event.text === 'string') onDelta(event.text);
-    if (event.type === 'function_call' && event.toolCall && typeof event.toolCall === 'object') { functionCall = event.toolCall as CoachToolCall; thoughtSignature = typeof event.thoughtSignature === 'string' ? event.thoughtSignature : undefined; }
+    if (event.type === 'function_calls' && Array.isArray(event.toolCalls)) {
+      functionCalls = event.toolCalls.filter((call): call is CoachToolCall => !!call && typeof call === 'object');
+      modelParts = Array.isArray(event.modelParts) ? event.modelParts.filter((part): part is Record<string, unknown> => !!part && typeof part === 'object') : [];
+    }
+    if (event.type === 'function_call' && event.toolCall && typeof event.toolCall === 'object') {
+      functionCalls = [event.toolCall as CoachToolCall];
+      const signature = typeof event.thoughtSignature === 'string' ? event.thoughtSignature : undefined;
+      modelParts = [{ functionCall: event.toolCall, ...(signature ? { thoughtSignature: signature } : {}) }];
+    }
     if (event.type === 'error' && typeof event.error === 'string') streamError = event.error;
   };
   while (true) { const { value, done } = await reader.read(); if (done) break; buffer += decoder.decode(value, { stream: true }); buffer = parseSseEvents(buffer, handleEvent); }
-  buffer += decoder.decode(); if (buffer.trim()) parseSseEvents(`${buffer}\n\n`, handleEvent);
-  if (streamError) { onError(streamError); return { functionCall: null }; }
-  if (functionCall) onFunctionCall(functionCall, thoughtSignature);
-  return { functionCall };
+  buffer += decoder.decode(); if (buffer.trim()) parseSseEvents(buffer + '\n\n', handleEvent);
+  if (streamError) { onError(streamError); return { functionCalls: [], modelParts: [] }; }
+  if (functionCalls.length) onFunctionCalls(functionCalls, modelParts);
+  return { functionCalls, modelParts };
 }
-
 export function useAICoach(context: CoachContext | null = null) {
   const [messages, setMessages] = useState<ChatMessage[]>([]); const [isLoading, setIsLoading] = useState(false); const [isUsingTool, setIsUsingTool] = useState(false); const [toolName, setToolName] = useState<string | null>(null); const [isReady, setIsReady] = useState(false); const [dailyCount, setDailyCount] = useState(() => readDailyUsage().count); const [cooldownUntil, setCooldownUntil] = useState(0); const recentSendTimesRef = useRef<number[]>([]); const cooldownTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null); const inMemoryDailyCountRef = useRef(dailyCount);
   useEffect(() => { let cancelled = false; const loadHistory = async () => { try { const stored = await db.coachHistory.orderBy('timestamp').toArray(); if (cancelled) return; if (stored.length > 0) setMessages(stored.slice(-ACTIVE_HISTORY_LIMIT)); else { const welcome = createWelcomeMessage(); await db.coachHistory.put(welcome); if (!cancelled) setMessages([welcome]); } } catch { if (!cancelled) setMessages([createWelcomeMessage()]); } finally { if (!cancelled) setIsReady(true); } }; void loadHistory(); return () => { cancelled = true; if (cooldownTimerRef.current) clearTimeout(cooldownTimerRef.current); }; }, []);
@@ -77,20 +85,22 @@ export function useAICoach(context: CoachContext | null = null) {
         if (!continuation) {
           let streamedReply = ''; const assistantMessageId = `model-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
           const updateAssistant = (text: string) => { streamedReply += text; const message: ChatMessage = { id: assistantMessageId, role: 'model', text: streamedReply, timestamp: new Date().toISOString() }; setMessages((previous) => { const existing = previous.some((item) => item.id === assistantMessageId); return existing ? previous.map((item) => item.id === assistantMessageId ? message : item) : [...previous, message].slice(-ACTIVE_HISTORY_LIMIT); }); };
-          setIsUsingTool(false); setToolName(null); let streamFunctionCall: CoachToolCall | null = null; let streamThoughtSignature: string | undefined;
-          const streamResult = await readCoachStream(response, updateAssistant, (toolCall, signature) => { streamFunctionCall = toolCall; streamThoughtSignature = signature; }, (error) => { streamFunctionCall = null; updateAssistant(`⚠️ **Impossible d'obtenir une réponse du coach.**\n\n${error}`); });
-          if (streamFunctionCall) {
-            const toolCall = streamFunctionCall; const toolCallId = getToolCallId(toolCall); const thoughtSignature = streamThoughtSignature || getThoughtSignature(toolCall);
-            setIsUsingTool(true); setToolName(toolCall.name); setMessages((previous) => previous.filter((item) => item.id !== assistantMessageId));
-            const signedFunctionCall = thoughtSignature ? { ...toolCall, __thoughtSignature: thoughtSignature } : toolCall;
-            try {
-              const result = await executeCoachTool(toolCall.name, toolCall.args || {});
-              requestHistory = [...requestHistory, { role: 'model', functionCall: toolCall, thoughtSignature }, { role: 'user', functionResponse: { id: toolCallId, name: toolCall.name, response: { result } } }];
-            } catch (error) {
-              const errorText = error instanceof Error ? error.message : 'La consultation locale des données a échoué.';
-              requestHistory = [...requestHistory, { role: 'model', functionCall: toolCall, thoughtSignature }, { role: 'user', functionResponse: { id: toolCallId, name: toolCall.name, response: { error: errorText } } }];
+          setIsUsingTool(false); setToolName(null); let streamFunctionCalls: CoachToolCall[] = []; let streamModelParts: Record<string, unknown>[] = [];
+          const streamResult = await readCoachStream(response, updateAssistant, (toolCalls, modelParts) => { streamFunctionCalls = toolCalls; streamModelParts = modelParts; }, (error) => { streamFunctionCalls = []; updateAssistant(`⚠️ **Impossible d'obtenir une réponse du coach.**\\n\\n${error}`); });
+          if (streamFunctionCalls.length) {
+            setIsUsingTool(true); setToolName(streamFunctionCalls[0].name); setMessages((previous) => previous.filter((item) => item.id !== assistantMessageId));
+            const toolResponses = [];
+            for (const toolCall of streamFunctionCalls) {
+              const toolCallId = getToolCallId(toolCall);
+              try {
+                const result = await executeCoachTool(toolCall.name, toolCall.args || {});
+                toolResponses.push({ functionResponse: { id: toolCallId, name: toolCall.name, response: { result } } });
+              } catch (error) {
+                const errorText = error instanceof Error ? error.message : 'La consultation locale des données a échoué.';
+                toolResponses.push({ functionResponse: { id: toolCallId, name: toolCall.name, response: { error: errorText } } });
+              }
             }
-            void signedFunctionCall;
+            requestHistory = [...requestHistory, { role: 'model', parts: streamModelParts }, { role: 'user', parts: toolResponses }];
             continuation = true; continue;
           }
           if (streamedReply.trim()) await db.coachHistory.put({ id: assistantMessageId, role: 'model', text: streamedReply.trim(), timestamp: new Date().toISOString() });
@@ -99,11 +109,22 @@ export function useAICoach(context: CoachContext | null = null) {
         }
 
         const data = await response.json().catch(() => ({}));
-        if (data?.type === 'function_call' && data?.toolCall?.name) {
-          const toolCall = data.toolCall as CoachToolCall; const toolCallId = getToolCallId(toolCall); const thoughtSignature = typeof data?.thoughtSignature === 'string' ? data.thoughtSignature : getThoughtSignature(toolCall);
-          setIsUsingTool(true); setToolName(toolCall.name);
-          try { const result = await executeCoachTool(toolCall.name, toolCall.args || {}); requestHistory = [...requestHistory, { role: 'model', functionCall: toolCall, thoughtSignature }, { role: 'user', functionResponse: { id: toolCallId, name: toolCall.name, response: { result } } }]; }
-          catch (error) { const errorText = error instanceof Error ? error.message : 'La consultation locale des données a échoué.'; requestHistory = [...requestHistory, { role: 'model', functionCall: toolCall, thoughtSignature }, { role: 'user', functionResponse: { id: toolCallId, name: toolCall.name, response: { error: errorText } } }]; }
+        if ((data?.type === 'function_calls' || data?.type === 'function_call') && (Array.isArray(data?.toolCalls) || data?.toolCall?.name)) {
+          const toolCalls = (Array.isArray(data?.toolCalls) ? data.toolCalls : [data.toolCall]) as CoachToolCall[];
+          const modelParts = Array.isArray(data?.modelParts) ? data.modelParts : toolCalls.map((toolCall) => ({ functionCall: toolCall }));
+          setIsUsingTool(true); setToolName(toolCalls[0].name);
+          const toolResponses = [];
+          for (const toolCall of toolCalls) {
+            const toolCallId = getToolCallId(toolCall);
+            try {
+              const result = await executeCoachTool(toolCall.name, toolCall.args || {});
+              toolResponses.push({ functionResponse: { id: toolCallId, name: toolCall.name, response: { result } } });
+            } catch (error) {
+              const errorText = error instanceof Error ? error.message : 'La consultation locale des données a échoué.';
+              toolResponses.push({ functionResponse: { id: toolCallId, name: toolCall.name, response: { error: errorText } } });
+            }
+          }
+          requestHistory = [...requestHistory, { role: 'model', parts: modelParts }, { role: 'user', parts: toolResponses }];
           continue;
         }
         const reply = typeof data?.reply === 'string' && data.reply.trim() ? data.reply.trim() : 'Le coach n’a pas renvoyé de réponse. Veuillez réessayer.'; setIsUsingTool(false); setToolName(null); await addMessage(createMessage('model', reply)); break;
