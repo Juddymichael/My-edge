@@ -4,6 +4,7 @@ import { useSettings } from './hooks/useSettings';
 import { useSetups } from './hooks/useSetups';
 import { useRiskAlerts } from './hooks/useRiskAlerts';
 import { Sidebar, ActiveTab } from './components/Sidebar';
+import { MobileBottomNav } from './components/MobileBottomNav';
 import { TopBar } from './components/TopBar';
 import { MonthlyTradingBreakdownCard } from './components/MonthlyTradingBreakdownCard';
 import { DashboardStatisticsSummary } from './components/DashboardStatisticsSummary';
@@ -58,7 +59,7 @@ export default function App() {
     <div className="flex-1 flex flex-col min-w-0 h-screen overflow-y-auto">
       <TopBar unreadCount={unreadCount} activeNotificationCount={activeAlerts.length} onDismissAllNotifications={()=>{ if(window.confirm('Retirer toutes les notifications actives ? Elles resteront consultables dans l’historique des paramètres.')) void dismissAll(); }} activeTab={activeTab} onOpenMobileMenu={()=>setIsMobileMenuOpen(true)} onOpenCreate={()=>setIsCreateOpen(true)} onOpenImport={()=>setIsImportOpen(true)} onOpenSetupsModal={()=>setIsSetupsOpen(true)} onOpenBackup={()=>setIsBackupOpen(true)} onSeed={handleSeed} isLoading={isLoading} tradeCount={safeTrades.length}/>
       <ToastNotification notification={notification} onClose={()=>setNotification(null)}/>
-      <main className="flex-1 w-[94%] max-w-[1800px] mx-auto px-3 sm:px-5 lg:px-7 py-6 space-y-6">
+      <main className="flex-1 w-[94%] max-w-[1800px] mx-auto px-3 sm:px-5 lg:px-7 py-6 pb-[calc(92px+env(safe-area-inset-bottom))] md:pb-6 space-y-6">
         {error && <div className="p-4 rounded-2xl bg-[#12151D] border border-rose-500/30 text-rose-400 text-xs flex items-center gap-2"><AlertCircle className="w-4 h-4"/><span>Erreur Base de Données : {error}</span></div>}
         <AnimatePresence mode="wait" initial={false}>
           {isLoading && safeTrades.length === 0 ? <motion.div key="skeleton-view" {...viewMotion}><DashboardSkeleton/></motion.div> : <>
@@ -79,6 +80,7 @@ export default function App() {
         </AnimatePresence>
       </main>
     </div>
+    <MobileBottomNav activeTab={activeTab} onTabChange={setActiveTab} onOpenCreate={()=>setIsCreateOpen(true)} onOpenImport={()=>setIsImportOpen(true)} onOpenSetupsModal={()=>setIsSetupsOpen(true)} onOpenBackup={()=>setIsBackupOpen(true)} onCloseMobile={()=>setIsMobileMenuOpen(false)}/>
     <CreateTradeModal isOpen={isCreateOpen} onClose={()=>setIsCreateOpen(false)} onSubmit={handleCreateTrade}/><TradeDetailModal trade={selectedTrade} currency={settings.currency||'USD'} onClose={()=>setSelectedTrade(null)}/><SetupsManagementModal isOpen={isSetupsOpen} onClose={()=>setIsSetupsOpen(false)}/><BackupModal isOpen={isBackupOpen} onClose={()=>setIsBackupOpen(false)} trades={safeTrades} settings={settings} onRestoreTrades={handleRestoreTrades}/><ImportModal isOpen={isImportOpen} onClose={()=>setIsImportOpen(false)} onImportComplete={handleImportComplete} existingTrades={safeTrades}/>
   </div>;
 }
