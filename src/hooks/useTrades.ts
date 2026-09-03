@@ -5,8 +5,17 @@ export function useTrades() {
   const store = useTradeStore();
 
   useEffect(() => {
-    store.loadTrades();
-  }, []);
+    void store.loadTrades();
+
+    const handleTradesChanged = () => {
+      void store.loadTrades();
+    };
+
+    window.addEventListener('thunder-edge-trades-changed', handleTradesChanged);
+    return () => {
+      window.removeEventListener('thunder-edge-trades-changed', handleTradesChanged);
+    };
+  }, [store.loadTrades]);
 
   return store;
 }
