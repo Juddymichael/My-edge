@@ -17,6 +17,7 @@ jobs:
           set -euo pipefail
           python3 - <<'PY'
           from pathlib import Path
+          import re
           def r(path,pairs):
               p=Path(path); t=p.read_text(); o=t
               for a,b in pairs:t=t.replace(a,b)
@@ -27,10 +28,8 @@ jobs:
                   for a,b in [('TradingSession','TradingKillzone'),('getTradeSession','getTradeKillzone'),('deriveTradingSession','deriveTradingKillzone'),('normalizedSessionForAudit','normalizedKillzoneForAudit'),('SESSION_LABELS','KILLZONE_LABELS'),('isMissingSession','isMissingKillzone'),('SetupPairSessionCombo','SetupPairKillzoneCombo'),('selectedSession','selectedKillzone'),('setSelectedSession','setSelectedKillzone'),('sessionBreakdown','killzoneBreakdown'),('sessionPerformances','killzonePerformances'),('sessionMap','killzoneMap'),('sessionStats','killzoneStats'),('sessionName','killzoneName'),('bestSession','bestKillzone'),('worstSession','worstKillzone'),('bySession','byKillzone'),('leftSession','leftKillzone'),('rightSession','rightKillzone'),('sessionsList','killzonesList'),('/lib/tradingSession','/lib/tradingKillzone'),('Session','Killzone')]: t=t.replace(a,b)
                   t=t.replace('sessions','killzones')
                   p.write_text(t)
-          r('src/lib/calculations/edge.ts',[("const [setup, pair, session] = comboKey.split('___');","const [setup, pair, killzone] = comboKey.split('___');")])
-          # Regex fallback for formatting variations.
-          edge=Path('src/lib/calculations/edge.ts'); et=edge.read_text(); et=et.replace('const [setup, pair, session]', 'const [setup, pair, killzone]'); edge.write_text(et)
-          r('src/components/CreateTradeModal.tsx',[("const [session, setSession]","const [killzoneSessionValue, setKillzoneSessionValue]"),("        session,","        session: killzoneSessionValue,"),("value={session}","value={killzoneSessionValue}"),("setSession(","setKillzoneSessionValue("),("Killzone Killzone","Killzone")])
+          edge=Path('src/lib/calculations/edge.ts'); et=edge.read_text(); et=re.sub(r'const \[setup,\s*pair,\s*session\]', 'const [setup, pair, killzone]', et); edge.write_text(et)
+          r('src/components/CreateTradeModal.tsx',[("const [session, setKillzone]","const [killzoneSessionValue, setKillzoneSessionValue]"),("        session,","        session: killzoneSessionValue,"),("value={session}","value={killzoneSessionValue}"),("Killzone Killzone","Killzone")])
           r('src/components/MyEdgeAnalyzerFeatures.tsx',[("byKillzone.get(session)","byKillzone.get(killzone)"),("byKillzone.set(session, bucket)","byKillzone.set(killzone, bucket)"),("map(([session, cluster])","map(([killzone, cluster])"),("analyzeCluster(cluster, session, session, 'Killzone')","analyzeCluster(cluster, killzone, killzone, 'Killzone')")])
           r('src/components/MyEdgeAnalyzerView.tsx',[("map(([session,ts])","map(([killzone,ts])"),("return{session,wr:","return{killzone,wr:"),("bestKillzone(s,trades)?.session||'Killzone non déterminée'","bestKillzone(s,trades)?.killzone||'Killzone non déterminée'"),("pendant la session ${session}","pendant la Killzone ${killzone}"),("<b>Killzone :</b> ${esc(session)}","<b>Killzone :</b> ${esc(killzone)}")])
           r('src/components/DashboardStatisticsSummary.tsx',[("const session = bestDimension(closed, t => getTradeKillzone(t));","const killzone = bestDimension(closed, t => getTradeKillzone(t));"),("return { pair, session, day };","return { pair, killzone, day };")])
