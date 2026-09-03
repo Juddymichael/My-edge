@@ -1,7 +1,7 @@
 import { db } from './database/db';
 import { Trade } from '../types/trade';
 
-export type CoachToolName = 'getTradesByPeriod' | 'getStatsForFilter' | 'getBestTrades' | 'getWorstTrades';
+export type CoachToolName = 'getTradesByPeriod' | 'getTradesByPair' | 'getTradesBySetup' | 'getStatsForFilter' | 'compareTwoPeriods' | 'getBestTrades' | 'getWorstTrades';
 
 export interface CoachToolCall {
   name: CoachToolName;
@@ -88,6 +88,14 @@ export async function executeCoachTool(name: CoachToolName, args: Record<string,
   const trades = await db.trades.toArray();
 
   switch (name) {
+    case 'getTradesByPair': {
+      const paire = typeof args.paire === 'string' ? args.paire : '';
+      return applyFilters(trades, { paire }).map(serializeTrade);
+    }
+    case 'getTradesBySetup': {
+      const setup = typeof args.setup === 'string' ? args.setup : '';
+      return applyFilters(trades, { setup }).map(serializeTrade);
+    }
     case 'getTradesByPeriod': {
       const dateDebut = typeof args.dateDebut === 'string' ? args.dateDebut : undefined;
       const dateFin = typeof args.dateFin === 'string' ? args.dateFin : undefined;
@@ -96,6 +104,14 @@ export async function executeCoachTool(name: CoachToolName, args: Record<string,
     case 'getStatsForFilter': {
       const filters = args.filtres && typeof args.filtres === 'object' ? args.filtres as Record<string, unknown> : {};
       return { filters, stats: calculateStats(applyFilters(trades, filters)) };
+    }
+    case 'compareTwoPeriods': {
+      const period1 = applyFilters(trades, { dateDebut: args.dateDebut1, dateFin: args.dateFin1 });
+      const period2 = applyFilters(trades, { dateDebut: args.dateDebut2, dateFin: args.dateFin2 });
+      return {
+        period1: { dateDebut: args.dateDebut1, dateFin: args.dateFin1, stats: calculateStats(period1) },
+        period2: { dateDebut: args.dateDebut2, dateFin: args.dateFin2, stats: calculateStats(period2) },
+      };
     }
     case 'getBestTrades': {
       const nombre = Math.min(Math.max(Math.floor(toNumber(args.nombre) ?? 5), 1), 50);
