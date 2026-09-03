@@ -182,7 +182,7 @@ export function buildCoachContext(
     confidenceTier: s.confidenceTier,
   }));
 
-  // 4. Sessions Breakdown
+  // 4. Killzones Breakdown
   const killzonesList = edgeAudit.killzones.map((s) => ({
     killzone: s.label,
     sampleSize: s.closedTrades,
@@ -387,7 +387,7 @@ export function buildCoachContext(
       bestKillzone: edgeAudit.verdict.bestKillzone?.label || null,
       worstKillzone: edgeAudit.verdict.worstKillzone?.label || null,
       topCombination: edgeAudit.verdict.topCombination
-        ? `${edgeAudit.verdict.topCombination.pair} en session ${edgeAudit.verdict.topCombination.session} (${edgeAudit.verdict.topCombination.setup})`
+        ? `${edgeAudit.verdict.topCombination.pair} en Killzone ${edgeAudit.verdict.topCombination.killzone} (${edgeAudit.verdict.topCombination.setup})`
         : null,
       keyTakeaway: edgeAudit.verdict.keyTakeaway,
       recurringConditions: edgeAudit.verdict.recurringConditions,
