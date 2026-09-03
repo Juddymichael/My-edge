@@ -9,7 +9,7 @@ export type TradeStatus = 'OPEN' | 'CLOSED' | 'CANCELLED';
 
 export type DataQuality = 'VERIFIED' | 'PARTIAL' | 'NEEDS_REVIEW';
 
-export type TradingSession = 'SYDNEY' | 'TOKYO' | 'LONDON' | 'NEW_YORK' | 'CUSTOM' | null;
+export type TradingSession = 'SYDNEY' | 'TOKYO' | 'LONDON' | 'NEW_YORK' | 'CUSTOM' | 'Killzone London' | 'Killzone New York' | 'Killzone London Close' | 'Hors Killzone' | 'NO_SESSION' | null;
 
 export type Timeframe =
   | 'M1'
