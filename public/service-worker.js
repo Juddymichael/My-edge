@@ -1,4 +1,4 @@
-const CACHE_NAME = 'thunder-edge-static-v2';
+const CACHE_NAME = 'thunder-edge-static-v3';
 const APP_SHELL = [
   '/',
   '/manifest.json',
