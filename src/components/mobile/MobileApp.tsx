@@ -53,6 +53,30 @@ export function MobileApp({
     };
   }, []);
 
+  useEffect(() => {
+    const originalFetch = window.fetch.bind(window);
+
+    window.fetch = async (input: RequestInfo | URL, init?: RequestInit) => {
+      const url = new URL(
+        typeof input === 'string' ? input : input instanceof URL ? input.href : input.url,
+        window.location.href,
+      );
+
+      try {
+        return await originalFetch(input, init);
+      } catch (error) {
+        if (url.pathname === '/api/ai-analysis' && (!navigator.onLine || error instanceof TypeError)) {
+          throw new Error('Cette fonctionnalité nécessite une connexion internet');
+        }
+        throw error;
+      }
+    };
+
+    return () => {
+      window.fetch = originalFetch;
+    };
+  }, []);
+
   const openImport = () => {
     setImportOpen(true);
     onOpenImport();
