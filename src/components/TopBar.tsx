@@ -10,7 +10,6 @@ import {
   Radio,
   Crosshair,
   TrendingUp,
-  Bot,
   Settings as SettingsIcon,
   LayoutDashboard,
   CalendarDays,
@@ -64,10 +63,10 @@ const TAB_INFO: Record<ActiveTab, { title: string; subtitle: string; icon: React
     subtitle: 'Killzone session performance, directionality, and drawdowns',
     icon: TrendingUp,
   },
-  coach: {
-    title: 'Trading Psychology Coach',
-    subtitle: 'Discipline adherence rate, emotional bias & mistake cost audit',
-    icon: Bot,
+  'ai-analysis': {
+    title: 'Analyse IA',
+    subtitle: 'Analyse structurée, graphiques et recommandations',
+    icon: Sparkles,
   },
   settings: {
     title: 'Terminal Settings',
@@ -99,7 +98,6 @@ export const TopBar: React.FC<TopBarProps> = ({
       id="thunder-edge-topbar"
       className="sticky top-0 z-20 h-16 border-b border-[#ECE7FC] dark:border-[#292E38] bg-white/85 dark:bg-[#0B0D12]/90 backdrop-blur-md transition-colors duration-200 px-4 sm:px-6 flex items-center justify-between"
     >
-      {/* Left: Mobile Toggle & Page Title */}
       <div className="flex items-center gap-3 min-w-0">
         <button
           onClick={onOpenMobileMenu}
@@ -124,16 +122,13 @@ export const TopBar: React.FC<TopBarProps> = ({
         </div>
       </div>
 
-      {/* Right: Market Status & Quick Action Buttons */}
       <div className="flex items-center gap-2 shrink-0">
-        {/* Live Session Status Pill */}
         <div className="edge-killzone-halo hidden xl:flex items-center gap-2 px-2.5 py-1 rounded-full bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800/60 text-emerald-700 dark:text-emerald-300 text-[11px] font-bold">
           <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
           <Radio className="w-3 h-3 text-emerald-500" />
           <span>SMC KILLZONE ACTIVE</span>
         </div>
 
-        {/* Setups Manager quick button */}
         <button
           onClick={onOpenSetupsModal}
           className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold rounded-2xl text-[#0F0E26] dark:text-[#F5F5F5] bg-[#FAF8FF] dark:bg-[#181C25] hover:bg-[#F3EEFF] dark:hover:bg-[#1F2430] border border-[#ECE7FC] dark:border-[#292E38] transition-all duration-200 cursor-pointer shadow-xs btn-press btn-icon-animate group"
@@ -143,7 +138,6 @@ export const TopBar: React.FC<TopBarProps> = ({
           <span>Setups</span>
         </button>
 
-        {/* Import Trades Button */}
         <button
           onClick={onOpenImport}
           className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold rounded-2xl text-[#6D19E8] dark:text-[#A855F7] bg-[#F5EEFF] dark:bg-[#A855F7]/10 hover:bg-[#ECE2FF] dark:hover:bg-[#A855F7]/20 border border-[#DDD5FA] dark:border-[#A855F7]/30 transition-all duration-200 cursor-pointer shadow-xs btn-press btn-icon-animate group"
@@ -153,7 +147,6 @@ export const TopBar: React.FC<TopBarProps> = ({
           <span className="hidden sm:inline">Importer</span>
         </button>
 
-        {/* Seed dataset button if empty */}
         {tradeCount === 0 && (
           <button
             onClick={onSeed}
@@ -166,7 +159,6 @@ export const TopBar: React.FC<TopBarProps> = ({
           </button>
         )}
 
-        {/* Backup Modal */}
         <button
           onClick={onOpenBackup}
           className="p-2 rounded-2xl text-[#6B668D] dark:text-[#9299A8] hover:text-[#0F0E26] dark:hover:text-[#F5F5F5] hover:bg-[#FAF8FF] dark:hover:bg-[#181C25] transition-all duration-200 cursor-pointer btn-press btn-icon-animate group"
@@ -175,7 +167,6 @@ export const TopBar: React.FC<TopBarProps> = ({
           <Database className="w-4 h-4 btn-icon" />
         </button>
 
-        {/* Bulk notification control */}
         {onDismissAllNotifications && (
           <button
             onClick={onDismissAllNotifications}
@@ -200,7 +191,6 @@ export const TopBar: React.FC<TopBarProps> = ({
           </button>
         )}
 
-        {/* Theme Toggle Button */}
         <motion.button
           whileTap={{ scale: 0.92 }}
           onClick={toggleTheme}
@@ -208,14 +198,9 @@ export const TopBar: React.FC<TopBarProps> = ({
           title={isDark ? 'Switch to Light Studio Theme' : 'Switch to Dark Terminal Theme'}
           aria-label="Toggle Theme"
         >
-          {isDark ? (
-            <Sun className="w-4 h-4 text-[#A855F7] fill-[#A855F7]/20 btn-icon" />
-          ) : (
-            <Moon className="w-4 h-4 text-[#6D19E8] fill-[#6D19E8]/20 btn-icon" />
-          )}
+          {isDark ? <Sun className="w-4 h-4 text-[#A855F7] fill-[#A855F7]/20 btn-icon" /> : <Moon className="w-4 h-4 text-[#6D19E8] fill-[#6D19E8]/20 btn-icon" />}
         </motion.button>
 
-        {/* Log Trade CTA */}
         <motion.button
           whileHover={{ scale: 1.03, y: -2 }}
           whileTap={{ scale: 0.96 }}
