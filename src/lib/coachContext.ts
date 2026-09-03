@@ -346,7 +346,7 @@ export function buildCoachContext(
       symbol: t.symbol,
       direction: t.direction,
       setup: t.setup || t.setupId || 'Non spécifié',
-      session: t.session || 'Standard',
+      killzone: t.session || 'Standard',
       rMultiple: t.rMultiple ?? null,
       netPnL: t.netPnL ?? null,
       status: t.status,

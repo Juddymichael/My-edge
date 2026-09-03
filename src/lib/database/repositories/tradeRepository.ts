@@ -11,7 +11,7 @@ import {
 import { calculateNetPnL } from '../../calculations/pnl';
 import { calculateRMultiple } from '../../calculations/rMultiple';
 import { calculateRiskPercent } from '../../calculations/risk';
-import { getTradeKillzone } from '../../tradingSession';
+import { getTradeKillzone } from '../../tradingKillzone';
 
 export class TradeRepository {
   /**
@@ -159,7 +159,7 @@ export class TradeRepository {
       fvg: input.fvg ?? null,
       ifvg: input.ifvg ?? null,
       ob: input.ob ?? null,
-      killzone: input.killzone ?? null,
+      killzone: input.session ?? null,
       entryModel: input.entryModel ?? null,
       confirmation: input.confirmation ?? null,
       slModel: input.slModel ?? null,

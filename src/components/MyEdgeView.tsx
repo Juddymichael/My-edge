@@ -616,7 +616,7 @@ export const MyEdgeView: React.FC<MyEdgeViewProps> = ({
                             {combo.pair}
                           </span>
                           <span className="text-slate-400 dark:text-[#9299A8]">+</span>
-                          <span className="text-slate-900 dark:text-[#F5F5F5]">{combo.session}</span>
+                          <span className="text-slate-900 dark:text-[#F5F5F5]">{combo.killzone}</span>
                           <span className="text-slate-400 dark:text-[#9299A8]">+</span>
                           <span className="text-[var(--edge-accent-hover)] dark:text-[#FDBA74]">{combo.setup}</span>
                         </div>
@@ -642,7 +642,7 @@ export const MyEdgeView: React.FC<MyEdgeViewProps> = ({
                         <button
                           onClick={() =>
                             setSelectedScoreBreakdown({
-                              title: `${combo.pair} + ${combo.session} + ${combo.setup}`,
+                              title: `${combo.pair} + ${combo.killzone} + ${combo.setup}`,
                               breakdown: combo.edgeScore,
                             })
                           }
@@ -674,10 +674,10 @@ export const MyEdgeView: React.FC<MyEdgeViewProps> = ({
                         <button
                           onClick={() =>
                             inspectClusterTrades(
-                              `${combo.pair} + ${combo.session} + ${combo.setup}`,
+                              `${combo.pair} + ${combo.killzone} + ${combo.setup}`,
                               (t) =>
                                 (t.symbol || '').toUpperCase().trim() === combo.pair &&
-                                (t.session || 'Toutes') === combo.session &&
+                                (t.session || 'Toutes') === combo.killzone &&
                                 (t.setup?.trim() || t.setupId || 'Général') === combo.setup
                             )
                           }
@@ -729,7 +729,7 @@ export const MyEdgeView: React.FC<MyEdgeViewProps> = ({
                 {comboStats.map((combo, idx) => (
                   <tr key={idx} className="hover:bg-slate-50 dark:hover:bg-[#181C25]/60 transition">
                     <td className="py-3 font-bold text-[var(--edge-accent)]">{combo.pair}</td>
-                    <td className="py-3 font-medium text-slate-900 dark:text-[#F5F5F5]">{combo.session}</td>
+                    <td className="py-3 font-medium text-slate-900 dark:text-[#F5F5F5]">{combo.killzone}</td>
                     <td className="py-3 font-semibold text-[var(--edge-accent-hover)] dark:text-[#FDBA74]">{combo.setup}</td>
                     <td className="py-3 text-center font-bold tabular-nums text-slate-900 dark:text-[#F5F5F5]">
                       {combo.sampleSize}
@@ -752,7 +752,7 @@ export const MyEdgeView: React.FC<MyEdgeViewProps> = ({
                       <button
                         onClick={() =>
                           setSelectedScoreBreakdown({
-                            title: `${combo.pair} + ${combo.session} + ${combo.setup}`,
+                            title: `${combo.pair} + ${combo.killzone} + ${combo.setup}`,
                             breakdown: combo.edgeScore,
                           })
                         }
@@ -784,10 +784,10 @@ export const MyEdgeView: React.FC<MyEdgeViewProps> = ({
                       <button
                         onClick={() =>
                           inspectClusterTrades(
-                            `${combo.pair} + ${combo.session} + ${combo.setup}`,
+                            `${combo.pair} + ${combo.killzone} + ${combo.setup}`,
                             (t) =>
                               (t.symbol || '').toUpperCase().trim() === combo.pair &&
-                              (t.session || 'Toutes') === combo.session &&
+                              (t.session || 'Toutes') === combo.killzone &&
                               (t.setup?.trim() || t.setupId || 'Général') === combo.setup
                           )
                         }

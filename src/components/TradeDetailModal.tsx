@@ -238,7 +238,7 @@ export const TradeDetailModal: React.FC<TradeDetailModalProps> = ({
                     </div>
                     <div className="flex justify-between">
                       <span className="text-slate-500">Killzone:</span>
-                      {renderValue(trade.killzone)}
+                      {renderValue(trade.session)}
                     </div>
                     <div className="flex justify-between">
                       <span className="text-slate-500">Liquidity Sweep Taken:</span>

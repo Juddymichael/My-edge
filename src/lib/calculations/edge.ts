@@ -453,7 +453,7 @@ export function calculateMyEdgeDeepAudit(
     const setup = t.setup?.trim() || t.setupId || 'Général';
     const pair = (t.symbol || 'AUTRE').toUpperCase().trim();
     const session = t.session || 'Toutes';
-    const comboKey = `${setup}___${pair}___${session}`;
+    const comboKey = `${setup}___${pair}___${killzone}`;
     const group = comboMap.get(comboKey) || [];
     group.push(t);
     comboMap.set(comboKey, group);
@@ -466,7 +466,7 @@ export function calculateMyEdgeDeepAudit(
     combinations.push({
       setup,
       pair,
-      session,
+      killzone,
       sampleSize: clusterStats.sampleSize,
       wins: clusterStats.wins,
       losses: clusterStats.losses,
@@ -544,7 +544,7 @@ export function calculateMyEdgeDeepAudit(
 
   let keyTakeaway = 'Données en cours de constitution.';
   if (topCombo && topCombo.sampleSize >= 2) {
-    keyTakeaway = `Votre rentabilité maximale est concentrée sur ${topCombo.pair} pendant la session ${topCombo.session} (${topCombo.setup}), générant ${topCombo.winRate}% de win rate sur ${topCombo.sampleSize} trades.`;
+    keyTakeaway = `Votre rentabilité maximale est concentrée sur ${topCombo.pair} pendant la session ${topCombo.killzone} (${topCombo.setup}), générant ${topCombo.winRate}% de win rate sur ${topCombo.sampleSize} trades.`;
   } else if (bestPair) {
     keyTakeaway = `Votre meilleur actif de trading est ${bestPair.label} avec un taux de réussite de ${bestPair.winRate}%.`;
   }

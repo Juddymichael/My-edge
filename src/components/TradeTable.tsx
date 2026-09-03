@@ -281,7 +281,7 @@ export const TradeTable: React.FC<Props> = ({
                       {trade.setup || '—'}
                     </div>
                     <div className="text-[10px] text-[#8E89AF] dark:text-[#9299A8] font-medium">
-                      {trade.session || 'NO_SESSION'} • {trade.timeframe || '—'}
+                      {trade.session || 'Hors Killzone'} • {trade.timeframe || '—'}
                     </div>
                   </td>
 

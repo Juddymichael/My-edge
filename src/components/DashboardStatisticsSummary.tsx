@@ -4,7 +4,7 @@ import { Trade } from '../types/trade';
 import { UserSettings } from '../types/settings';
 import { calculateComprehensiveMetrics } from '../lib/calculations';
 import { formatCurrency } from '../lib/formatting';
-import { getTradeKillzone } from '../lib/tradingSession';
+import { getTradeKillzone } from '../lib/tradingKillzone';
 
 interface Props { trades?: Trade[]; settings: UserSettings; }
 

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { getTradeKillzone } from '../lib/tradingSession';
+import { getTradeKillzone } from '../lib/tradingKillzone';
 
 describe('GMT-5 trading killzones', () => {
   const trade = (openedAt: string, session: 'TOKYO' | 'NO_SESSION' | null = null) => ({ openedAt, session });

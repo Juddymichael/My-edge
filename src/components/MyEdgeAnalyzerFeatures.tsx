@@ -179,14 +179,14 @@ const getStatus = (stats: DimensionPerformance) => {
 
 const bestKillzoneForSetup = (setupKey: string, trades: Trade[]) => {
   const setupTrades = trades.filter((trade) => getSetupName(trade) === setupKey);
-  const bySession = new Map<string, Trade[]>();
+  const byKillzone = new Map<string, Trade[]>();
   setupTrades.forEach((trade) => {
     const killzone = trade.session || 'Non spécifiée';
-    const bucket = bySession.get(session) || [];
+    const bucket = byKillzone.get(session) || [];
     bucket.push(trade);
-    bySession.set(session, bucket);
+    byKillzone.set(session, bucket);
   });
-  const candidates = Array.from(bySession.entries()).map(([session, cluster]) => analyzeCluster(cluster, session, session, 'Killzone'));
+  const candidates = Array.from(byKillzone.entries()).map(([session, cluster]) => analyzeCluster(cluster, session, session, 'Killzone'));
   return candidates.sort((a, b) => b.monetaryExpectancy - a.monetaryExpectancy || b.winRate - a.winRate || b.sampleSize - a.sampleSize)[0] || null;
 };
 
@@ -201,8 +201,8 @@ export const SetupComparison: React.FC<SetupComparisonProps> = ({ setupStats, tr
 
   const left = setupStats.find((setup) => setup.key === leftKey) || null;
   const right = setupStats.find((setup) => setup.key === rightKey) || null;
-  const leftSession = left ? bestKillzoneForSetup(left.key, trades) : null;
-  const rightSession = right ? bestKillzoneForSetup(right.key, trades) : null;
+  const leftKillzone = left ? bestKillzoneForSetup(left.key, trades) : null;
+  const rightKillzone = right ? bestKillzoneForSetup(right.key, trades) : null;
 
   const comparisonNote = useMemo(() => {
     if (!left || !right) return 'Sélectionnez deux setups pour comparer leurs performances réelles.';
@@ -252,7 +252,7 @@ export const SetupComparison: React.FC<SetupComparisonProps> = ({ setupStats, tr
             <Stat label="Trades" leftValue={left.sampleSize} rightValue={right.sampleSize} winners={count} />
             <Stat label="Espérance" leftValue={`${left.rExpectancy !== null ? `${left.rExpectancy}R` : formatCurrency(left.monetaryExpectancy, currency)}`} rightValue={`${right.rExpectancy !== null ? `${right.rExpectancy}R` : formatCurrency(right.monetaryExpectancy, currency)}`} winners={exp} />
             <Stat label="Profit Factor" leftValue={left.profitFactor?.toFixed(2) ?? '—'} rightValue={right.profitFactor?.toFixed(2) ?? '—'} winners={pf} />
-            <Stat label="Meilleure session" leftValue={leftSession?.label || '—'} rightValue={rightSession?.label || '—'} winners={{ a: false, b: false }} />
+            <Stat label="Meilleure session" leftValue={leftKillzone?.label || '—'} rightValue={rightKillzone?.label || '—'} winners={{ a: false, b: false }} />
           </div>
 
           <div className="p-4 rounded-2xl bg-slate-50 dark:bg-[#181C25] border border-slate-200 dark:border-[#292E38]">

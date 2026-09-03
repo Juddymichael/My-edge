@@ -6,7 +6,7 @@ import { buildCoachContext } from '../lib/coachContext';
 import { calculateWinRate, calculateProfitFactor } from '../lib/calculations/statistics';
 import { useRiskAlerts } from '../hooks/useRiskAlerts';
 import { UserSettings } from '../types/settings';
-import { getHoldingTimeBucket, getHoldingMinutes, getTradeKillzone } from '../lib/tradingSession';
+import { getHoldingTimeBucket, getHoldingMinutes, getTradeKillzone } from '../lib/tradingKillzone';
 
 type Tab = 'analysis' | 'charts' | 'recommendations';
 type AIAnalysis = { summary: string; keyPoints: string[]; confidenceScore: number };
