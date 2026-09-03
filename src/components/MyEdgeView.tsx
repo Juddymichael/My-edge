@@ -193,7 +193,7 @@ export const MyEdgeView: React.FC<MyEdgeViewProps> = ({
     if (score >= 80) return 'text-emerald-400 bg-emerald-500/10 border-emerald-500/30';
     if (score >= 65) return 'text-[#FDBA74] bg-[var(--edge-accent-soft)] border-[var(--edge-accent-border)]';
     if (score >= 45) return 'text-[#F59E0B] bg-[#F59E0B]/10 border-[#F59E0B]/30';
-    if (score >= 25) return 'text-[var(--edge-accent-hover)] bg-[var(--edge-accent-hover)]/10 border-[#EA580C]/30';
+    if (score >= 25) return 'text-[var(--edge-accent-hover)] bg-[var(--edge-accent-hover)]/10 border-[#6D28D9]/30';
     return 'text-rose-400 bg-rose-500/10 border-rose-500/30';
   };
 
@@ -1178,7 +1178,7 @@ export const MyEdgeView: React.FC<MyEdgeViewProps> = ({
           <div className="bg-white dark:bg-[#12151D] border border-slate-200 dark:border-[#292E38] rounded-3xl max-w-2xl w-full p-6 space-y-5 shadow-2xl">
             <div className="flex items-center justify-between border-b border-slate-200 dark:border-[#292E38] pb-4">
               <div className="flex items-center gap-3">
-                <div className="p-2.5 rounded-2xl bg-[var(--edge-accent-soft)] text-[var(--edge-accent)] border border-[#F97316]/20">
+                <div className="p-2.5 rounded-2xl bg-[var(--edge-accent-soft)] text-[var(--edge-accent)] border border-[#7C3AED]/20">
                   <Calculator className="w-5 h-5" />
                 </div>
                 <div>
