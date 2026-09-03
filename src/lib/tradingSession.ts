@@ -1,47 +1,56 @@
 import { Trade, TradingSession } from '../types/trade';
 
-export const APP_TIMEZONE_OFFSET_HOURS = 3;
+/**
+ * Trade timestamps are stored as ISO 8601 instants. The seed/import pipeline
+ * records them as UTC (and keeps the original timezone metadata on each trade).
+ * Killzones are intentionally evaluated in fixed GMT-5, independently of the
+ * app display timezone.
+ */
+export const KILLZONE_OFFSET_HOURS = -5;
 
 export const SESSION_LABELS = {
-  ASIA: 'Asia',
-  LONDON: 'London',
-  NEW_YORK: 'New York',
-  LONDON_CLOSE: 'London Close',
-  OFF_SESSION: 'Hors session',
+  LONDON: 'Killzone London',
+  NEW_YORK: 'Killzone New York',
+  LONDON_CLOSE: 'Killzone London Close',
+  OFF_SESSION: 'Hors Killzone',
 } as const;
 
-function getAppMinuteOfDay(dateString: string): number {
+function getGmtMinus5MinuteOfDay(dateString: string): number {
   const date = new Date(dateString);
   if (Number.isNaN(date.getTime())) return -1;
-  return ((date.getUTCHours() * 60 + date.getUTCMinutes() + APP_TIMEZONE_OFFSET_HOURS * 60) % 1440 + 1440) % 1440;
+  return ((date.getUTCHours() * 60 + date.getUTCMinutes() + KILLZONE_OFFSET_HOURS * 60) % 1440 + 1440) % 1440;
 }
 
-export function getAppHour(dateString: string): number {
-  const minute = getAppMinuteOfDay(dateString);
+export function getGmtMinus5Hour(dateString: string): number {
+  const minute = getGmtMinus5MinuteOfDay(dateString);
   return minute < 0 ? 0 : minute / 60;
 }
 
+function isMissingSession(session: Trade['session']): boolean {
+  return session === null || session === undefined || session === '' || session === 'NO_SESSION';
+}
+
 /**
- * Keep an explicitly recorded session. Otherwise derive it from the opening
- * timestamp in the app's current fixed UTC+3 clock.
+ * Derive the killzone from the trade opening instant after converting it to
+ * fixed GMT-5. Manually entered sessions are preserved, except the legacy
+ * NO_SESSION placeholder which is treated as missing and recalculated.
  *
- * 20:00–00:01 Asia
- * 02:00–05:01 London
- * 07:00–09:59 New York
- * 10:00–12:01 London Close
- * remaining times: Hors session
+ * London:       02:00–05:01 GMT-5
+ * New York:     07:00–10:01 GMT-5
+ * London Close: 10:00–12:01 GMT-5
+ * Outside:      Hors Killzone
  *
- * The requested source ranges overlap at 10:00–10:01; London Close takes
- * precedence there so each trade belongs to exactly one chart bucket.
+ * The source ranges overlap at 10:00–10:01; London Close takes precedence
+ * so every trade belongs to exactly one bucket.
  */
 export function deriveTradingSession(trade: Pick<Trade, 'openedAt' | 'session'>): string {
-  if (trade.session) return trade.session;
-  const minute = getAppMinuteOfDay(trade.openedAt);
+  if (!isMissingSession(trade.session)) return trade.session as string;
+
+  const minute = getGmtMinus5MinuteOfDay(trade.openedAt);
   if (minute < 0) return SESSION_LABELS.OFF_SESSION;
-  if (minute >= 1200 || minute <= 1) return SESSION_LABELS.ASIA;
   if (minute >= 120 && minute <= 301) return SESSION_LABELS.LONDON;
-  if (minute >= 420 && minute <= 599) return SESSION_LABELS.NEW_YORK;
   if (minute >= 600 && minute <= 721) return SESSION_LABELS.LONDON_CLOSE;
+  if (minute >= 420 && minute <= 601) return SESSION_LABELS.NEW_YORK;
   return SESSION_LABELS.OFF_SESSION;
 }
 
