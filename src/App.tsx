@@ -19,19 +19,13 @@ import { TradeDetailModal } from './components/TradeDetailModal';
 import { BackupModal } from './components/BackupModal';
 import { SetupsManagementModal } from './components/SetupsManagementModal';
 import { ImportModal } from './components/ImportModal';
-import { RiskAlertsPanel } from './components/RiskAlertsPanel';
 import { Trade, NewTradeInput } from './types/trade';
 import { AlertCircle } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { DashboardSkeleton } from './components/Skeleton';
 import { ToastNotification } from './components/ToastNotification';
 
-const viewMotion = {
-  initial: { opacity: 0, y: 6 },
-  animate: { opacity: 1, y: 0 },
-  exit: { opacity: 0, y: -4 },
-  transition: { duration: 0.22, ease: 'easeOut' as const },
-};
+const viewMotion = { initial: { opacity: 0, y: 6 }, animate: { opacity: 1, y: 0 }, exit: { opacity: 0, y: -4 }, transition: { duration: 0.22, ease: 'easeOut' as const } };
 
 export default function App() {
   useEffect(() => {
@@ -39,36 +33,25 @@ export default function App() {
       const target = event.target as Element | null;
       const clickable = target?.closest<HTMLElement>('button:not(:disabled), [role="button"], a[href]');
       if (!clickable || clickable.closest('[data-ripple-ignore="true"]')) return;
-
       clickable.classList.add('ripple-host');
       const rect = clickable.getBoundingClientRect();
-      const ripple = document.createElement('span');
-      ripple.className = 'ripple-effect';
-      const size = Math.max(rect.width, rect.height);
-      ripple.style.width = ripple.style.height = `${size}px`;
-      ripple.style.left = `${event.clientX - rect.left - size / 2}px`;
-      ripple.style.top = `${event.clientY - rect.top - size / 2}px`;
-      clickable.appendChild(ripple);
-      ripple.addEventListener('animationend', () => ripple.remove(), { once: true });
+      const ripple = document.createElement('span'); ripple.className = 'ripple-effect';
+      const size = Math.max(rect.width, rect.height); ripple.style.width = ripple.style.height = `${size}px`;
+      ripple.style.left = `${event.clientX - rect.left - size / 2}px`; ripple.style.top = `${event.clientY - rect.top - size / 2}px`;
+      clickable.appendChild(ripple); ripple.addEventListener('animationend', () => ripple.remove(), { once: true });
     };
-
-    document.addEventListener('pointerdown', handlePointerDown);
-    return () => document.removeEventListener('pointerdown', handlePointerDown);
+    document.addEventListener('pointerdown', handlePointerDown); return () => document.removeEventListener('pointerdown', handlePointerDown);
   }, []);
   const { trades = [], isLoading, error, addTrade, removeTrade, clearAllTrades, seedDatabase, selectedTrade, setSelectedTrade, loadTrades } = useTrades();
   const { settings, updateSettings } = useSettings();
   const { setups = [] } = useSetups();
-  const { alerts, activeAlerts, unreadCount, markViewed, dismiss, dismissAll } = useRiskAlerts(trades || [], settings);
+  const { alerts, activeAlerts, unreadCount, markViewed, dismissAll } = useRiskAlerts(trades || [], settings);
   const [activeTab, setActiveTab] = useState<ActiveTab>('dashboard');
   const [calendarJumpMonth, setCalendarJumpMonth] = useState<{year:number;month:number}|null>(null);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const [isCreateOpen, setIsCreateOpen] = useState(false);
-  const [isImportOpen, setIsImportOpen] = useState(false);
-  const [isBackupOpen, setIsBackupOpen] = useState(false);
-  const [isSetupsOpen, setIsSetupsOpen] = useState(false);
+  const [isCreateOpen, setIsCreateOpen] = useState(false); const [isImportOpen, setIsImportOpen] = useState(false); const [isBackupOpen, setIsBackupOpen] = useState(false); const [isSetupsOpen, setIsSetupsOpen] = useState(false);
   const [notification, setNotification] = useState<{type:'success'|'error';message:string}|null>(null);
-  const safeTrades = trades || [];
-  const safeSetups = setups || [];
+  const safeTrades = trades || []; const safeSetups = setups || [];
   const notify = (type:'success'|'error', message:string) => { setNotification({type,message}); setTimeout(() => setNotification(prev => prev?.message === message ? null : prev), 4000); };
   const handleImportComplete = async (importedCount:number, duplicatesSkipped:number) => { await loadTrades(); notify('success', `Importation réussie : ${importedCount} trade(s) enregistré(s), ${duplicatesSkipped} doublon(s) ignoré(s).`); };
   const handleSeed = async () => { try { const res = await seedDatabase(); notify('success', `Loaded ${res.inserted} institutional trades with verified SMC setups.`); } catch (err) { notify('error', err instanceof Error ? err.message : 'Failed to seed database'); } };
@@ -87,7 +70,13 @@ export default function App() {
         {error && <div className="p-4 rounded-2xl bg-[#12151D] border border-rose-500/30 text-rose-400 text-xs flex items-center gap-2"><AlertCircle className="w-4 h-4"/><span>Erreur Base de Données : {error}</span></div>}
         <AnimatePresence mode="wait" initial={false}>
           {isLoading && safeTrades.length === 0 ? <motion.div key="skeleton-view" {...viewMotion}><DashboardSkeleton/></motion.div> : <>
-            {activeTab === 'dashboard' && <motion.div key="dashboard" {...viewMotion} className="space-y-6"><RiskAlertsPanel alerts={activeAlerts} unreadCount={unreadCount} onView={alert=>void markViewed(alert.id)} onDismiss={id=>void dismiss(id)} onOpenTrade={id=>setSelectedTrade(safeTrades.find(t=>t.id===id)||null)}/>{safeTrades.length>0&&<EquityCurveChart trades={safeTrades} initialBalance={settings.initialAccountBalance||10000} currency={settings.currency||'USD'}/>}<MonthlyTradingBreakdownCard trades={safeTrades} currency={settings.currency||'USD'} onSelectTrade={setSelectedTrade} onNavigateToCalendar={(year,month)=>{setCalendarJumpMonth({year,month});setActiveTab('calendar')}}/>{safeTrades.length>0&&<CalculationVerificationPanel trades={safeTrades} onSelectTrade={setSelectedTrade}/>}<TradeTable trades={safeTrades} onDelete={handleDeleteTrade} onSelect={setSelectedTrade} onSeed={handleSeed} onOpenCreate={()=>setIsCreateOpen(true)} onOpenImport={()=>setIsImportOpen(true)}/></motion.div>}
+            {activeTab === 'dashboard' && <motion.div key="dashboard" {...viewMotion} className="space-y-6">
+              <CalculationVerificationPanel trades={safeTrades} settings={settings}/>
+              {safeTrades.length>0&&<EquityCurveChart trades={safeTrades} initialBalance={settings.initialAccountBalance||10000} currency={settings.currency||'USD'}/>} 
+              <MonthlyTradingBreakdownCard trades={safeTrades} currency={settings.currency||'USD'} onSelectTrade={setSelectedTrade} onNavigateToCalendar={(year,month)=>{setCalendarJumpMonth({year,month});setActiveTab('calendar')}}/>
+              {safeTrades.length>0&&<CalculationVerificationPanel trades={[]} settings={settings}/>
+              <TradeTable trades={safeTrades} onDelete={handleDeleteTrade} onSelect={setSelectedTrade} onSeed={handleSeed} onOpenCreate={()=>setIsCreateOpen(true)} onOpenImport={()=>setIsImportOpen(true)}/>
+            </motion.div>}
             {activeTab === 'calendar' && <motion.div key="calendar" {...viewMotion}><CalendarView trades={safeTrades} currency={settings.currency||'USD'} onSelectTrade={setSelectedTrade} onSeed={handleSeed} initialYear={calendarJumpMonth?.year} initialMonth={calendarJumpMonth?.month}/></motion.div>}
             {activeTab === 'trades' && <motion.div key="trades" {...viewMotion}><TradeTable trades={safeTrades} onDelete={handleDeleteTrade} onSelect={setSelectedTrade} onSeed={handleSeed} onOpenCreate={()=>setIsCreateOpen(true)} onOpenImport={()=>setIsImportOpen(true)}/></motion.div>}
             {activeTab === 'edge' && <motion.div key="edge" {...viewMotion}><MyEdgeAnalyzerView trades={safeTrades} setups={safeSetups} currency={settings.currency||'EUR'} onOpenSetupsModal={()=>setIsSetupsOpen(true)} onSelectTrade={setSelectedTrade}/></motion.div>}
@@ -98,10 +87,6 @@ export default function App() {
         </AnimatePresence>
       </main>
     </div>
-    <CreateTradeModal isOpen={isCreateOpen} onClose={()=>setIsCreateOpen(false)} onSubmit={handleCreateTrade}/>
-    <TradeDetailModal trade={selectedTrade} currency={settings.currency||'USD'} onClose={()=>setSelectedTrade(null)}/>
-    <SetupsManagementModal isOpen={isSetupsOpen} onClose={()=>setIsSetupsOpen(false)}/>
-    <BackupModal isOpen={isBackupOpen} onClose={()=>setIsBackupOpen(false)} trades={safeTrades} settings={settings} onRestoreTrades={handleRestoreTrades}/>
-    <ImportModal isOpen={isImportOpen} onClose={()=>setIsImportOpen(false)} onImportComplete={handleImportComplete} existingTrades={safeTrades}/>
+    <CreateTradeModal isOpen={isCreateOpen} onClose={()=>setIsCreateOpen(false)} onSubmit={handleCreateTrade}/><TradeDetailModal trade={selectedTrade} currency={settings.currency||'USD'} onClose={()=>setSelectedTrade(null)}/><SetupsManagementModal isOpen={isSetupsOpen} onClose={()=>setIsSetupsOpen(false)}/><BackupModal isOpen={isBackupOpen} onClose={()=>setIsBackupOpen(false)} trades={safeTrades} settings={settings} onRestoreTrades={handleRestoreTrades}/><ImportModal isOpen={isImportOpen} onClose={()=>setIsImportOpen(false)} onImportComplete={handleImportComplete} existingTrades={safeTrades}/>
   </div>;
 }
