@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { NewTradeInput, TradeDirection, TradeStatus, TradingSession, EmotionType, MistakeType } from '../types/trade';
+import { NewTradeInput, TradeDirection, TradeStatus, TradingKillzone, EmotionType, MistakeType } from '../types/trade';
 import { normalizeSymbol, normalizeNumber } from '../lib/normalization';
 import { useSetups } from '../hooks/useSetups';
 import { X, Plus, AlertCircle, Layers } from 'lucide-react';
@@ -40,7 +40,7 @@ export const CreateTradeModal: React.FC<CreateTradeModalProps> = ({
   const [balanceBefore, setBalanceBefore] = useState('10000.00');
 
   // Metas & Setup Context
-  const [session, setSession] = useState<TradingSession>('LONDON');
+  const [session, setSession] = useState<TradingKillzone>('LONDON');
   const [timeframe, setTimeframe] = useState('M15');
   const [setupName, setSetupName] = useState('Golden FVG');
   const [setupId, setSetupId] = useState('setup-golden-fvg');
@@ -279,7 +279,7 @@ export const CreateTradeModal: React.FC<CreateTradeModalProps> = ({
 
               <div>
                 <label className="block text-[11px] font-medium text-slate-700 dark:text-slate-300 mb-1">
-                  Killzone Session
+                  Killzone Killzone
                 </label>
                 <select
                   value={killzone}

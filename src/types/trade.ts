@@ -9,7 +9,7 @@ export type TradeStatus = 'OPEN' | 'CLOSED' | 'CANCELLED';
 
 export type DataQuality = 'VERIFIED' | 'PARTIAL' | 'NEEDS_REVIEW';
 
-export type TradingSession = 'SYDNEY' | 'TOKYO' | 'LONDON' | 'NEW_YORK' | 'CUSTOM' | 'Killzone London' | 'Killzone New York' | 'Killzone London Close' | 'Hors Killzone' | 'NO_SESSION' | null;
+export type TradingKillzone = 'Killzone Sydney' | 'TOKYO' | 'LONDON' | 'NEW_YORK' | 'CUSTOM' | 'Killzone Londres' | 'Killzone New York' | 'Killzone London Close' | 'Hors Killzone' | 'NO_SESSION' | null;
 
 export type Timeframe =
   | 'M1'
@@ -93,7 +93,7 @@ export interface Trade {
   balanceAfter: number | null;
 
   // Contextual Metas & Setup System
-  session: TradingSession;
+  session: TradingKillzone;
   timeframe: Timeframe;
   setup: string | null;
   setupId?: string | null;

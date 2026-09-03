@@ -60,7 +60,7 @@ const TAB_INFO: Record<ActiveTab, { title: string; subtitle: string; icon: React
   },
   analytics: {
     title: 'Institutional Analytics',
-    subtitle: 'Killzone session performance, directionality, and drawdowns',
+    subtitle: 'Killzone killzone performance, directionality, and drawdowns',
     icon: TrendingUp,
   },
   'ai-analysis': {

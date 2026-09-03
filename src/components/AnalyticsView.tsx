@@ -44,8 +44,8 @@ interface AnalyticsViewProps {
 }
 
 // Exact logical order requested:
-// Performance globale → Performance par Setup → Performance par Session → Performance par Paire → Edge
-type AnalyticsSubTab = 'overview' | 'setups' | 'sessions' | 'pairs' | 'edge' | 'directions' | 'timeline';
+// Performance globale → Performance par Setup → Performance par Killzone → Performance par Paire → Edge
+type AnalyticsSubTab = 'overview' | 'setups' | 'killzones' | 'pairs' | 'edge' | 'directions' | 'timeline';
 
 export const AnalyticsView: React.FC<AnalyticsViewProps> = ({
   trades = [],
@@ -60,7 +60,7 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({
   const [selectedPeriod, setSelectedPeriod] = useState<string>('ALL');
   const [selectedSymbol, setSelectedSymbol] = useState<string>('ALL');
   const [selectedSetup, setSelectedSetup] = useState<string>('ALL');
-  const [selectedSession, setSelectedSession] = useState<string>('ALL');
+  const [selectedKillzone, setSelectedKillzone] = useState<string>('ALL');
   const [selectedDirection, setSelectedDirection] = useState<string>('ALL');
   const [selectedResult, setSelectedResult] = useState<string>('ALL');
 
@@ -128,10 +128,10 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({
         if (name !== selectedSetup) return false;
       }
 
-      // 4. Session
-      if (selectedSession !== 'ALL') {
+      // 4. Killzone
+      if (selectedKillzone !== 'ALL') {
         const sess = (t.session || '').toUpperCase().trim();
-        if (sess !== selectedSession) return false;
+        if (sess !== selectedKillzone) return false;
       }
 
       // 5. Direction
@@ -152,7 +152,7 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({
     selectedPeriod,
     selectedSymbol,
     selectedSetup,
-    selectedSession,
+    selectedKillzone,
     selectedDirection,
     selectedResult,
   ]);
@@ -323,14 +323,14 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({
   }, [closedTrades]);
 
   // 3. BREAKDOWN BY SESSION / KILLZONE
-  const sessionBreakdown = useMemo(() => {
+  const killzoneBreakdown = useMemo(() => {
     const map = new Map<string, Trade[]>();
     for (const t of closedTrades) {
       let sess = (t.session || 'AUTRE').toUpperCase().trim();
-      if (sess === 'LONDON' || sess === 'LONDRES') sess = 'Londres (London)';
+      if (sess === 'LONDON' || sess === 'LONDRES') sess = 'Killzone Londres';
       else if (sess === 'NEW_YORK' || sess === 'NEW YORK' || sess === 'NY') sess = 'New York';
-      else if (sess === 'TOKYO' || sess === 'ASIE' || sess === 'ASIA') sess = 'Tokyo (Asie)';
-      else if (sess === 'SYDNEY') sess = 'Sydney';
+      else if (sess === 'TOKYO' || sess === 'ASIE' || sess === 'ASIA') sess = 'Killzone Asia';
+      else if (sess === 'Killzone Sydney') sess = 'Sydney';
       else sess = t.session || 'Standard / Non spécifié';
 
       const arr = map.get(sess) || [];
@@ -338,14 +338,14 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({
       map.set(sess, arr);
     }
 
-    return Array.from(map.entries()).map(([sessionName, cluster]) => {
+    return Array.from(map.entries()).map(([killzoneName, cluster]) => {
       const wr = calculateWinRate(cluster);
       const pf = calculateProfitFactor(cluster);
       let pnl = 0;
       cluster.forEach((t) => (pnl += t.netPnL ?? 0));
 
       return {
-        session: sessionName,
+        killzone: killzoneName,
         tradesCount: cluster.length,
         wins: wr.wins,
         losses: wr.losses,
@@ -507,7 +507,7 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({
                 </span>
               </h1>
               <p className="text-xs text-slate-500 dark:text-slate-400 font-normal mt-0.5">
-                Hiérarchie analytique : Performance globale → Setup → Session → Paire → Edge
+                Hiérarchie analytique : Performance globale → Setup → Killzone → Paire → Edge
               </p>
             </div>
           </div>
@@ -562,14 +562,14 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({
           ))}
         </select>
 
-        {/* 4. Session */}
+        {/* 4. Killzone */}
         <select
-          value={selectedSession}
-          onChange={(e) => setSelectedSession(e.target.value)}
+          value={selectedKillzone}
+          onChange={(e) => setSelectedKillzone(e.target.value)}
           className="px-3 py-1.5 text-xs font-medium rounded-xl border border-slate-700 bg-slate-50 dark:bg-[#0B0D12] text-slate-700 dark:text-slate-200 focus:ring-2 focus:ring-[var(--analytics-accent)] cursor-pointer"
         >
-          <option value="ALL">Toutes les sessions</option>
-          <option value="LONDON">Londres (London)</option>
+          <option value="ALL">Toutes les killzones</option>
+          <option value="LONDON">Killzone Londres</option>
           <option value="NEW_YORK">New York</option>
           <option value="TOKYO">Tokyo / Asie</option>
           <option value="SYDNEY">Sydney</option>
@@ -601,7 +601,7 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({
         {(selectedPeriod !== 'ALL' ||
           selectedSymbol !== 'ALL' ||
           selectedSetup !== 'ALL' ||
-          selectedSession !== 'ALL' ||
+          selectedKillzone !== 'ALL' ||
           selectedDirection !== 'ALL' ||
           selectedResult !== 'ALL') && (
           <button
@@ -609,7 +609,7 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({
               setSelectedPeriod('ALL');
               setSelectedSymbol('ALL');
               setSelectedSetup('ALL');
-              setSelectedSession('ALL');
+              setSelectedKillzone('ALL');
               setSelectedDirection('ALL');
               setSelectedResult('ALL');
             }}
@@ -621,7 +621,7 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({
       </div>
 
       {/* 3. LOGICAL PROGRESSION NAVIGATION TABS */}
-      {/* Performance globale → Performance par Setup → Performance par Session → Performance par Paire → Edge */}
+      {/* Performance globale → Performance par Setup → Performance par Killzone → Performance par Paire → Edge */}
       <div className="flex items-center gap-2 border-b border-slate-200 dark:border-[#292E38] pb-2 overflow-x-auto">
         <button
           onClick={() => setActiveTab('overview')}
@@ -648,15 +648,15 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({
         </button>
 
         <button
-          onClick={() => setActiveTab('sessions')}
+          onClick={() => setActiveTab('killzones')}
           className={`px-4 py-2 rounded-xl text-xs font-semibold transition cursor-pointer flex items-center gap-1.5 ${
-            activeTab === 'sessions'
+            activeTab === 'killzones'
               ? 'bg-slate-100 dark:bg-[#181C25] text-[var(--analytics-accent)] border border-[var(--analytics-accent-border)]'
               : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:text-slate-200'
           }`}
         >
           <Clock className="w-3.5 h-3.5" />
-          <span>3. Par Session ({sessionBreakdown.length})</span>
+          <span>3. Par Killzone ({killzoneBreakdown.length})</span>
         </button>
 
         <button
@@ -963,21 +963,21 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({
       )}
 
       {/* 6. TAB 3: PERFORMANCE PAR SESSION */}
-      {activeTab === 'sessions' && (
+      {activeTab === 'killzones' && (
         <div className="p-6 rounded-2xl bg-white dark:bg-[#12151D] border border-slate-200 dark:border-[#292E38] shadow-md space-y-4">
           <h2 className="text-base font-bold text-slate-900 dark:text-slate-100 tracking-tight">
-            Performance par Session de Marché &amp; Killzone ({sessionBreakdown.length})
+            Performance par Killzone de Marché &amp; Killzone ({killzoneBreakdown.length})
           </h2>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            {sessionBreakdown.map((s, idx) => (
+            {killzoneBreakdown.map((s, idx) => (
               <div
                 key={idx}
                 className="p-5 rounded-2xl bg-slate-50 dark:bg-[#0B0D12] border border-slate-200 dark:border-[#292E38] shadow-sm flex flex-col justify-between space-y-4"
               >
                 <div>
                   <div className="flex items-center justify-between text-xs mb-1.5">
-                    <span className="text-slate-500 dark:text-slate-400 font-medium">Session</span>
+                    <span className="text-slate-500 dark:text-slate-400 font-medium">Killzone</span>
                     <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-[var(--analytics-accent-soft)] text-[var(--analytics-accent)] border border-[var(--analytics-accent-border)]">
                       n = {s.tradesCount}
                     </span>

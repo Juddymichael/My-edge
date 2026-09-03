@@ -43,10 +43,10 @@ export interface DimensionPerformance {
   edgeScore: EdgeScoreBreakdown;
 }
 
-export interface SetupPairSessionCombo {
+export interface SetupPairKillzoneCombo {
   setup: string;
   pair: string;
-  session: string;
+  killzone: string;
   sampleSize: number;
   wins: number;
   losses: number;
@@ -65,12 +65,12 @@ export interface EdgeAuditVerdict {
   worstSetup: DimensionPerformance | null;
   bestPair: DimensionPerformance | null;
   worstPair: DimensionPerformance | null;
-  bestSession: DimensionPerformance | null;
-  worstSession: DimensionPerformance | null;
+  bestKillzone: DimensionPerformance | null;
+  worstKillzone: DimensionPerformance | null;
   buyPerformance: DimensionPerformance | null;
   sellPerformance: DimensionPerformance | null;
-  topCombination: SetupPairSessionCombo | null;
-  worstCombination: SetupPairSessionCombo | null;
+  topCombination: SetupPairKillzoneCombo | null;
+  worstCombination: SetupPairKillzoneCombo | null;
   recurringConditions: string[];
   keyTakeaway: string;
 }
@@ -237,7 +237,7 @@ export function calculateTransparentEdgeScore(
 }
 
 /**
- * Universal cluster analyzer for any group of trades (Setup, Symbol, Session, Direction, Combination).
+ * Universal cluster analyzer for any group of trades (Setup, Symbol, Killzone, Direction, Combination).
  */
 export function analyzeCluster(
   trades: Trade[],
@@ -355,7 +355,7 @@ export function analyzeCluster(
 
 /**
  * Generates an exhaustive breakdown across Setups, Pairs, Sessions, Directions,
- * and Combo matrices (Setup × Pair × Session) strictly from real logged trade data.
+ * and Combo matrices (Setup × Pair × Killzone) strictly from real logged trade data.
  */
 export function calculateMyEdgeDeepAudit(
   trades: Trade[] = [],
@@ -363,9 +363,9 @@ export function calculateMyEdgeDeepAudit(
 ): {
   setups: DimensionPerformance[];
   pairs: DimensionPerformance[];
-  sessions: DimensionPerformance[];
+  killzones: DimensionPerformance[];
   directions: DimensionPerformance[];
-  combinations: SetupPairSessionCombo[];
+  combinations: SetupPairKillzoneCombo[];
   verdict: EdgeAuditVerdict;
 } {
   const safeTrades = (trades || []).filter((t) => t !== null && t !== undefined);
@@ -413,26 +413,26 @@ export function calculateMyEdgeDeepAudit(
   }
   pairPerformances.sort((a, b) => b.totalNetPnL - a.totalNetPnL || b.sampleSize - a.sampleSize);
 
-  // 3. Group by Session / Killzone
-  const sessionMap = new Map<string, Trade[]>();
+  // 3. Group by Killzone / Killzone
+  const killzoneMap = new Map<string, Trade[]>();
   for (const t of safeTrades) {
     let sess = (t.session || 'AUTRE').toUpperCase().trim();
-    if (sess === 'LONDON' || sess === 'LONDRES') sess = 'Londres (London)';
+    if (sess === 'LONDON' || sess === 'LONDRES') sess = 'Killzone Londres';
     else if (sess === 'NEW_YORK' || sess === 'NEW YORK' || sess === 'NY') sess = 'New York';
-    else if (sess === 'TOKYO' || sess === 'ASIE' || sess === 'ASIA') sess = 'Tokyo (Asie)';
-    else if (sess === 'SYDNEY') sess = 'Sydney';
+    else if (sess === 'TOKYO' || sess === 'ASIE' || sess === 'ASIA') sess = 'Killzone Asia';
+    else if (sess === 'Killzone Sydney') sess = 'Sydney';
     else if (sess === 'OVERNIGHT') sess = 'Overnight';
     else sess = t.session || 'Standard / Non spécifié';
 
-    const group = sessionMap.get(sess) || [];
+    const group = killzoneMap.get(sess) || [];
     group.push(t);
-    sessionMap.set(sess, group);
+    killzoneMap.set(sess, group);
   }
-  const sessionPerformances: DimensionPerformance[] = [];
-  for (const [sess, cluster] of sessionMap.entries()) {
-    sessionPerformances.push(analyzeCluster(cluster, sess, sess, 'Session'));
+  const killzonePerformances: DimensionPerformance[] = [];
+  for (const [sess, cluster] of killzoneMap.entries()) {
+    killzonePerformances.push(analyzeCluster(cluster, sess, sess, 'Killzone'));
   }
-  sessionPerformances.sort((a, b) => b.totalNetPnL - a.totalNetPnL || b.sampleSize - a.sampleSize);
+  killzonePerformances.sort((a, b) => b.totalNetPnL - a.totalNetPnL || b.sampleSize - a.sampleSize);
 
   // 4. Group by Direction (Buy vs Sell)
   const dirMap = new Map<string, Trade[]>();
@@ -447,7 +447,7 @@ export function calculateMyEdgeDeepAudit(
     analyzeCluster(dirMap.get('SELL') || [], 'SELL', 'Positions Short (SELL)', 'Direction'),
   ];
 
-  // 5. Multi-dimensional Combinations: Setup × Pair × Session
+  // 5. Multi-dimensional Combinations: Setup × Pair × Killzone
   const comboMap = new Map<string, Trade[]>();
   for (const t of safeTrades) {
     const setup = t.setup?.trim() || t.setupId || 'Général';
@@ -459,7 +459,7 @@ export function calculateMyEdgeDeepAudit(
     comboMap.set(comboKey, group);
   }
 
-  const combinations: SetupPairSessionCombo[] = [];
+  const combinations: SetupPairKillzoneCombo[] = [];
   for (const [comboKey, cluster] of comboMap.entries()) {
     const [setup, pair, session] = comboKey.split('___');
     const clusterStats = analyzeCluster(cluster, comboKey, comboKey);
@@ -499,11 +499,11 @@ export function calculateMyEdgeDeepAudit(
     ? [...eligiblePairs].sort((a, b) => a.totalNetPnL - b.totalNetPnL)[0]
     : null;
 
-  const eligibleSessions = sessionPerformances.filter((s) => s.closedTrades >= 2);
-  const bestSession = eligibleSessions.length > 0
+  const eligibleSessions = killzonePerformances.filter((s) => s.closedTrades >= 2);
+  const bestKillzone = eligibleSessions.length > 0
     ? [...eligibleSessions].sort((a, b) => b.totalNetPnL - a.totalNetPnL)[0]
-    : sessionPerformances[0] || null;
-  const worstSession = eligibleSessions.length > 1
+    : killzonePerformances[0] || null;
+  const worstKillzone = eligibleSessions.length > 1
     ? [...eligibleSessions].sort((a, b) => a.totalNetPnL - b.totalNetPnL)[0]
     : null;
 
@@ -521,9 +521,9 @@ export function calculateMyEdgeDeepAudit(
       `Paire dominante : ${bestPair.label} avec ${bestPair.winRate}% de réussite sur ${bestPair.sampleSize} trades.`
     );
   }
-  if (bestSession && bestSession.totalNetPnL > 0) {
+  if (bestKillzone && bestKillzone.totalNetPnL > 0) {
     recurringConditions.push(
-      `Session la plus rentable : ${bestSession.label} (P&L net ${bestSession.totalNetPnL >= 0 ? '+' : ''}${bestSession.totalNetPnL}).`
+      `Killzone la plus rentable : ${bestKillzone.label} (P&L net ${bestKillzone.totalNetPnL >= 0 ? '+' : ''}${bestKillzone.totalNetPnL}).`
     );
   }
   if (buyPerf && sellPerf && buyPerf.closedTrades > 0 && sellPerf.closedTrades > 0) {
@@ -552,7 +552,7 @@ export function calculateMyEdgeDeepAudit(
   return {
     setups: setupPerformances,
     pairs: pairPerformances,
-    sessions: sessionPerformances,
+    killzones: killzonePerformances,
     directions: directionPerformances,
     combinations,
     verdict: {
@@ -560,8 +560,8 @@ export function calculateMyEdgeDeepAudit(
       worstSetup,
       bestPair,
       worstPair,
-      bestSession,
-      worstSession,
+      bestKillzone,
+      worstKillzone,
       buyPerformance: buyPerf,
       sellPerformance: sellPerf,
       topCombination: topCombo,

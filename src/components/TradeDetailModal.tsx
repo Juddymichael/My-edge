@@ -79,7 +79,7 @@ export const TradeDetailModal: React.FC<TradeDetailModalProps> = ({
                 <DataQualityBadge quality={trade.dataQuality} />
               </div>
               <p className="text-xs text-slate-500 dark:text-slate-400 font-normal">
-                {new Date(trade.openedAt).toISOString().slice(0, 16).replace('T', ' ')} • {trade.session ?? 'No session'} • {trade.timeframe ?? 'No timeframe'}
+                {new Date(trade.openedAt).toISOString().slice(0, 16).replace('T', ' ')} • {trade.session ?? 'No killzone'} • {trade.timeframe ?? 'No timeframe'}
               </p>
             </div>
           </div>

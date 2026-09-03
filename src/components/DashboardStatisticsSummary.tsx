@@ -4,7 +4,7 @@ import { Trade } from '../types/trade';
 import { UserSettings } from '../types/settings';
 import { calculateComprehensiveMetrics } from '../lib/calculations';
 import { formatCurrency } from '../lib/formatting';
-import { getTradeSession } from '../lib/tradingSession';
+import { getTradeKillzone } from '../lib/tradingSession';
 
 interface Props { trades?: Trade[]; settings: UserSettings; }
 
@@ -24,7 +24,7 @@ export const DashboardStatisticsSummary: React.FC<Props> = ({ trades = [], setti
   const data = useMemo(() => {
     const closed = safeTrades.filter(t => t.status === 'CLOSED' && typeof t.netPnL === 'number');
     const pair = bestDimension(closed, t => (t.symbol || '').toUpperCase().trim());
-    const session = bestDimension(closed, t => getTradeSession(t));
+    const killzone = bestDimension(closed, t => getTradeKillzone(t));
     const weekdays = ['Dimanche', 'Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi'];
     const day = bestDimension(closed, t => { const d = new Date(t.closedAt || t.openedAt); return Number.isNaN(d.getTime()) ? '' : weekdays[d.getUTCDay()]; });
     return { pair, session, day };

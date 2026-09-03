@@ -155,7 +155,7 @@ export const TradeTable: React.FC<Props> = ({
               <th className="py-3 px-4 font-bold">P&amp;L Net</th>
               <th className="py-3 px-4 font-bold">R-Multiple</th>
               <th className="py-3 px-4 font-bold">Risque / Solde</th>
-              <th className="py-3 px-4 font-bold">Setup / Session</th>
+              <th className="py-3 px-4 font-bold">Setup / Killzone</th>
               <th className="py-3 px-4 text-right font-bold">Actions</th>
             </tr>
           </thead>
@@ -275,7 +275,7 @@ export const TradeTable: React.FC<Props> = ({
                     </div>
                   </td>
 
-                  {/* Setup & Session */}
+                  {/* Setup & Killzone */}
                   <td className="py-3 px-4 whitespace-nowrap">
                     <div className="text-[#0F0E26] dark:text-[#F5F5F5] font-bold truncate max-w-[130px]" title={trade.setup ?? ''}>
                       {trade.setup || '—'}

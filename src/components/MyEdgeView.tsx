@@ -30,7 +30,7 @@ import { Setup } from '../types/setup';
 import {
   calculateMyEdgeDeepAudit,
   DimensionPerformance,
-  SetupPairSessionCombo,
+  SetupPairKillzoneCombo,
   EdgeScoreBreakdown,
 } from '../lib/calculations/edge';
 import { formatCurrency, formatRMultiple, formatPercent, formatDecimal } from '../lib/formatting';
@@ -45,7 +45,7 @@ interface MyEdgeViewProps {
   onSelectTrade?: (trade: Trade) => void;
 }
 
-type EdgeTab = 'verdict' | 'combos' | 'setups' | 'pairs' | 'sessions' | 'directions';
+type EdgeTab = 'verdict' | 'combos' | 'setups' | 'pairs' | 'killzones' | 'directions';
 
 export const MyEdgeView: React.FC<MyEdgeViewProps> = ({
   trades = [],
@@ -63,7 +63,7 @@ export const MyEdgeView: React.FC<MyEdgeViewProps> = ({
   const [selectedPeriod, setSelectedPeriod] = useState<string>('ALL');
   const [selectedSymbol, setSelectedSymbol] = useState<string>('ALL');
   const [selectedSetup, setSelectedSetup] = useState<string>('ALL');
-  const [selectedSession, setSelectedSession] = useState<string>('ALL');
+  const [selectedKillzone, setSelectedKillzone] = useState<string>('ALL');
   const [selectedDirection, setSelectedDirection] = useState<string>('ALL');
   const [selectedResult, setSelectedResult] = useState<string>('ALL');
   const [openFilter, setOpenFilter] = useState<'period'|'symbol'|'setup'|'session'|'direction'|'result'|null>(null);
@@ -140,10 +140,10 @@ export const MyEdgeView: React.FC<MyEdgeViewProps> = ({
         if (s !== selectedSetup) return false;
       }
 
-      // 4. Session
-      if (selectedSession !== 'ALL') {
+      // 4. Killzone
+      if (selectedKillzone !== 'ALL') {
         const sess = (t.session || '').toUpperCase().trim();
-        if (sess !== selectedSession) return false;
+        if (sess !== selectedKillzone) return false;
       }
 
       // 5. Direction
@@ -164,7 +164,7 @@ export const MyEdgeView: React.FC<MyEdgeViewProps> = ({
     selectedPeriod,
     selectedSymbol,
     selectedSetup,
-    selectedSession,
+    selectedKillzone,
     selectedDirection,
     selectedResult,
   ]);
@@ -177,7 +177,7 @@ export const MyEdgeView: React.FC<MyEdgeViewProps> = ({
   const {
     setups: setupStats,
     pairs: pairStats,
-    sessions: sessionStats,
+    killzones: killzoneStats,
     directions: dirStats,
     combinations: comboStats,
     verdict,
@@ -261,9 +261,9 @@ export const MyEdgeView: React.FC<MyEdgeViewProps> = ({
               </span>
             </div>
             <div className="px-3 py-1.5 rounded-xl bg-white dark:bg-[#12151D] border border-slate-200 dark:border-[#292E38] text-center">
-              <span className="text-[10px] text-slate-500 dark:text-[#9299A8] block font-normal">Meilleure Session</span>
+              <span className="text-[10px] text-slate-500 dark:text-[#9299A8] block font-normal">Meilleure Killzone</span>
               <span className="text-xs font-bold text-[var(--edge-accent-hover)] dark:text-[#FDBA74]">
-                {verdict.bestSession ? verdict.bestSession.label : 'N/A'}
+                {verdict.bestKillzone ? verdict.bestKillzone.label : 'N/A'}
               </span>
             </div>
           </div>
@@ -276,15 +276,15 @@ export const MyEdgeView: React.FC<MyEdgeViewProps> = ({
           <div className="lg:w-[245px] shrink-0 space-y-1.5">
             <div className="flex items-center gap-2 px-2 pb-1 text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-[#9299A8]"><Filter className="w-3.5 h-3.5 text-[var(--edge-accent)]"/><span>Filtres Edge</span></div>
             {([
-              ['period','Période',Calendar],['symbol','Paire',Globe],['setup','Setup / PD Array',Target],['session','Session',Flame],['direction','Direction',ArrowUpRight],['result','Résultat',BarChart2],
+              ['period','Période',Calendar],['symbol','Paire',Globe],['setup','Setup / PD Array',Target],['session','Killzone',Flame],['direction','Direction',ArrowUpRight],['result','Résultat',BarChart2],
             ] as const).map(([key,label,Icon])=>{
               const active = openFilter === key;
-              const hasValue = ({period:selectedPeriod,symbol:selectedSymbol,setup:selectedSetup,session:selectedSession,direction:selectedDirection,result:selectedResult} as Record<string,string>)[key] !== 'ALL';
+              const hasValue = ({period:selectedPeriod,symbol:selectedSymbol,setup:selectedSetup,session:selectedKillzone,direction:selectedDirection,result:selectedResult} as Record<string,string>)[key] !== 'ALL';
               return <button key={key} type="button" onClick={()=>setOpenFilter(active?null:key)} className={`w-full flex items-center justify-between gap-3 px-3 py-2.5 rounded-2xl border text-left btn-press transition-all duration-200 ${active ? 'bg-[var(--edge-accent-soft)] border-[var(--edge-accent-border)] text-[var(--edge-accent)]' : 'bg-slate-50 dark:bg-[#181C25] border-slate-200 dark:border-[#292E38] text-slate-700 dark:text-slate-200 hover:border-[var(--edge-accent-border)]'}`}>
                 <span className="flex items-center gap-2.5 min-w-0"><Icon className="w-4 h-4 shrink-0"/><span className="text-xs font-bold truncate">{label}</span>{hasValue&&<span className="w-1.5 h-1.5 rounded-full bg-[var(--edge-accent)] animate-pulse shrink-0" />}</span><ChevronDown className={`micro-chevron w-3.5 h-3.5 shrink-0 ${active?'rotate-180':''}`}/>
               </button>;
             })}
-            {(selectedPeriod !== 'ALL' || selectedSession !== 'ALL' || selectedDirection !== 'ALL' || selectedSymbol !== 'ALL' || selectedSetup !== 'ALL' || selectedResult !== 'ALL') && <button onClick={()=>{setSelectedPeriod('ALL');setSelectedSession('ALL');setSelectedDirection('ALL');setSelectedSymbol('ALL');setSelectedSetup('ALL');setSelectedResult('ALL');setOpenFilter(null);}} className="w-full mt-2 px-3 py-2 text-xs text-[var(--edge-accent)] hover:text-[var(--edge-accent-hover)] font-bold text-left rounded-xl hover:bg-[var(--edge-accent-soft)] transition-colors duration-200 btn-press">Réinitialiser les filtres</button>}
+            {(selectedPeriod !== 'ALL' || selectedKillzone !== 'ALL' || selectedDirection !== 'ALL' || selectedSymbol !== 'ALL' || selectedSetup !== 'ALL' || selectedResult !== 'ALL') && <button onClick={()=>{setSelectedPeriod('ALL');setSelectedKillzone('ALL');setSelectedDirection('ALL');setSelectedSymbol('ALL');setSelectedSetup('ALL');setSelectedResult('ALL');setOpenFilter(null);}} className="w-full mt-2 px-3 py-2 text-xs text-[var(--edge-accent)] hover:text-[var(--edge-accent-hover)] font-bold text-left rounded-xl hover:bg-[var(--edge-accent-soft)] transition-colors duration-200 btn-press">Réinitialiser les filtres</button>}
           </div>
           <div className="flex-1 min-w-0 min-h-[70px]">
             <div className={`edge-filter-panel h-full rounded-2xl border border-slate-200 dark:border-[#292E38] bg-slate-50 dark:bg-[#0B0D12] overflow-hidden ${openFilter ? 'is-open' : ''}`}>
@@ -292,7 +292,7 @@ export const MyEdgeView: React.FC<MyEdgeViewProps> = ({
                 {openFilter==='period'&&<div><p className="text-[10px] font-bold uppercase tracking-wider text-[var(--edge-accent)] mb-2">Période</p><div className="flex flex-wrap gap-2">{[['ALL','Toute la période'],['7D','7 derniers jours'],['30D','30 derniers jours'],['MONTH','Ce mois-ci'],['YEAR','Cette année']].map(([v,l])=><button key={v} onClick={()=>setSelectedPeriod(v)} className={`px-3 py-2 rounded-xl border text-xs font-bold btn-press ${selectedPeriod===v?'bg-[var(--edge-accent)] text-white border-[var(--edge-accent)]':'bg-white dark:bg-[#181C25] border-slate-200 dark:border-[#292E38] text-slate-700 dark:text-slate-200'}`}>{l}</button>)}</div></div>}
                 {openFilter==='symbol'&&<div><p className="text-[10px] font-bold uppercase tracking-wider text-[var(--edge-accent)] mb-2">Paire</p><div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-2">{[['ALL',`Toutes les paires (${availableSymbols.length})`],...availableSymbols.map(s=>[s,s])].map(([v,l])=><button key={v} onClick={()=>setSelectedSymbol(v)} className={`px-3 py-2 rounded-xl border text-xs font-bold text-left truncate btn-press ${selectedSymbol===v?'bg-[var(--edge-accent)] text-white border-[var(--edge-accent)]':'bg-white dark:bg-[#181C25] border-slate-200 dark:border-[#292E38] text-slate-700 dark:text-slate-200'}`}>{l}</button>)}</div></div>}
                 {openFilter==='setup'&&<div><p className="text-[10px] font-bold uppercase tracking-wider text-[var(--edge-accent)] mb-2">Setup / PD Array</p><div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-2">{[['ALL',`Tous les setups (${availableSetupsList.length})`],...availableSetupsList.map(s=>[s,s])].map(([v,l])=><button key={v} onClick={()=>setSelectedSetup(v)} className={`px-3 py-2 rounded-xl border text-xs font-bold text-left truncate btn-press ${selectedSetup===v?'bg-[var(--edge-accent)] text-white border-[var(--edge-accent)]':'bg-white dark:bg-[#181C25] border-slate-200 dark:border-[#292E38] text-slate-700 dark:text-slate-200'}`}>{l}</button>)}</div></div>}
-                {openFilter==='session'&&<div><p className="text-[10px] font-bold uppercase tracking-wider text-[var(--edge-accent)] mb-2">Session</p><div className="flex flex-wrap gap-2">{[['ALL','Toutes les sessions'],['LONDON','Londres (London)'],['NEW_YORK','New York'],['TOKYO','Tokyo / Asie'],['SYDNEY','Sydney']].map(([v,l])=><button key={v} onClick={()=>setSelectedSession(v)} className={`px-3 py-2 rounded-xl border text-xs font-bold btn-press ${selectedSession===v?'bg-[var(--edge-accent)] text-white border-[var(--edge-accent)]':'bg-white dark:bg-[#181C25] border-slate-200 dark:border-[#292E38] text-slate-700 dark:text-slate-200'}`}>{l}</button>)}</div></div>}
+                {openFilter==='session'&&<div><p className="text-[10px] font-bold uppercase tracking-wider text-[var(--edge-accent)] mb-2">Killzone</p><div className="flex flex-wrap gap-2">{[['ALL','Toutes les killzones'],['LONDON','Killzone Londres'],['NEW_YORK','New York'],['TOKYO','Tokyo / Asie'],['Killzone Sydney','Sydney']].map(([v,l])=><button key={v} onClick={()=>setSelectedKillzone(v)} className={`px-3 py-2 rounded-xl border text-xs font-bold btn-press ${selectedKillzone===v?'bg-[var(--edge-accent)] text-white border-[var(--edge-accent)]':'bg-white dark:bg-[#181C25] border-slate-200 dark:border-[#292E38] text-slate-700 dark:text-slate-200'}`}>{l}</button>)}</div></div>}
                 {openFilter==='direction'&&<div><p className="text-[10px] font-bold uppercase tracking-wider text-[var(--edge-accent)] mb-2">Direction</p><div className="flex flex-wrap gap-2">{[['ALL','Toutes directions (BUY & SELL)'],['BUY','Achats uniquement (BUY)'],['SELL','Ventes uniquement (SELL)']].map(([v,l])=><button key={v} onClick={()=>setSelectedDirection(v)} className={`px-3 py-2 rounded-xl border text-xs font-bold btn-press ${selectedDirection===v?'bg-[var(--edge-accent)] text-white border-[var(--edge-accent)]':'bg-white dark:bg-[#181C25] border-slate-200 dark:border-[#292E38] text-slate-700 dark:text-slate-200'}`}>{l}</button>)}</div></div>}
                 {openFilter==='result'&&<div><p className="text-[10px] font-bold uppercase tracking-wider text-[var(--edge-accent)] mb-2">Résultat</p><div className="flex flex-wrap gap-2">{[['ALL','Tous résultats'],['WIN','Gagnants uniquement'],['LOSS','Perdants uniquement'],['BREAKEVEN','Breakeven uniquement']].map(([v,l])=><button key={v} onClick={()=>setSelectedResult(v)} className={`px-3 py-2 rounded-xl border text-xs font-bold btn-press ${selectedResult===v?'bg-[var(--edge-accent)] text-white border-[var(--edge-accent)]':'bg-white dark:bg-[#181C25] border-slate-200 dark:border-[#292E38] text-slate-700 dark:text-slate-200'}`}>{l}</button>)}</div></div>}
               </div>}
@@ -333,7 +333,7 @@ export const MyEdgeView: React.FC<MyEdgeViewProps> = ({
           }`}
         >
           <Layers className="w-3.5 h-3.5" />
-          <span>Combinaisons Setup × Paire × Session</span>
+          <span>Combinaisons Setup × Paire × Killzone</span>
         </button>
 
         <button
@@ -361,15 +361,15 @@ export const MyEdgeView: React.FC<MyEdgeViewProps> = ({
         </button>
 
         <button
-          onClick={() => setActiveTab('sessions')}
+          onClick={() => setActiveTab('killzones')}
           className={`px-4 py-2 rounded-2xl text-xs font-bold transition cursor-pointer flex items-center gap-1.5 ${
-            activeTab === 'sessions'
+            activeTab === 'killzones'
               ? 'bg-slate-100 dark:bg-[#181C25] text-[var(--edge-accent)] border border-[var(--edge-accent-border)] shadow-xs'
               : 'text-slate-500 dark:text-[#9299A8] hover:text-slate-900 dark:hover:text-[#F5F5F5]'
           }`}
         >
           <Calendar className="w-3.5 h-3.5" />
-          <span>Par Session / Killzone</span>
+          <span>Par Killzone / Killzone</span>
         </button>
 
         <button
@@ -480,34 +480,34 @@ export const MyEdgeView: React.FC<MyEdgeViewProps> = ({
             <div className="p-5 rounded-3xl bg-white dark:bg-[#12151D] border border-slate-200 dark:border-[#292E38] shadow-sm dark:shadow-md flex flex-col justify-between">
               <div>
                 <div className="flex items-center justify-between text-xs mb-1.5">
-                  <span className="text-slate-500 dark:text-[#9299A8] font-medium">Meilleure Session</span>
-                  {verdict.bestSession && (
+                  <span className="text-slate-500 dark:text-[#9299A8] font-medium">Meilleure Killzone</span>
+                  {verdict.bestKillzone && (
                     <span className="px-2 py-0.5 rounded-lg text-[10px] font-bold bg-slate-100 dark:bg-[#181C25] text-[var(--edge-accent-hover)] dark:text-[#FDBA74] border border-slate-200 dark:border-[#292E38]">
-                      n = {verdict.bestSession.sampleSize}
+                      n = {verdict.bestKillzone.sampleSize}
                     </span>
                   )}
                 </div>
                 <div className="text-lg font-bold text-slate-900 dark:text-[#F5F5F5]">
-                  {verdict.bestSession ? verdict.bestSession.label : 'N/A'}
+                  {verdict.bestKillzone ? verdict.bestKillzone.label : 'N/A'}
                 </div>
               </div>
 
-              {verdict.bestSession && (
+              {verdict.bestKillzone && (
                 <div className="mt-4 pt-3 border-t border-slate-100 dark:border-[#292E38] space-y-1 text-xs">
                   <div className="flex justify-between">
                     <span className="text-slate-500 dark:text-[#9299A8]">Win Rate :</span>
-                    <span className="font-bold text-[var(--edge-accent)]">{verdict.bestSession.winRate}%</span>
+                    <span className="font-bold text-[var(--edge-accent)]">{verdict.bestKillzone.winRate}%</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-slate-500 dark:text-[#9299A8]">P&amp;L Net :</span>
                     <span className="font-bold text-[var(--edge-accent-hover)] dark:text-[#FDBA74]">
-                      +{formatCurrency(verdict.bestSession.totalNetPnL, currency)}
+                      +{formatCurrency(verdict.bestKillzone.totalNetPnL, currency)}
                     </span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-slate-500 dark:text-[#9299A8]">Gains bruts :</span>
                     <span className="font-semibold text-slate-900 dark:text-[#F5F5F5]">
-                      +{formatCurrency(verdict.bestSession.grossProfit, currency)}
+                      +{formatCurrency(verdict.bestKillzone.grossProfit, currency)}
                     </span>
                   </div>
                 </div>
@@ -579,7 +579,7 @@ export const MyEdgeView: React.FC<MyEdgeViewProps> = ({
             <div className="flex items-center justify-between">
               <div>
                 <h2 className="text-base font-bold text-slate-900 dark:text-[#F5F5F5] tracking-tight">
-                  Top Combinaisons Gagnantes (Setup × Paire × Session)
+                  Top Combinaisons Gagnantes (Setup × Paire × Killzone)
                 </h2>
                 <p className="text-xs text-slate-500 dark:text-[#9299A8] font-normal">
                   Identifiez exactement la confluence multi-facteurs la plus rentable et son Edge Score transparent
@@ -714,7 +714,7 @@ export const MyEdgeView: React.FC<MyEdgeViewProps> = ({
               <thead>
                 <tr className="border-b border-slate-200 dark:border-[#292E38] text-slate-500 dark:text-[#9299A8] uppercase text-[10px] tracking-wider">
                   <th className="pb-3 font-semibold">Paire</th>
-                  <th className="pb-3 font-semibold">Session</th>
+                  <th className="pb-3 font-semibold">Killzone</th>
                   <th className="pb-3 font-semibold">Setup</th>
                   <th className="pb-3 font-semibold text-center">Trades (n)</th>
                   <th className="pb-3 font-semibold text-center">Win Rate</th>
@@ -1005,21 +1005,21 @@ export const MyEdgeView: React.FC<MyEdgeViewProps> = ({
       )}
 
       {/* 9. TAB 5: ANALYSE PAR SESSION / KILLZONE */}
-      {activeTab === 'sessions' && (
+      {activeTab === 'killzones' && (
         <div className="p-6 rounded-3xl bg-white dark:bg-[#12151D] border border-slate-200 dark:border-[#292E38] shadow-sm dark:shadow-md space-y-4">
           <h2 className="text-base font-bold text-slate-900 dark:text-[#F5F5F5] tracking-tight">
-            Performance par Session &amp; Killzone ({sessionStats.length})
+            Performance par Killzone &amp; Killzone ({killzoneStats.length})
           </h2>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            {sessionStats.map((s) => (
+            {killzoneStats.map((s) => (
               <div
                 key={s.key}
                 className="p-5 rounded-3xl bg-slate-50 dark:bg-[#181C25] border border-slate-200 dark:border-[#292E38] shadow-xs flex flex-col justify-between space-y-4"
               >
                 <div>
                   <div className="flex items-center justify-between text-xs mb-1.5">
-                    <span className="text-slate-500 dark:text-[#9299A8] font-medium">Session</span>
+                    <span className="text-slate-500 dark:text-[#9299A8] font-medium">Killzone</span>
                     <span className="px-2 py-0.5 rounded-lg text-[10px] font-bold bg-white dark:bg-[#12151D] text-[var(--edge-accent-hover)] dark:text-[#FDBA74] border border-slate-200 dark:border-[#292E38]">
                       n = {s.sampleSize}
                     </span>
@@ -1062,12 +1062,12 @@ export const MyEdgeView: React.FC<MyEdgeViewProps> = ({
                     onClick={() =>
                       inspectClusterTrades(s.label, (t) => {
                         let sess = (t.session || 'AUTRE').toUpperCase().trim();
-                        if (sess === 'LONDON' || sess === 'LONDRES') sess = 'Londres (London)';
+                        if (sess === 'LONDON' || sess === 'LONDRES') sess = 'Killzone Londres';
                         else if (sess === 'NEW_YORK' || sess === 'NEW YORK' || sess === 'NY')
                           sess = 'New York';
                         else if (sess === 'TOKYO' || sess === 'ASIE' || sess === 'ASIA')
-                          sess = 'Tokyo (Asie)';
-                        else if (sess === 'SYDNEY') sess = 'Sydney';
+                          sess = 'Killzone Asia';
+                        else if (sess === 'Killzone Sydney') sess = 'Sydney';
                         else sess = t.session || 'Standard / Non spécifié';
                         return sess === s.key;
                       })
@@ -1396,7 +1396,7 @@ export const MyEdgeView: React.FC<MyEdgeViewProps> = ({
                   <tr className="border-b border-slate-200 dark:border-[#292E38] text-slate-500 dark:text-[#9299A8] uppercase text-[10px] tracking-wider">
                     <th className="pb-2.5 font-semibold">Symbole</th>
                     <th className="pb-2.5 font-semibold">Sens</th>
-                    <th className="pb-2.5 font-semibold">Session</th>
+                    <th className="pb-2.5 font-semibold">Killzone</th>
                     <th className="pb-2.5 font-semibold">Date Clôture</th>
                     <th className="pb-2.5 font-semibold text-right">P&amp;L Net</th>
                     <th className="pb-2.5 font-semibold text-right">R-Multiple</th>

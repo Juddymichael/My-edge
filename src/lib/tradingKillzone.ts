@@ -1,4 +1,4 @@
-import { Trade, TradingSession } from '../types/trade';
+import { Trade, TradingKillzone } from '../types/trade';
 
 /**
  * Trade timestamps are stored as ISO 8601 instants. The seed/import pipeline
@@ -8,8 +8,8 @@ import { Trade, TradingSession } from '../types/trade';
  */
 export const KILLZONE_OFFSET_HOURS = -5;
 
-export const SESSION_LABELS: Record<'LONDON' | 'NEW_YORK' | 'LONDON_CLOSE' | 'OFF_SESSION', Exclude<TradingSession, null>> = {
-  LONDON: 'Killzone London',
+export const KILLZONE_LABELS: Record<'LONDON' | 'NEW_YORK' | 'LONDON_CLOSE' | 'OFF_SESSION', Exclude<TradingKillzone, null>> = {
+  LONDON: 'Killzone Londres',
   NEW_YORK: 'Killzone New York',
   LONDON_CLOSE: 'Killzone London Close',
   OFF_SESSION: 'Hors Killzone',
@@ -26,13 +26,13 @@ export function getGmtMinus5Hour(dateString: string): number {
   return minute < 0 ? 0 : minute / 60;
 }
 
-function isMissingSession(session: Trade['session']): boolean {
+function isMissingKillzone(session: Trade['session']): boolean {
   return session === null || session === undefined || session === 'NO_SESSION';
 }
 
 /**
  * Derive the killzone from the trade opening instant after converting it to
- * fixed GMT-5. Manually entered sessions are preserved, except the legacy
+ * fixed GMT-5. Manually entered killzones are preserved, except the legacy
  * NO_SESSION placeholder which is treated as missing and recalculated.
  *
  * London:       02:00–05:01 GMT-5
@@ -43,19 +43,19 @@ function isMissingSession(session: Trade['session']): boolean {
  * The source ranges overlap at 10:00–10:01; London Close takes precedence
  * so every trade belongs to exactly one bucket.
  */
-export function deriveTradingSession(trade: Pick<Trade, 'openedAt' | 'session'>): TradingSession {
-  if (!isMissingSession(trade.session)) return trade.session;
+export function deriveTradingKillzone(trade: Pick<Trade, 'openedAt' | 'session'>): TradingKillzone {
+  if (!isMissingKillzone(trade.session)) return trade.session;
 
   const minute = getGmtMinus5MinuteOfDay(trade.openedAt);
-  if (minute < 0) return SESSION_LABELS.OFF_SESSION;
-  if (minute >= 120 && minute <= 301) return SESSION_LABELS.LONDON;
-  if (minute >= 600 && minute <= 721) return SESSION_LABELS.LONDON_CLOSE;
-  if (minute >= 420 && minute <= 601) return SESSION_LABELS.NEW_YORK;
-  return SESSION_LABELS.OFF_SESSION;
+  if (minute < 0) return KILLZONE_LABELS.OFF_SESSION;
+  if (minute >= 120 && minute <= 301) return KILLZONE_LABELS.LONDON;
+  if (minute >= 600 && minute <= 721) return KILLZONE_LABELS.LONDON_CLOSE;
+  if (minute >= 420 && minute <= 601) return KILLZONE_LABELS.NEW_YORK;
+  return KILLZONE_LABELS.OFF_SESSION;
 }
 
-export function getTradeSession(trade: Pick<Trade, 'openedAt' | 'session'>): TradingSession {
-  return deriveTradingSession(trade);
+export function getTradeKillzone(trade: Pick<Trade, 'openedAt' | 'session'>): TradingKillzone {
+  return deriveTradingKillzone(trade);
 }
 
 export function getHoldingMinutes(trade: Pick<Trade, 'openedAt' | 'closedAt'>): number | null {
@@ -78,6 +78,6 @@ export function getHoldingTimeBucket(minutes: number | null): string | null {
   return '8 h+';
 }
 
-export function normalizedSessionForAudit(trade: Trade): TradingSession | string {
-  return trade.session || getTradeSession(trade);
+export function normalizedKillzoneForAudit(trade: Trade): TradingKillzone | string {
+  return trade.session || getTradeKillzone(trade);
 }

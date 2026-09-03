@@ -177,16 +177,16 @@ const getStatus = (stats: DimensionPerformance) => {
   return { label: 'En observation', className: 'bg-amber-500/10 text-amber-500 border-amber-500/30' };
 };
 
-const bestSessionForSetup = (setupKey: string, trades: Trade[]) => {
+const bestKillzoneForSetup = (setupKey: string, trades: Trade[]) => {
   const setupTrades = trades.filter((trade) => getSetupName(trade) === setupKey);
   const bySession = new Map<string, Trade[]>();
   setupTrades.forEach((trade) => {
-    const session = trade.session || 'Non spécifiée';
+    const killzone = trade.session || 'Non spécifiée';
     const bucket = bySession.get(session) || [];
     bucket.push(trade);
     bySession.set(session, bucket);
   });
-  const candidates = Array.from(bySession.entries()).map(([session, cluster]) => analyzeCluster(cluster, session, session, 'Session'));
+  const candidates = Array.from(bySession.entries()).map(([session, cluster]) => analyzeCluster(cluster, session, session, 'Killzone'));
   return candidates.sort((a, b) => b.monetaryExpectancy - a.monetaryExpectancy || b.winRate - a.winRate || b.sampleSize - a.sampleSize)[0] || null;
 };
 
@@ -201,8 +201,8 @@ export const SetupComparison: React.FC<SetupComparisonProps> = ({ setupStats, tr
 
   const left = setupStats.find((setup) => setup.key === leftKey) || null;
   const right = setupStats.find((setup) => setup.key === rightKey) || null;
-  const leftSession = left ? bestSessionForSetup(left.key, trades) : null;
-  const rightSession = right ? bestSessionForSetup(right.key, trades) : null;
+  const leftSession = left ? bestKillzoneForSetup(left.key, trades) : null;
+  const rightSession = right ? bestKillzoneForSetup(right.key, trades) : null;
 
   const comparisonNote = useMemo(() => {
     if (!left || !right) return 'Sélectionnez deux setups pour comparer leurs performances réelles.';

@@ -11,7 +11,7 @@ import {
 import { calculateNetPnL } from '../../calculations/pnl';
 import { calculateRMultiple } from '../../calculations/rMultiple';
 import { calculateRiskPercent } from '../../calculations/risk';
-import { getTradeSession } from '../../tradingSession';
+import { getTradeKillzone } from '../../tradingSession';
 
 export class TradeRepository {
   /**
@@ -50,7 +50,7 @@ export class TradeRepository {
       if (missingSessions.length > 0) {
         const normalized = missingSessions.map((trade) => ({
           ...trade,
-          session: getTradeSession({ openedAt: trade.openedAt, session: trade.session }),
+          session: getTradeKillzone({ openedAt: trade.openedAt, session: trade.session }),
           updatedAt: new Date().toISOString(),
         }));
         await db.trades.bulkPut(normalized);
@@ -146,7 +146,7 @@ export class TradeRepository {
       rMultiple,
       balanceBefore: input.balanceBefore ?? null,
       balanceAfter: input.balanceAfter ?? null,
-      session: getTradeSession({ openedAt: input.openedAt, session: input.session ?? null }) as Trade['session'],
+      session: getTradeKillzone({ openedAt: input.openedAt, session: input.session ?? null }) as Trade['session'],
       timeframe: input.timeframe ?? null,
       setup: input.setup ?? null,
       setupId: input.setupId ?? null,

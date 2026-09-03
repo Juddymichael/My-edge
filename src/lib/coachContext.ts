@@ -37,8 +37,8 @@ export interface CoachContextPayload {
     rating: string;
     confidenceTier: string;
   }>;
-  sessions: Array<{
-    session: string;
+  killzones: Array<{
+    killzone: string;
     sampleSize: number;
     winRate: number;
     netPnL: number;
@@ -60,8 +60,8 @@ export interface CoachContextPayload {
     worstSetup: string | null;
     bestPair: string | null;
     worstPair: string | null;
-    bestSession: string | null;
-    worstSession: string | null;
+    bestKillzone: string | null;
+    worstKillzone: string | null;
     topCombination: string | null;
     keyTakeaway: string;
     recurringConditions: string[];
@@ -98,7 +98,7 @@ export interface CoachContextPayload {
     symbol: string;
     direction: string;
     setup: string;
-    session: string;
+    killzone: string;
     rMultiple: number | null;
     netPnL: number | null;
     status: string;
@@ -183,8 +183,8 @@ export function buildCoachContext(
   }));
 
   // 4. Sessions Breakdown
-  const sessionsList = edgeAudit.sessions.map((s) => ({
-    session: s.label,
+  const killzonesList = edgeAudit.killzones.map((s) => ({
+    killzone: s.label,
     sampleSize: s.closedTrades,
     winRate: s.winRate,
     netPnL: s.totalNetPnL,
@@ -376,7 +376,7 @@ export function buildCoachContext(
       disciplineRate,
     },
     setups: setupsList,
-    sessions: sessionsList,
+    killzones: killzonesList,
     pairs: pairsList,
     directions,
     myEdgeVerdict: {
@@ -384,8 +384,8 @@ export function buildCoachContext(
       worstSetup: edgeAudit.verdict.worstSetup?.label || null,
       bestPair: edgeAudit.verdict.bestPair?.label || null,
       worstPair: edgeAudit.verdict.worstPair?.label || null,
-      bestSession: edgeAudit.verdict.bestSession?.label || null,
-      worstSession: edgeAudit.verdict.worstSession?.label || null,
+      bestKillzone: edgeAudit.verdict.bestKillzone?.label || null,
+      worstKillzone: edgeAudit.verdict.worstKillzone?.label || null,
       topCombination: edgeAudit.verdict.topCombination
         ? `${edgeAudit.verdict.topCombination.pair} en session ${edgeAudit.verdict.topCombination.session} (${edgeAudit.verdict.topCombination.setup})`
         : null,

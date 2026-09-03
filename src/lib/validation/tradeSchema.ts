@@ -3,13 +3,13 @@ import { z } from 'zod';
 export const TradeDirectionSchema = z.enum(['BUY', 'SELL']);
 export const TradeStatusSchema = z.enum(['OPEN', 'CLOSED', 'CANCELLED']);
 export const DataQualitySchema = z.enum(['VERIFIED', 'PARTIAL', 'NEEDS_REVIEW']);
-export const TradingSessionSchema = z.enum([
-  'SYDNEY',
+export const TradingKillzoneSchema = z.enum([
+  'Killzone Sydney',
   'TOKYO',
   'LONDON',
   'NEW_YORK',
   'CUSTOM',
-  'Killzone London',
+  'Killzone Londres',
   'Killzone New York',
   'Killzone London Close',
   'Hors Killzone',
@@ -50,7 +50,7 @@ export const TradeSchema = z.object({
   balanceBefore: z.number().positive().nullable(),
   balanceAfter: z.number().positive().nullable(),
 
-  session: TradingSessionSchema,
+  session: TradingKillzoneSchema,
   timeframe: z.string().nullable(),
   setup: z.string().nullable(),
   setupId: z.string().nullable().optional(),
