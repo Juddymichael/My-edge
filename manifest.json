@@ -1,8 +1,13 @@
 {
+  "id": "/",
   "name": "Thunder Edge - Institutional Edge Terminal",
   "short_name": "Thunder Edge",
+  "description": "Institutional trading journal, My Edge analytics and AI trading analysis.",
   "start_url": "/",
+  "scope": "/",
   "display": "standalone",
+  "display_override": ["window-controls-overlay", "standalone"],
+  "orientation": "portrait-primary",
   "background_color": "#0B0D12",
   "theme_color": "#6D3FD1",
   "icons": [
