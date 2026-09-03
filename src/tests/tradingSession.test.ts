@@ -9,9 +9,9 @@ describe('GMT-5 trading killzones', () => {
     expect(getTradeSession(trade('2026-08-03T10:01:00.000Z'))).toBe('Killzone London');
   });
 
-  it('uses New York killzone for 07:00–10:01 GMT-5', () => {
+  it('uses New York killzone before the 10:00 overlap', () => {
     expect(getTradeSession(trade('2026-08-03T12:00:00.000Z'))).toBe('Killzone New York');
-    expect(getTradeSession(trade('2026-08-03T15:01:00.000Z'))).toBe('Killzone New York');
+    expect(getTradeSession(trade('2026-08-03T14:59:00.000Z'))).toBe('Killzone New York');
   });
 
   it('gives London Close precedence over the 10:00 overlap', () => {
