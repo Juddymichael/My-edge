@@ -6,6 +6,7 @@ import { useRiskAlerts } from './hooks/useRiskAlerts';
 import { Sidebar, ActiveTab } from './components/Sidebar';
 import { TopBar } from './components/TopBar';
 import { MonthlyTradingBreakdownCard } from './components/MonthlyTradingBreakdownCard';
+import { DashboardStatisticsSummary } from './components/DashboardStatisticsSummary';
 import { CalendarView } from './components/CalendarView';
 import { CalculationVerificationPanel } from './components/CalculationVerificationPanel';
 import { TradeTable } from './components/TradeTable';
@@ -30,29 +31,15 @@ const viewMotion = { initial: { opacity: 0, y: 6 }, animate: { opacity: 1, y: 0 
 export default function App() {
   useEffect(() => {
     const handlePointerDown = (event: PointerEvent) => {
-      const target = event.target as Element | null;
-      const clickable = target?.closest<HTMLElement>('button:not(:disabled), [role="button"], a[href]');
+      const target = event.target as Element | null; const clickable = target?.closest<HTMLElement>('button:not(:disabled), [role="button"], a[href]');
       if (!clickable || clickable.closest('[data-ripple-ignore="true"]')) return;
-      clickable.classList.add('ripple-host');
-      const rect = clickable.getBoundingClientRect();
-      const ripple = document.createElement('span'); ripple.className = 'ripple-effect';
-      const size = Math.max(rect.width, rect.height); ripple.style.width = ripple.style.height = `${size}px`;
-      ripple.style.left = `${event.clientX - rect.left - size / 2}px`; ripple.style.top = `${event.clientY - rect.top - size / 2}px`;
-      clickable.appendChild(ripple); ripple.addEventListener('animationend', () => ripple.remove(), { once: true });
-    };
-    document.addEventListener('pointerdown', handlePointerDown); return () => document.removeEventListener('pointerdown', handlePointerDown);
+      clickable.classList.add('ripple-host'); const rect = clickable.getBoundingClientRect(); const ripple = document.createElement('span'); ripple.className = 'ripple-effect'; const size = Math.max(rect.width, rect.height); ripple.style.width = ripple.style.height = `${size}px`; ripple.style.left = `${event.clientX - rect.left - size / 2}px`; ripple.style.top = `${event.clientY - rect.top - size / 2}px`; clickable.appendChild(ripple); ripple.addEventListener('animationend', () => ripple.remove(), { once: true });
+    }; document.addEventListener('pointerdown', handlePointerDown); return () => document.removeEventListener('pointerdown', handlePointerDown);
   }, []);
   const { trades = [], isLoading, error, addTrade, removeTrade, clearAllTrades, seedDatabase, selectedTrade, setSelectedTrade, loadTrades } = useTrades();
-  const { settings, updateSettings } = useSettings();
-  const { setups = [] } = useSetups();
-  const { alerts, activeAlerts, unreadCount, markViewed, dismissAll } = useRiskAlerts(trades || [], settings);
-  const [activeTab, setActiveTab] = useState<ActiveTab>('dashboard');
-  const [calendarJumpMonth, setCalendarJumpMonth] = useState<{year:number;month:number}|null>(null);
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const [isCreateOpen, setIsCreateOpen] = useState(false); const [isImportOpen, setIsImportOpen] = useState(false); const [isBackupOpen, setIsBackupOpen] = useState(false); const [isSetupsOpen, setIsSetupsOpen] = useState(false);
-  const [notification, setNotification] = useState<{type:'success'|'error';message:string}|null>(null);
-  const safeTrades = trades || []; const safeSetups = setups || [];
-  const notify = (type:'success'|'error', message:string) => { setNotification({type,message}); setTimeout(() => setNotification(prev => prev?.message === message ? null : prev), 4000); };
+  const { settings, updateSettings } = useSettings(); const { setups = [] } = useSetups(); const { alerts, activeAlerts, unreadCount, dismissAll } = useRiskAlerts(trades || [], settings);
+  const [activeTab, setActiveTab] = useState<ActiveTab>('dashboard'); const [calendarJumpMonth, setCalendarJumpMonth] = useState<{year:number;month:number}|null>(null); const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false); const [isCreateOpen, setIsCreateOpen] = useState(false); const [isImportOpen, setIsImportOpen] = useState(false); const [isBackupOpen, setIsBackupOpen] = useState(false); const [isSetupsOpen, setIsSetupsOpen] = useState(false); const [notification, setNotification] = useState<{type:'success'|'error';message:string}|null>(null);
+  const safeTrades = trades || []; const safeSetups = setups || []; const notify = (type:'success'|'error', message:string) => { setNotification({type,message}); setTimeout(() => setNotification(prev => prev?.message === message ? null : prev), 4000); };
   const handleImportComplete = async (importedCount:number, duplicatesSkipped:number) => { await loadTrades(); notify('success', `Importation réussie : ${importedCount} trade(s) enregistré(s), ${duplicatesSkipped} doublon(s) ignoré(s).`); };
   const handleSeed = async () => { try { const res = await seedDatabase(); notify('success', `Loaded ${res.inserted} institutional trades with verified SMC setups.`); } catch (err) { notify('error', err instanceof Error ? err.message : 'Failed to seed database'); } };
   const handleClear = async () => { if (window.confirm('Are you sure you want to delete all trades from IndexedDB?')) { try { await clearAllTrades(); notify('success', 'Database cleared successfully.'); } catch { notify('error', 'Failed to clear database'); } } };
@@ -74,7 +61,7 @@ export default function App() {
               <CalculationVerificationPanel trades={safeTrades} settings={settings}/>
               {safeTrades.length>0&&<EquityCurveChart trades={safeTrades} initialBalance={settings.initialAccountBalance||10000} currency={settings.currency||'USD'}/>} 
               <MonthlyTradingBreakdownCard trades={safeTrades} currency={settings.currency||'USD'} onSelectTrade={setSelectedTrade} onNavigateToCalendar={(year,month)=>{setCalendarJumpMonth({year,month});setActiveTab('calendar')}}/>
-              {safeTrades.length>0&&<CalculationVerificationPanel trades={[]} settings={settings}/>
+              <DashboardStatisticsSummary trades={safeTrades} settings={settings}/>
               <TradeTable trades={safeTrades} onDelete={handleDeleteTrade} onSelect={setSelectedTrade} onSeed={handleSeed} onOpenCreate={()=>setIsCreateOpen(true)} onOpenImport={()=>setIsImportOpen(true)}/>
             </motion.div>}
             {activeTab === 'calendar' && <motion.div key="calendar" {...viewMotion}><CalendarView trades={safeTrades} currency={settings.currency||'USD'} onSelectTrade={setSelectedTrade} onSeed={handleSeed} initialYear={calendarJumpMonth?.year} initialMonth={calendarJumpMonth?.month}/></motion.div>}
