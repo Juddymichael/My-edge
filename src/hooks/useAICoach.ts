@@ -104,7 +104,7 @@ export function useAICoach(context: CoachContext | null = null) {
             continuation = true; continue;
           }
           if (streamedReply.trim()) await db.coachHistory.put({ id: assistantMessageId, role: 'model', text: streamedReply.trim(), timestamp: new Date().toISOString() });
-          else if (!streamResult.functionCall) await addMessage(createMessage('model', 'Le coach n’a pas renvoyé de réponse. Veuillez réessayer.', true));
+          else if (!streamResult.functionCalls.length) await addMessage(createMessage('model', 'Le coach n’a pas renvoyé de réponse. Veuillez réessayer.', true));
           break;
         }
 
