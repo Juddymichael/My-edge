@@ -1,0 +1,70 @@
+name: Killzone finalize
+on:
+  push:
+    branches: [main]
+permissions:
+  contents: write
+jobs:
+  finalize:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: oven-sh/setup-bun@v2
+      - name: Finalize terminology
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          def r(path,pairs):
+              p=Path(path); t=p.read_text(); o=t
+              for a,b in pairs: t=t.replace(a,b)
+              if t!=o:p.write_text(t)
+          r('src/lib/calculations/edge.ts',[("const [setup, pair, session] = comboKey.split('___');","const [setup, pair, killzone] = comboKey.split('___');")])
+          r('src/components/CreateTradeModal.tsx',[("const [session, setSession]","const [killzoneValue, setKillzoneValue]"),("        session,","        session: killzoneValue,"),("value={session}","value={killzoneValue}"),("setSession(","setKillzoneValue("),("Killzone Killzone","Killzone")])
+          r('src/components/MyEdgeAnalyzerFeatures.tsx',[("byKillzone.get(session)","byKillzone.get(killzone)"),("byKillzone.set(session, bucket)","byKillzone.set(killzone, bucket)"),("map(([session, cluster])","map(([killzone, cluster])"),("analyzeCluster(cluster, session, session, 'Killzone')","analyzeCluster(cluster, killzone, killzone, 'Killzone')"),("Meilleure session","Meilleure Killzone")])
+          r('src/components/MyEdgeAnalyzerView.tsx',[("map(([session,ts])","map(([killzone,ts])"),("return{session,wr:","return{killzone,wr:"),("bestKillzone(s,trades)?.session||'Killzone non déterminée'","bestKillzone(s,trades)?.killzone||'Killzone non déterminée'"),("pendant la session ${session}","pendant la Killzone ${killzone}"),("<b>Killzone :</b> ${esc(session)}","<b>Killzone :</b> ${esc(killzone)}")])
+          r('src/components/DashboardStatisticsSummary.tsx',[("const session = bestDimension(closed, t => getTradeKillzone(t));","const killzone = bestDimension(closed, t => getTradeKillzone(t));"),("return { pair, session, day };","return { pair, killzone, day };"),("data.session","data.killzone")])
+          r('src/components/MyEdgeView.tsx',[("'period'|'symbol'|'setup'|'session'|'direction'|'result'","'period'|'symbol'|'setup'|'killzone'|'direction'|'result'"),("session:selectedKillzone","killzone:selectedKillzone"),("openFilter==='session'","openFilter==='killzone'")])
+          r('src/components/AIAnalysisView.tsx',[("Performance par session","Performance par Killzone")])
+          r('src/components/AnalyticsView.tsx',[("{s.session}","{s.killzone}")])
+          r('src/lib/coachContext.ts',[(".topCombination.session",".topCombination.killzone"),("Sessions Breakdown","Killzones Breakdown"),(" en session ${edgeAudit.verdict.topCombination.killzone}"," pendant la Killzone ${edgeAudit.verdict.topCombination.killzone}")])
+          r('src/lib/validation/quality.ts',[("Trading session unassigned","Trading killzone unassigned")])
+          r('src/types/setup.ts',[("active session killzone","active killzone"),("key session or daily level","key killzone or daily level")])
+          r('src/types/settings.ts',[("export interface SessionConfig","export interface KillzoneConfig")])
+          r('src/lib/validation/settingsSchema.ts',[("SessionHoursSchema","KillzoneHoursSchema")])
+          # Global capitalized terminology is safe: persisted NO_SESSION is uppercase.
+          for p in Path('src').rglob('*'):
+              if p.suffix in {'.ts','.tsx'}:
+                  t=p.read_text(); u=t.replace('Session','Killzone')
+                  if u!=t:p.write_text(u)
+          # Restore the persisted Trade.session field after the global terminology pass.
+          for p in Path('src').rglob('*'):
+              if p.suffix in {'.ts','.tsx'}:
+                  t=p.read_text(); u=t.replace('trade.killzone','trade.session').replace('t.killzone','t.session').replace('input.killzone','input.session')
+                  if u!=t:p.write_text(u)
+          # Helper imports and business API names.
+          for p in Path('src').rglob('*'):
+              if p.suffix in {'.ts','.tsx'}:
+                  t=p.read_text(); u=t.replace('/lib/tradingSession','/lib/tradingKillzone').replace('getTradeSession','getTradeKillzone').replace('deriveTradingSession','deriveTradingKillzone').replace('TradingSession','TradingKillzone')
+                  if u!=t:p.write_text(u)
+          # Legacy sentinel remains a storage compatibility value; the UI fallback is Killzone wording.
+          r('src/components/TradeTable.tsx',[("trade.session || 'NO_SESSION'","trade.session || 'Hors Killzone'")])
+          PY
+          git diff --check
+          bun install --frozen-lockfile
+          bun run test -- --run src/tests/importRobustness.test.ts src/tests/riskPatterns.test.ts src/tests/myEdgeAnalyzerFeatures.test.ts src/tests/tradingSession.test.ts src/tests/dashboardDataIntegrity.test.ts
+          bun run lint
+          bun run build
+          echo '--- Old business names remaining ---'
+          git grep -nE '\bTradingSession\b|\btradingSession\b|getTradeSession|deriveTradingSession|normalizedSessionForAudit|selectedSession|bestSession|worstSession|SetupPairSessionCombo|sessionBreakdown|sessionPerformances|sessionMap' -- src || true
+          echo '--- Remaining Session/session wording requiring manual storage/schema review ---'
+          git grep -nE 'Session|session' -- src/components src/lib src/types | grep -vE 'trade\.session|t\.session|input\.session|session:|NO_SESSION|sessionSettings|SessionConfig|sessionSettings' || true
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add src
+          git rm -f .github/workflows/killzone-finalize.yml .github/workflows/validate-killzone-final.yml .github/workflows/validate-killzone-terminology.yml .github/workflows/repair-killzone.yml .github/workflows/finalrepair-killzone.yml || true
+          git commit -m 'refactor: complete killzone terminology migration'
+          git push origin main
