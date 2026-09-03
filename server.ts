@@ -30,18 +30,14 @@ app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
-// AI Coach endpoint — mirrors the Vercel serverless route for local development.
-app.post('/api/coach', async (req, res) => {
-  // Keep local development on the exact same implementation as the deployed
-  // Vercel route, including Gemini thoughtSignature preservation.
+// Structured AI Analysis endpoint — one-shot Gemini JSON generation.
+app.post('/api/ai-analysis', async (req, res) => {
   try {
-    const { default: coachHandler } = await import('./api/coach.js');
-    return coachHandler(req, res);
+    const { default: handler } = await import('./api/ai-analysis.js');
+    return handler(req, res);
   } catch (error: any) {
-    console.error('[AI Coach Error]:', error);
-    return res.status(500).json({
-      error: error?.message || 'Une erreur est survenue lors de la communication avec le coach IA.',
-    });
+    console.error('[AI Analysis Error]:', error);
+    return res.status(500).json({ error: error?.message || 'Une erreur est survenue lors de la génération de l’analyse IA.' });
   }
 });
 
