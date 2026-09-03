@@ -11,9 +11,47 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: oven-sh/setup-bun@v2
-      - run: bun --version
-      - run: bun install --frozen-lockfile
-      - run: bun run test -- --run src/tests/importRobustness.test.ts src/tests/riskPatterns.test.ts src/tests/myEdgeAnalyzerFeatures.test.ts src/tests/tradingSession.test.ts src/tests/dashboardDataIntegrity.test.ts
-      - run: bun run lint
-
-      # Terminology migration validation: Trade.session remains the persisted storage key.
+      - name: Apply Killzone terminology fixes
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          def r(path,pairs):
+              p=Path(path); t=p.read_text(); o=t
+              for a,b in pairs:t=t.replace(a,b)
+              if t!=o:p.write_text(t)
+          for p in Path('src').rglob('*'):
+              if p.suffix in {'.ts','.tsx'}:
+                  t=p.read_text()
+                  for a,b in [('TradingSession','TradingKillzone'),('getTradeSession','getTradeKillzone'),('deriveTradingSession','deriveTradingKillzone'),('normalizedSessionForAudit','normalizedKillzoneForAudit'),('SESSION_LABELS','KILLZONE_LABELS'),('isMissingSession','isMissingKillzone'),('SetupPairSessionCombo','SetupPairKillzoneCombo'),('selectedSession','selectedKillzone'),('setSelectedSession','setSelectedKillzone'),('sessionBreakdown','killzoneBreakdown'),('sessionPerformances','killzonePerformances'),('sessionMap','killzoneMap'),('sessionStats','killzoneStats'),('sessionName','killzoneName'),('bestSession','bestKillzone'),('worstSession','worstKillzone'),('bySession','byKillzone'),('leftSession','leftKillzone'),('rightSession','rightKillzone'),('sessionsList','killzonesList'),('/lib/tradingSession','/lib/tradingKillzone'),('Session','Killzone')]: t=t.replace(a,b)
+                  t=t.replace('sessions','killzones')
+                  p.write_text(t)
+          r('src/lib/calculations/edge.ts',[("const [setup, pair, session] = comboKey.split('___');","const [setup, pair, killzone] = comboKey.split('___');"),("pendant la session ${topCombo.killzone}","pendant la Killzone ${topCombo.killzone}"),("across Setups, Pairs, Sessions, Directions","across Setups, Pairs, Killzones, Directions")])
+          r('src/components/CreateTradeModal.tsx',[("const [session, setSession]","const [killzoneValue, setKillzoneValue]"),("        session,","        session: killzoneValue,"),("value={session}","value={killzoneValue}"),("setSession(","setKillzoneValue("),("Killzone Killzone","Killzone")])
+          r('src/components/MyEdgeAnalyzerFeatures.tsx',[("byKillzone.get(session)","byKillzone.get(killzone)"),("byKillzone.set(session, bucket)","byKillzone.set(killzone, bucket)"),("map(([session, cluster])","map(([killzone, cluster])"),("analyzeCluster(cluster, session, session, 'Killzone')","analyzeCluster(cluster, killzone, killzone, 'Killzone')")])
+          r('src/components/MyEdgeAnalyzerView.tsx',[("map(([session,ts])","map(([killzone,ts])"),("return{session,wr:","return{killzone,wr:"),("bestKillzone(s,trades)?.session||'Killzone non déterminée'","bestKillzone(s,trades)?.killzone||'Killzone non déterminée'"),("pendant la session ${session}","pendant la Killzone ${killzone}"),("<b>Killzone :</b> ${esc(session)}","<b>Killzone :</b> ${esc(killzone)}")])
+          r('src/components/DashboardStatisticsSummary.tsx',[("const session = bestDimension(closed, t => getTradeKillzone(t));","const killzone = bestDimension(closed, t => getTradeKillzone(t));"),("return { pair, session, day };","return { pair, killzone, day };")])
+          r('src/components/MyEdgeView.tsx',[("'period'|'symbol'|'setup'|'session'|'direction'|'result'","'period'|'symbol'|'setup'|'killzone'|'direction'|'result'"),("session:selectedKillzone","killzone:selectedKillzone"),("openFilter==='session'","openFilter==='killzone'")])
+          r('src/lib/coachContext.ts',[(".topCombination.session",".topCombination.killzone")])
+          r('src/lib/riskPatterns.ts',[("t.session==='Hors Killzone'||t.session==='NO_SESSION'","t.session==='OFF_HOURS'")])
+          r('src/tests/riskPatterns.test.ts',[("session:null,timeframe:'M15'","session:killzone==='LONDON_OPEN'?'LONDON':killzone==='OFF_HOURS'?'OFF_HOURS':null,timeframe:'M15'")])
+          r('src/types/trade.ts',[("'NEW_YORK' | 'CUSTOM' |","'NEW_YORK' | 'OFF_HOURS' | 'CUSTOM' |")])
+          r('src/components/TradeTable.tsx',[("trade.session || 'NO_SESSION'","trade.session || 'Hors Killzone'")])
+          if Path('src/lib/tradingSession.ts').exists(): Path('src/lib/tradingSession.ts').rename('src/lib/tradingKillzone.ts')
+          # Persisted Trade.session, settings storage, and NO_SESSION legacy values stay untouched.
+          for p in Path('src').rglob('*'):
+              if p.suffix in {'.ts','.tsx'}:
+                  t=p.read_text(); u=t.replace('trade.killzone','trade.session').replace('input.killzone','input.session')
+                  if u!=t:p.write_text(u)
+          PY
+          git diff --check
+          bun install --frozen-lockfile
+          bun run test -- --run src/tests/importRobustness.test.ts src/tests/riskPatterns.test.ts src/tests/myEdgeAnalyzerFeatures.test.ts src/tests/tradingSession.test.ts src/tests/dashboardDataIntegrity.test.ts
+          bun run lint
+          bun run build
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add src
+          git commit -m 'refactor: complete killzone terminology migration'
+          git push origin main
