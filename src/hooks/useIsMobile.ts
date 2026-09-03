@@ -4,7 +4,10 @@ export const MOBILE_BREAKPOINT = 768;
 
 /** Single source of truth for selecting the dedicated mobile UI. */
 export function useIsMobile(breakpoint = MOBILE_BREAKPOINT) {
-  const [isMobile, setIsMobile] = useState(false);
+  const [isMobile, setIsMobile] = useState(() => {
+    if (typeof window === 'undefined') return false;
+    return window.matchMedia(`(max-width: ${breakpoint - 1}px)`).matches;
+  });
 
   useEffect(() => {
     const mediaQuery = window.matchMedia(`(max-width: ${breakpoint - 1}px)`);
